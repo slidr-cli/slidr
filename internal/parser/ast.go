@@ -42,39 +42,21 @@ func clampDim(v int) int {
 	return v
 }
 
-// AspectMap maps named aspect ratios to [width, height] resolutions.
-type AspectMap map[string][2]int
-
-// DefaultAspects provides sensible defaults that callers can override.
-func DefaultAspects() AspectMap {
-	return AspectMap{
-		"16:9":  {1920, 1080},
-		"4:3":   {1920, 1440},
-		"16:10": {1920, 1200},
-	}
-}
-
 // Size resolves the size field into [width, height] pixels.
-// Accepted formats:
-//   "1920x1080"       explicit WxH (digits only, no trailing garbage)
-//   "[1920, 1080]"    JSON array (legacy)
-//   "16:9"            aspect ratio, resolved via aspects map
-//
-// Malformed input (e.g., "1920x1080trailing", "1920x", "abc") is rejected
-// and falls back to the default 1920x1080. Values outside [320, 7680] are clamped.
-func (m Meta) Size(aspects AspectMap) [2]int {
+//   "1920x1080"  explicit WxH
+//   "[1920,1080]" JSON array (legacy)
+//   "16:9"  → 1280x720  (Marp default)
+//   "4:3"   → 1024x768
+//   "16:10" → 1280x800
+func (m Meta) Size() [2]int {
 	raw := strings.TrimSpace(m.SizeRaw)
 	if raw == "" {
-		return [2]int{1920, 1080}
+		return [2]int{1280, 720}
 	}
 	if len(raw) > maxSizeLen {
-		return [2]int{1920, 1080}
-	}
-	if aspects == nil {
-		aspects = DefaultAspects()
+		return [2]int{1280, 720}
 	}
 
-	// "1920x1080" -- strict: digits, 'x', digits, nothing else.
 	if m := wxHRe.FindStringSubmatch(raw); m != nil {
 		w, _ := strconv.Atoi(m[1])
 		h, _ := strconv.Atoi(m[2])
@@ -83,7 +65,6 @@ func (m Meta) Size(aspects AspectMap) [2]int {
 		}
 	}
 
-	// "[1920, 1080]" -- legacy JSON array.
 	if m := arrayRe.FindStringSubmatch(raw); m != nil {
 		w, _ := strconv.Atoi(m[1])
 		h, _ := strconv.Atoi(m[2])
@@ -92,20 +73,25 @@ func (m Meta) Size(aspects AspectMap) [2]int {
 		}
 	}
 
-	// "16:9" -- named aspect ratio (exact match only, no trailing chars).
-	if dims, ok := aspects[raw]; ok {
-		return [2]int{clampDim(dims[0]), clampDim(dims[1])}
+	switch raw {
+	case "16:9":
+		return [2]int{1280, 720}
+	case "4:3":
+		return [2]int{1024, 768}
+	case "16:10":
+		return [2]int{1280, 800}
 	}
 
-	// Unknown format -- silently fall back to default.
-	return [2]int{1920, 1080}
+	return [2]int{1280, 720}
 }
 
 // Resolution returns the size as a "WxH" string.
-func (m Meta) Resolution(aspects AspectMap) string {
-	dims := m.Size(aspects)
+func (m Meta) Resolution() string {
+	dims := m.Size()
 	return fmt.Sprintf("%dx%d", dims[0], dims[1])
 }
+
+
 
 // ---- Document / Slide AST ----
 
@@ -332,6 +318,14 @@ func (Link) inlineNodeType() string { return "link" }
 type SoftBreak struct{}
 
 func (SoftBreak) inlineNodeType() string { return "softbreak" }
+
+// ImageNode is an inline image (from markdown ![alt](url)).
+type ImageNode struct {
+	URL string
+	Alt string
+}
+
+func (ImageNode) inlineNodeType() string { return "image" }
 
 // Tag is a colored pill badge.
 type Tag struct {

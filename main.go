@@ -152,7 +152,7 @@ func buildCmd() {
 	outName := strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
 
 	// Resolve slide dimensions (pixels to inches at 96 DPI).
-	dims := doc.Meta.Size(nil)
+	dims := doc.Meta.Size()
 	widthIn := float64(dims[0]) / 96.0
 	heightIn := float64(dims[1]) / 96.0
 

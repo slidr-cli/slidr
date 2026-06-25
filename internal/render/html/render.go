@@ -36,7 +36,7 @@ func Render(doc *parser.Document, t *theme.Theme) (string, error) {
 		return "", err
 	}
 
-	dims := doc.Meta.Size(nil)
+	dims := doc.Meta.Size()
 	w, h := dims[0], dims[1]
 	ratio := float64(w) / float64(h)
 
@@ -127,6 +127,10 @@ func renderAttrNode(n *parser.AttrNode) string {
 		return fmt.Sprintf("<div class=\"kicker\">%s</div>", template.HTMLEscapeString(n.Value))
 	case "subtitle":
 		return fmt.Sprintf("<p class=\"subtitle\">%s</p>", template.HTMLEscapeString(n.Value))
+	case "tiny":
+		return fmt.Sprintf("<p class=\"tiny\">%s</p>", template.HTMLEscapeString(n.Value))
+	case "muted":
+		return fmt.Sprintf("<p class=\"muted\">%s</p>", template.HTMLEscapeString(n.Value))
 	case "speaker":
 		name := n.Attrs["name"]
 		role := n.Attrs["role"]
@@ -172,13 +176,13 @@ func renderGridHTML(grid *parser.Grid, t *theme.Theme) (string, error) {
 	if cols == 0 {
 		cols = len(grid.Children)
 	}
-	cls := "grid"
-	switch cols {
-	case 2:
-		cls += " two"
-	case 4:
-		cls += " four"
+	if cols < 2 {
+		cols = 2
 	}
+
+	cls := "grid"
+	// Build column template and gap inline to ensure correct layout.
+	style := fmt.Sprintf("grid-template-columns: repeat(%d, 1fr); gap: %dpx;", cols, grid.Gap)
 	if grid.Class != "" {
 		cls += " " + grid.Class
 	}
@@ -191,7 +195,7 @@ func renderGridHTML(grid *parser.Grid, t *theme.Theme) (string, error) {
 		}
 		children = append(children, html)
 	}
-	return fmt.Sprintf("<div class=\"%s\">\n%s\n</div>", cls, strings.Join(children, "\n")), nil
+	return fmt.Sprintf("<div class=\"%s\" style=\"%s\">\n%s\n</div>", cls, style, strings.Join(children, "\n")), nil
 }
 
 func renderTableHTML(tbl *parser.Table) string {
@@ -243,6 +247,9 @@ func renderInlineHTML(nodes []parser.InlineNode) string {
 				template.HTMLEscapeString(v.URL), template.HTMLEscapeString(v.Text)))
 		case *parser.SoftBreak:
 			parts = append(parts, " ")
+		case *parser.ImageNode:
+			parts = append(parts, fmt.Sprintf("<img src=\"%s\" alt=\"%s\" />",
+				template.HTMLEscapeString(v.URL), template.HTMLEscapeString(v.Alt)))
 		}
 	}
 	return strings.Join(parts, "")

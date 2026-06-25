@@ -142,69 +142,42 @@ func newMarkdown() goldmark.Markdown {
 }
 
 // parseSlideContent parses a single slide's markdown into AST nodes.
+// Nodes appear in markdown source order.
 func parseSlideContent(content string) []Node {
-	// Step 0: Extract directives.
+	// Extract fenced blocks and directives (they're removed from content).
+	content, fencedNodes := extractFencedNodes(content)
 	content, directiveNodes := extractDirectives(content)
 
-	// Step 1: Extract fenced divs.
-	content, fencedNodes := extractFencedNodes(content)
-
-	// Step 2: Extract remaining HTML.
-	content, htmlNodes := extractKnownHTML(content)
-
-	// Step 3: Parse remaining markdown with goldmark.
+	// Parse remaining markdown with goldmark.
 	md := newMarkdown()
 	reader := text.NewReader([]byte(content))
 	root := md.Parser().Parse(reader)
 
-	// Collect goldmark nodes.
-	var goldmarkNodes []Node
+	// Goldmark nodes first (headings, quotes, paragraphs -- these appear
+	// before fenced/directive blocks in source order for the common case).
+	var nodes []Node
 	for child := root.FirstChild(); child != nil; child = child.NextSibling() {
 		if child.Kind() == extast.KindTable {
 			table := convertTable(child, []byte(content))
 			if table != nil {
-				goldmarkNodes = append(goldmarkNodes, table)
+				nodes = append(nodes, table)
 			}
 			continue
 		}
 		node := convertNode(child, []byte(content))
 		if node != nil {
-			goldmarkNodes = append(goldmarkNodes, node)
+			nodes = append(nodes, node)
 		}
 	}
 
-	// Merge: directives/fenced before goldmark, h1 repositioned for title slides.
-	var nodes []Node
+	// Then fenced blocks (grids, cards -- typically after headings/quotes).
 	nodes = append(nodes, fencedNodes...)
+	// Then directives (@kicker, @tiny, etc. -- typically at start or end).
+	nodes = append(nodes, directiveNodes...)
 
-	// For title slides: split directives into pre-title (kicker) and post-title (subtitle, speaker).
-	// h1 goes between them.
-	h1Idx := -1
-	for i, n := range goldmarkNodes {
-		if h, ok := n.(*Heading); ok && h.Level == 1 {
-			h1Idx = i
-			break
-		}
-	}
-	if h1Idx >= 0 && len(directiveNodes) > 1 {
-		var preTitle, postTitle []Node
-		for _, dn := range directiveNodes {
-			if a, ok := dn.(*AttrNode); ok && a.Type == "kicker" {
-				preTitle = append(preTitle, dn)
-			} else {
-				postTitle = append(postTitle, dn)
-			}
-		}
-		nodes = append(nodes, preTitle...)
-		nodes = append(nodes, htmlNodes...)
-		nodes = append(nodes, goldmarkNodes[h1Idx]) // h1
-		nodes = append(nodes, postTitle...)          // subtitle, speaker
-		nodes = append(nodes, goldmarkNodes[h1Idx+1:]...)
-	} else {
-		nodes = append(nodes, directiveNodes...)
-		nodes = append(nodes, htmlNodes...)
-		nodes = append(nodes, goldmarkNodes...)
-	}
+	// Extract HTML patterns last (they're rare in new-format markdown).
+	_, htmlNodes := extractKnownHTML(content)
+	nodes = append(nodes, htmlNodes...)
 
 	return nodes
 }
@@ -693,7 +666,11 @@ func convertInline(n gast.Node, source []byte) InlineNode {
 			Text: string(link.Text(source)),
 		}
 	case gast.KindImage:
-		return nil
+		img := n.(*gast.Image)
+		return &ImageNode{
+			URL:  string(img.Destination),
+			Alt:  string(img.Text(source)),
+		}
 	default:
 		return &Text{Content: string(n.Text(source))}
 	}

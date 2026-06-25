@@ -8,39 +8,41 @@
 /* ---- reset ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ---- theme (injected first so layout overrides win) ---- */
-{{.ThemeCSS}}
+/* ---- layout defaults (theme overrides these) ---- */
+section {
+  font-size: 20px; /* base for em units */
+}
 
-/* ---- layout defaults (after theme -- higher cascade priority) ---- */
-.grid { display: grid; gap: 16px; }
-.grid.two { grid-template-columns: 1fr 1fr; }
-.grid.four { grid-template-columns: repeat(4, 1fr); }
+.grid { display: grid; gap: 1em; }
 
 .card {
-  border-radius: 8px;
-  padding: 18px 20px;
+  border-radius: 0.4em;
+  padding: 0.8em 1em;
 }
 
 .quote {
-  border-left: 5px solid;
-  padding-left: 20px;
+  border-left: 0.25em solid;
+  padding-left: 1em;
 }
 
-.kicker { font-family: monospace; font-size: 18px; font-weight: 800; }
-.speaker { font-size: 23px; font-weight: 750; }
-.speaker span { display: block; font-size: 18px; font-weight: 500; }
+.kicker { font-family: monospace; font-size: 0.8em; font-weight: 800; }
+.speaker { font-size: 1.05em; font-weight: 750; }
+.speaker span { display: block; font-size: 0.8em; font-weight: 500; }
 
 table { border-collapse: collapse; width: 100%; }
-th, td { padding: 10px 14px; text-align: left; vertical-align: top; }
+th, td { padding: 0.5em 0.65em; text-align: left; vertical-align: top; }
 
 footer {
   position: absolute;
-  bottom: 20px;
-  left: 64px;
-  right: 64px;
+  bottom: 1em;
+  left: 3em;
+  right: 3em;
 }
 
-/* ---- screen mode: one slide at a time, aspect-ratio constrained ---- */
+/* ---- theme ---- */
+{{.ThemeCSS}}
+
+/* ---- screen mode ---- */
 @media screen {
   html, body {
     width: 100vw;
@@ -54,26 +56,17 @@ footer {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    /* Scale to fit viewport, preserving {{.SlideW}}x{{.SlideH}} aspect. */
+    overflow: hidden !important;
     width:  min(100vw, calc(100vh * {{.Ratio}}));
     height: min(100vh, calc(100vw / {{.Ratio}}));
-    overflow: hidden;
   }
   body > section.active {
     display: block !important;
   }
 
-  /* Title slide: center content block vertically.
-     Override in theme CSS with stronger selector if needed. */
-  .layout-title {
-    display: flex !important;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 100%;
-  }
 }
 
-/* ---- print mode: one slide per page ---- */
+/* ---- print mode ---- */
 @media print {
   @page {
     margin: 0;
@@ -98,7 +91,7 @@ footer {
     max-height: none !important;
     page-break-after: always;
     page-break-inside: avoid;
-    overflow: hidden;
+    overflow: hidden !important;
   }
   body > section:last-child {
     page-break-after: avoid;
