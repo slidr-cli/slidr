@@ -124,8 +124,12 @@ func buildCmd() {
 				fmt.Printf(" cols=%d children=%d", n.Cols, len(n.Children))
 			case *parser.Kicker:
 				fmt.Printf(": %s", n.Text)
+			case *parser.Subtitle:
+				fmt.Printf(": %s", n.Text)
 			case *parser.Speaker:
 				fmt.Printf(": %s / %s", n.Name, n.Role)
+			case *parser.AttrNode:
+				fmt.Printf(" %s: %s", n.Type, n.Value)
 			case *parser.ListNode:
 				fmt.Printf(" (%d items)", len(n.Items))
 			}
@@ -229,8 +233,12 @@ func dumpDebug(doc *parser.Document) {
 				fmt.Printf("headers=%v rows=%d\n", n.Headers, len(n.Rows))
 			case *parser.Kicker:
 				fmt.Printf("%q\n", n.Text)
+			case *parser.Subtitle:
+				fmt.Printf("%q\n", n.Text)
 			case *parser.Speaker:
 				fmt.Printf("%q / %q\n", n.Name, n.Role)
+			case *parser.AttrNode:
+				fmt.Printf("type=%q value=%q attrs=%v\n", n.Type, n.Value, n.Attrs)
 			case *parser.RawHTML:
 				s := n.Content
 				if len(s) > 100 {

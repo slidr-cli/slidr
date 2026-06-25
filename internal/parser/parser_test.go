@@ -5,23 +5,24 @@ import (
 	"testing"
 )
 
-func TestParseTable(t *testing.T) {
+func TestFencedGrid(t *testing.T) {
 	input := `---
 theme: test
-size: "1920x1080"
 ---
 
-## heading
+::: grid {cols=2}
+::: card{}
+### Card One
 
-| a | b | c |
-|---|---|---|
-| 1 | 2 | 3 |
+Body one.
+:::
 
-done`
+::: card{tag="green"}
+### Card Two
 
-	// Simulate what parseSlideContent does.
-	cleaned, _ := extractKnownHTML(input)
-	t.Logf("cleaned content:\n---\n%s\n---", cleaned)
+Body two.
+:::
+:::`
 
 	doc, err := Parse(strings.NewReader(input))
 	if err != nil {
@@ -31,80 +32,147 @@ done`
 		t.Fatalf("expected 1 slide, got %d", len(doc.Slides))
 	}
 	slide := doc.Slides[0]
-	found := false
-	for _, child := range slide.Children {
-		t.Logf("  child: %s", child.NodeType())
-		if _, ok := child.(*Table); ok {
-			found = true
+
+	var grid *Grid
+	for _, c := range slide.Children {
+		if g, ok := c.(*Grid); ok {
+			grid = g
 			break
 		}
 	}
-	if !found {
-		t.Errorf("expected a Table node, got: %v", nodeTypes(slide.Children))
+	if grid == nil {
+		t.Fatal("no grid found in slide")
+	}
+	if grid.Cols != 2 {
+		t.Errorf("cols = %d, want 2", grid.Cols)
+	}
+	if len(grid.Children) != 2 {
+		t.Fatalf("grid children = %d, want 2", len(grid.Children))
+	}
+
+	card1, ok := grid.Children[0].(*Card)
+	if !ok {
+		t.Fatalf("child 0 is %T, want Card", grid.Children[0])
+	}
+	if card1.Header != "Card One" {
+		t.Errorf("card1 header = %q", card1.Header)
+	}
+	if len(card1.Body) != 1 || card1.Body[0].(*Text).Content != "Body one." {
+		t.Errorf("card1 body = %v", card1.Body)
+	}
+
+	card2 := grid.Children[1].(*Card)
+	if card2.Tag == nil || card2.Tag.Color != TagGreen {
+		t.Errorf("card2 tag = %v", card2.Tag)
+	}
+	if card2.Header != "Card Two" {
+		t.Errorf("card2 header = %q", card2.Header)
 	}
 }
 
-func TestParseSlides(t *testing.T) {
+func TestFencedCardWithoutHeader(t *testing.T) {
 	input := `---
-theme: dynamia
+theme: test
 ---
 
-# Title Slide
-
-<div class="kicker">test kicker</div>
-
-<div class="speaker">Name<span>Role</span></div>
-
----
-
-<!--
-speaker notes here
--->
-
-## Content Slide
-
-<div class="quote">A quote here</div>
-
-| col1 | col2 |
-|------|------|
-| a    | b    |
-
-- item 1
-- item 2`
+::: card{tag="cyan"}
+Just a body with no heading.
+:::`
 
 	doc, err := Parse(strings.NewReader(input))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(doc.Slides) != 2 {
-		t.Fatalf("expected 2 slides, got %d", len(doc.Slides))
-	}
-
-	s1 := doc.Slides[0]
-	if s1.Layout != LayoutTitle {
-		t.Errorf("slide 1 layout: got %s, want title", s1.Layout)
-	}
-
-	s2 := doc.Slides[1]
-	if s2.Notes != "speaker notes here" {
-		t.Errorf("slide 2 notes: got %q, want 'speaker notes here'", s2.Notes)
-	}
-	// Verify grid detection from cards.
-	hasGrid := false
-	for _, c := range s2.Children {
-		if c.NodeType() == "grid" {
-			hasGrid = true
+	slide := doc.Slides[0]
+	for _, c := range slide.Children {
+		if card, ok := c.(*Card); ok {
+			if card.Tag == nil || card.Tag.Color != TagCyan {
+				t.Errorf("tag = %v", card.Tag)
+			}
+			if len(card.Body) != 1 {
+				t.Errorf("body len = %d", len(card.Body))
+			}
+			return
 		}
 	}
-	if hasGrid {
-		t.Log("slide 2 has grid (from cards)")
+	t.Fatal("no card found")
+}
+
+func TestGenericDirective(t *testing.T) {
+	input := `---
+theme: test
+---
+
+@kicker 新员工培训
+
+# Title
+
+@subtitle A subtitle here
+
+@speaker name=John role=Engineer
+
+Some content.`
+
+	doc, err := Parse(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	slide := doc.Slides[0]
+
+	var kicker, subtitle, speaker *AttrNode
+	for _, c := range slide.Children {
+		if a, ok := c.(*AttrNode); ok {
+			switch a.Type {
+			case "kicker":
+				kicker = a
+			case "subtitle":
+				subtitle = a
+			case "speaker":
+				speaker = a
+			}
+		}
+	}
+
+	if kicker == nil || kicker.Value != "新员工培训" {
+		t.Errorf("kicker = %v", kicker)
+	}
+	if subtitle == nil || subtitle.Value != "A subtitle here" {
+		t.Errorf("subtitle = %v", subtitle)
+	}
+	if speaker == nil || speaker.Attrs["name"] != "John" || speaker.Attrs["role"] != "Engineer" {
+		t.Errorf("speaker = %v", speaker)
+	}
+
+	// Generic unknown directive should also parse.
+	if slide.Layout != LayoutTitle {
+		t.Errorf("layout = %s, want title", slide.Layout)
 	}
 }
 
-func nodeTypes(nodes []Node) []string {
-	var types []string
-	for _, n := range nodes {
-		types = append(types, n.NodeType())
+func TestGenericDirectiveUnknown(t *testing.T) {
+	input := `---
+theme: test
+---
+
+@custom-badge label=NEW Some text here
+
+Content.`
+
+	doc, _ := Parse(strings.NewReader(input))
+	slide := doc.Slides[0]
+	for _, c := range slide.Children {
+		if a, ok := c.(*AttrNode); ok {
+			if a.Type != "custom-badge" {
+				t.Errorf("type = %q", a.Type)
+			}
+			if a.Attrs["label"] != "NEW" {
+				t.Errorf("attrs = %v", a.Attrs)
+			}
+			if a.Value != "Some text here" {
+				t.Errorf("value = %q", a.Value)
+			}
+			return
+		}
 	}
-	return types
+	t.Fatal("no AttrNode found")
 }

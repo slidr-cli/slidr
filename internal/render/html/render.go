@@ -105,11 +105,15 @@ func renderNode(node parser.Node, t *theme.Theme) (string, error) {
 		return renderListHTML(n), nil
 	case *parser.Kicker:
 		return fmt.Sprintf("<div class=\"kicker\">%s</div>", template.HTMLEscapeString(n.Text)), nil
+	case *parser.Subtitle:
+		return fmt.Sprintf("<p class=\"subtitle\">%s</p>", template.HTMLEscapeString(n.Text)), nil
 	case *parser.Speaker:
 		return fmt.Sprintf("<div class=\"speaker\">%s<span>%s</span></div>",
 			template.HTMLEscapeString(n.Name), template.HTMLEscapeString(n.Role)), nil
 	case *parser.RawHTML:
 		return n.Content, nil
+	case *parser.AttrNode:
+		return renderAttrNode(n), nil
 	case *parser.Card:
 		return renderCardHTML(n), nil
 	default:
@@ -117,9 +121,38 @@ func renderNode(node parser.Node, t *theme.Theme) (string, error) {
 	}
 }
 
+func renderAttrNode(n *parser.AttrNode) string {
+	switch n.Type {
+	case "kicker":
+		return fmt.Sprintf("<div class=\"kicker\">%s</div>", template.HTMLEscapeString(n.Value))
+	case "subtitle":
+		return fmt.Sprintf("<p class=\"subtitle\">%s</p>", template.HTMLEscapeString(n.Value))
+	case "speaker":
+		name := n.Attrs["name"]
+		role := n.Attrs["role"]
+		if name == "" {
+			name = n.Value
+		}
+		return fmt.Sprintf("<div class=\"speaker\">%s<span>%s</span></div>",
+			template.HTMLEscapeString(name), template.HTMLEscapeString(role))
+	default:
+		// Generic: render as <div class="typename">value</div>
+		attrs := ""
+		for k, v := range n.Attrs {
+			attrs += fmt.Sprintf(" data-%s=\"%s\"", k, template.HTMLEscapeString(v))
+		}
+		return fmt.Sprintf("<div class=\"%s\"%s>%s</div>",
+			template.HTMLEscapeString(n.Type), template.HTMLEscapeString(attrs), template.HTMLEscapeString(n.Value))
+	}
+}
+
 func renderCardHTML(card *parser.Card) string {
 	var b strings.Builder
-	b.WriteString("<div class=\"card\">\n")
+	cls := "card"
+	if card.Class != "" {
+		cls += " " + card.Class
+	}
+	b.WriteString(fmt.Sprintf("<div class=\"%s\">\n", cls))
 	if card.Header != "" {
 		b.WriteString("<h3>")
 		b.WriteString(template.HTMLEscapeString(card.Header))
@@ -135,7 +168,6 @@ func renderCardHTML(card *parser.Card) string {
 }
 
 func renderGridHTML(grid *parser.Grid, t *theme.Theme) (string, error) {
-	// Determine column count from children if not set.
 	cols := grid.Cols
 	if cols == 0 {
 		cols = len(grid.Children)
@@ -143,11 +175,12 @@ func renderGridHTML(grid *parser.Grid, t *theme.Theme) (string, error) {
 	cls := "grid"
 	switch cols {
 	case 2:
-		cls = "grid two"
-	case 3:
-		cls = "grid"
+		cls += " two"
 	case 4:
-		cls = "grid four"
+		cls += " four"
+	}
+	if grid.Class != "" {
+		cls += " " + grid.Class
 	}
 
 	var children []string

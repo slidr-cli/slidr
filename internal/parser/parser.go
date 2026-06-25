@@ -143,41 +143,67 @@ func newMarkdown() goldmark.Markdown {
 
 // parseSlideContent parses a single slide's markdown into AST nodes.
 func parseSlideContent(content string) []Node {
+	// Step 0: Extract directives.
+	content, directiveNodes := extractDirectives(content)
+
+	// Step 1: Extract fenced divs.
+	content, fencedNodes := extractFencedNodes(content)
+
+	// Step 2: Extract remaining HTML.
 	content, htmlNodes := extractKnownHTML(content)
 
+	// Step 3: Parse remaining markdown with goldmark.
 	md := newMarkdown()
 	reader := text.NewReader([]byte(content))
 	root := md.Parser().Parse(reader)
 
-	var nodes []Node
-	htmlIdx := 0
-
+	// Collect goldmark nodes.
+	var goldmarkNodes []Node
 	for child := root.FirstChild(); child != nil; child = child.NextSibling() {
-		for htmlIdx < len(htmlNodes) {
-			nodes = append(nodes, htmlNodes[htmlIdx])
-			htmlIdx++
-		}
-
-		// Detect goldmark extension table nodes.
 		if child.Kind() == extast.KindTable {
 			table := convertTable(child, []byte(content))
 			if table != nil {
-				nodes = append(nodes, table)
+				goldmarkNodes = append(goldmarkNodes, table)
 			}
 			continue
 		}
-		// DEBUG: uncomment to see what goldmark produces
-		// fmt.Fprintf(os.Stderr, "  goldmark child kind=%d type=%T\n", child.Kind(), child)
-
 		node := convertNode(child, []byte(content))
 		if node != nil {
-			nodes = append(nodes, node)
+			goldmarkNodes = append(goldmarkNodes, node)
 		}
 	}
 
-	for htmlIdx < len(htmlNodes) {
-		nodes = append(nodes, htmlNodes[htmlIdx])
-		htmlIdx++
+	// Merge: directives/fenced before goldmark, h1 repositioned for title slides.
+	var nodes []Node
+	nodes = append(nodes, fencedNodes...)
+
+	// For title slides: split directives into pre-title (kicker) and post-title (subtitle, speaker).
+	// h1 goes between them.
+	h1Idx := -1
+	for i, n := range goldmarkNodes {
+		if h, ok := n.(*Heading); ok && h.Level == 1 {
+			h1Idx = i
+			break
+		}
+	}
+	if h1Idx >= 0 && len(directiveNodes) > 1 {
+		var preTitle, postTitle []Node
+		for _, dn := range directiveNodes {
+			if a, ok := dn.(*AttrNode); ok && a.Type == "kicker" {
+				preTitle = append(preTitle, dn)
+			} else {
+				postTitle = append(postTitle, dn)
+			}
+		}
+		nodes = append(nodes, preTitle...)
+		nodes = append(nodes, htmlNodes...)
+		nodes = append(nodes, goldmarkNodes[h1Idx]) // h1
+		nodes = append(nodes, postTitle...)          // subtitle, speaker
+		nodes = append(nodes, goldmarkNodes[h1Idx+1:]...)
+	} else {
+		nodes = append(nodes, directiveNodes...)
+		nodes = append(nodes, htmlNodes...)
+		nodes = append(nodes, goldmarkNodes...)
 	}
 
 	return nodes
@@ -244,17 +270,9 @@ func extractKnownHTML(content string) (string, []Node) {
 		content = content[:m[0]] + content[m[1]:]
 	}
 
-	// Extract grid containers with cards.
-	content, gridNodes := extractGrids(content)
-	nodes = append(nodes, gridNodes...)
-
 	// Extract HTML tables before stripping tags.
 	content, tableNodes := extractHTMLTables(content)
 	nodes = append(nodes, tableNodes...)
-
-	// Strip remaining div wrappers: extract text, discard the div structure.
-	// This prevents indented HTML from being parsed as code blocks by goldmark.
-	content = unwrapDivs(content)
 
 	// Strip remaining HTML tags.
 	content = stripTagRe.ReplaceAllString(content, "")
@@ -262,47 +280,238 @@ func extractKnownHTML(content string) (string, []Node) {
 	return strings.TrimSpace(content), nodes
 }
 
-// extractGrids finds <div class="grid"> containers and extracts cards.
-func extractGrids(content string) (string, []Node) {
-	gridStartRe := regexp.MustCompile(`<div\s+class="grid[^"]*">`)
+// extractDirectives parses @type value directive lines into generic AttrNodes.
+// Syntax: @type key=val key2=val2 rest of value
+// Examples:
+//   @kicker 新员工培训 · 2026-06-24          → AttrNode{Type:"kicker", Value:"新员工培训 · 2026-06-24"}
+//   @speaker name=宋净超 role=开源与生态       → AttrNode{Type:"speaker", Attrs:{"name":"宋净超","role":"开源与生态"}}
+//   @subtitle HAMi = AI 时代的 GPU Control Plane → AttrNode{Type:"subtitle", Value:"HAMi = AI 时代的..."}
+func extractDirectives(content string) (string, []Node) {
+	kvRe := regexp.MustCompile(`(\w+)=("[^"]*"|\S+)`)
 	var nodes []Node
+	lines := strings.Split(content, "\n")
+	var result []string
 
-	for {
-		loc := gridStartRe.FindStringIndex(content)
-		if loc == nil {
-			break
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, "@") {
+			result = append(result, line)
+			continue
 		}
-		// Find the matching </div> by counting nesting.
-		gridEnd := findMatchingTag(content, loc[1], "div")
-		if gridEnd < 0 {
-			break
+		// Skip @@ escaped.
+		if strings.HasPrefix(trimmed, "@@") {
+			result = append(result, trimmed[1:])
+			continue
 		}
-		inner := content[loc[1]:gridEnd]
-		cards := extractCards(inner)
-		if len(cards) > 0 {
-			for _, card := range cards {
-				card.Body = cleanInlineNodes(card.Body)
-			}
-			grid := &Grid{
-				Cols:     len(cards),
-				Gap:      16,
-				Children: make([]Node, len(cards)),
-			}
-			for i, c := range cards {
-				grid.Children[i] = c
-			}
-			nodes = append(nodes, grid)
+
+		// Split into type and rest.
+		rest := strings.TrimPrefix(trimmed, "@")
+		space := strings.IndexByte(rest, ' ')
+		if space < 0 {
+			result = append(result, line)
+			continue
 		}
-		content = content[:loc[0]] + content[gridEnd+len("</div>"):]
+		typ := rest[:space]
+		value := strings.TrimSpace(rest[space+1:])
+
+		// Check for word characters and hyphens in type name.
+		if !regexp.MustCompile(`^[\w-]+$`).MatchString(typ) {
+			result = append(result, line)
+			continue
+		}
+
+		node := &AttrNode{Type: typ, Attrs: make(map[string]string)}
+
+		// Extract key=value pairs from the beginning.
+		for _, m := range kvRe.FindAllStringSubmatch(value, -1) {
+			key := m[1]
+			val := strings.Trim(m[2], `"`)
+			node.Attrs[key] = val
+		}
+
+		// Everything that's not a key=value pair is the plain value.
+		node.Value = kvRe.ReplaceAllString(value, "")
+		node.Value = strings.TrimSpace(node.Value)
+
+		nodes = append(nodes, node)
 	}
-	return content, nodes
+
+	return strings.Join(result, "\n"), nodes
 }
 
-// extractHTMLTables finds <table> elements and converts them to Table nodes.
+// extractFencedNodes parses ::: fence blocks into Grid/Card AST nodes.
+func extractFencedNodes(content string) (string, []Node) {
+	var nodes []Node
+	lines := strings.Split(content, "\n")
+	type block struct {
+		typ      string
+		tag      string
+		cols     int
+		class    []string
+		lines    []string
+		children []Node
+	}
+	var stack []*block
+	var result strings.Builder
+
+	flushCard := func(b *block) *Card {
+		card := &Card{Class: strings.Join(b.class, " ")}
+		if b.tag != "" {
+			card.Tag = &Tag{Color: TagColor(b.tag)}
+		}
+		inner := strings.TrimSpace(strings.Join(b.lines, "\n"))
+		h3Re := regexp.MustCompile(`(?m)^###\s+(.*)$`)
+		if m := h3Re.FindStringSubmatch(inner); m != nil {
+			card.Header = strings.TrimSpace(m[1])
+			if card.Tag != nil {
+				card.Tag.Text = card.Header
+			}
+			inner = h3Re.ReplaceAllString(inner, "")
+		}
+		inner = strings.TrimSpace(inner)
+		if inner != "" {
+			for _, line := range strings.Split(inner, "\n") {
+				line = strings.TrimSpace(line)
+				if line != "" {
+					card.Body = append(card.Body, &Text{Content: line})
+				}
+			}
+		}
+		if card.Header == "" && len(card.Body) == 0 {
+			return nil
+		}
+		return card
+	}
+
+	flushGrid := func(b *block) *Grid {
+		cols := b.cols
+		if cols == 0 {
+			cols = len(b.children)
+		}
+		if cols == 0 {
+			cols = 2
+		}
+		gridNodes := make([]Node, len(b.children))
+		for i, c := range b.children {
+			gridNodes[i] = c
+		}
+		return &Grid{Cols: cols, Gap: 16, Class: strings.Join(b.class, " "), Children: gridNodes}
+	}
+
+	i := 0
+	for i < len(lines) {
+		line := lines[i]
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, ":::") && !strings.HasPrefix(trimmed, "::::") {
+			parts := strings.Fields(trimmed)
+			if len(parts) >= 2 {
+				typ := parts[1]
+				attrStr := ""
+				// Type may have {attrs} attached without a space: "card{tag=\"green\"}"
+				if idx := strings.IndexByte(typ, '{'); idx >= 0 {
+					attrStr = typ[idx:]
+					typ = typ[:idx]
+				}
+				// Collect remaining parts as attributes.
+				if len(parts) > 2 {
+					rest := strings.Join(parts[2:], " ")
+					if attrStr != "" {
+						attrStr += " " + rest
+					} else {
+						attrStr = rest
+					}
+				}
+				attrStr = strings.Trim(attrStr, "{}")
+				b := &block{typ: typ}
+				for _, attr := range splitAttrParts(attrStr) {
+					attr = strings.TrimSpace(attr)
+					eq := strings.IndexByte(attr, '=')
+					if eq < 0 {
+						// Bare word → CSS class.
+						if attr != "" {
+							b.class = append(b.class, attr)
+						}
+						continue
+					}
+					key := strings.TrimSpace(attr[:eq])
+					val := strings.TrimSpace(attr[eq+1:])
+					val = strings.Trim(val, `"`)
+					switch key {
+					case "tag":
+						b.tag = val
+					case "cols":
+						fmt.Sscanf(val, "%d", &b.cols)
+					case "class":
+						for _, c := range strings.Fields(val) {
+							b.class = append(b.class, c)
+						}
+					}
+				}
+				stack = append(stack, b)
+				i++
+				continue
+			}
+		}
+
+		if trimmed == ":::" && len(stack) > 0 {
+			top := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			var node Node
+			switch top.typ {
+			case "card":
+				node = flushCard(top)
+			case "grid":
+				node = flushGrid(top)
+			}
+			if node != nil {
+				if len(stack) > 0 {
+					stack[len(stack)-1].children = append(stack[len(stack)-1].children, node)
+				} else {
+					nodes = append(nodes, node)
+				}
+			}
+			i++
+			continue
+		}
+
+		if len(stack) > 0 {
+			stack[len(stack)-1].lines = append(stack[len(stack)-1].lines, line)
+		} else {
+			result.WriteString(line)
+			result.WriteString("\n")
+		}
+		i++
+	}
+
+	return strings.TrimSpace(result.String()), nodes
+}
+
+func splitAttrParts(s string) []string {
+	var parts []string
+	inQuote := false
+	last := 0
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '"':
+			inQuote = !inQuote
+		case ',':
+			if !inQuote {
+				parts = append(parts, s[last:i])
+				last = i + 1
+			}
+		}
+	}
+	if last < len(s) {
+		parts = append(parts, s[last:])
+	}
+	return parts
+}
+
 func extractHTMLTables(content string) (string, []Node) {
-	tableOpenRe := regexp.MustCompile(`<table[^>]*>`)
-	trRe := regexp.MustCompile(`(?s)<tr[^>]*>(.*?)</tr>`)
-	cellRe := regexp.MustCompile(`(?s)<t[hd][^>]*>(.*?)</t[hd]>`)
+	tableOpenRe := regexp.MustCompile("<table[^>]*>")
+	trRe := regexp.MustCompile("(?s)<tr[^>]*>(.*?)</tr>")
+	cellRe := regexp.MustCompile("(?s)<t[hd][^>]*>(.*?)</t[hd]>")
 	var nodes []Node
 
 	for {
@@ -343,31 +552,10 @@ func extractHTMLTables(content string) (string, []Node) {
 	return content, nodes
 }
 
-// unwrapDivs removes <div> wrappers while preserving inner text content.
-// This prevents indented HTML from being parsed as code blocks by goldmark.
-func unwrapDivs(content string) string {
-	divOpenRe := regexp.MustCompile(`<div[\s>][^>]*>`)
-	for {
-		loc := divOpenRe.FindStringIndex(content)
-		if loc == nil {
-			break
-		}
-		end := findMatchingTag(content, loc[1], "div")
-		if end < 0 {
-			break
-		}
-		inner := content[loc[1]:end]
-		content = content[:loc[0]] + inner + content[end+len("</div>"):]
-	}
-	return content
-}
-
-// findMatchingTag finds the index of the closing </tag> that balances
-// with the opening tag at startPos. Returns -1 if not found.
 func findMatchingTag(s string, startPos int, tag string) int {
 	depth := 1
-	openRe := regexp.MustCompile(`<` + tag + `[\s>]`)
-	closeRe := regexp.MustCompile(`</` + tag + `>`)
+	openRe := regexp.MustCompile("<" + tag + "[\\s>]")
+	closeRe := regexp.MustCompile("</" + tag + ">")
 
 	pos := startPos
 	for pos < len(s) && depth > 0 {
@@ -391,59 +579,6 @@ func findMatchingTag(s string, startPos int, tag string) int {
 	return -1
 }
 
-// extractCards finds <div class="card"> blocks and extracts header/body.
-func extractCards(content string) []*Card {
-	cardRe := regexp.MustCompile(`(?s)<div\s+class="card[^"]*">(.*?)</div>`)
-	var cards []*Card
-
-	for _, m := range cardRe.FindAllStringSubmatchIndex(content, -1) {
-		inner := content[m[2]:m[3]]
-		card := &Card{}
-
-		// Extract h3 as header.
-		h3Re := regexp.MustCompile(`(?s)<h3[^>]*>(.*?)</h3>`)
-		if hm := h3Re.FindStringSubmatch(inner); hm != nil {
-			card.Header = strings.TrimSpace(stripTags(hm[1]))
-			inner = h3Re.ReplaceAllString(inner, "")
-		}
-
-		// Extract paragraphs.
-		pRe := regexp.MustCompile(`(?s)<p[^>]*>(.*?)</p>`)
-		for _, pm := range pRe.FindAllStringSubmatch(inner, -1) {
-			text := strings.TrimSpace(stripTags(pm[1]))
-			if text != "" {
-				card.Body = append(card.Body, &Text{Content: text})
-			}
-		}
-
-		// Remaining text after stripping all tags.
-		remaining := strings.TrimSpace(stripTags(inner))
-		if remaining != "" && len(card.Body) == 0 {
-			card.Body = append(card.Body, &Text{Content: remaining})
-		}
-
-		cards = append(cards, card)
-	}
-	return cards
-}
-
-// cleanInlineNodes trims whitespace from inline nodes.
-func cleanInlineNodes(nodes []InlineNode) []InlineNode {
-	var cleaned []InlineNode
-	for _, n := range nodes {
-		if t, ok := n.(*Text); ok {
-			trimmed := strings.TrimSpace(t.Content)
-			if trimmed != "" {
-				cleaned = append(cleaned, &Text{Content: trimmed})
-			}
-		} else {
-			cleaned = append(cleaned, n)
-		}
-	}
-	return cleaned
-}
-
-// convertNode translates a goldmark AST node into our slide AST node.
 func convertNode(n gast.Node, source []byte) Node {
 	switch n.Kind() {
 	case gast.KindHeading:
@@ -483,7 +618,6 @@ func convertNode(n gast.Node, source []byte) Node {
 	}
 }
 
-// convertList converts a goldmark list node.
 func convertList(n gast.Node, source []byte) Node {
 	list := n.(*gast.List)
 	var items []string
@@ -619,6 +753,7 @@ func detectLayout(slide Slide) LayoutType {
 	hasColumns := false
 	hasSpeaker := false
 	hasKicker := false
+	hasSubtitle := false
 
 	for _, child := range slide.Children {
 		switch n := child.(type) {
@@ -639,14 +774,19 @@ func detectLayout(slide Slide) LayoutType {
 		case *Columns:
 			hasColumns = true
 			gridCols = n.Cols
-		case *Speaker:
-			hasSpeaker = true
-		case *Kicker:
-			hasKicker = true
+		case *AttrNode:
+			switch n.Type {
+			case "kicker":
+				hasKicker = true
+			case "speaker":
+				hasSpeaker = true
+			case "subtitle":
+				hasSubtitle = true
+			}
 		}
 	}
 
-	if hasKicker || hasSpeaker {
+	if hasKicker || hasSpeaker || hasSubtitle {
 		return LayoutTitle
 	}
 	if gridCols == 2 {

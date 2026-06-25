@@ -158,6 +158,7 @@ type Node interface {
 type Grid struct {
 	Cols     int
 	Gap      int
+	Class    string // additional CSS classes
 	Children []Node
 }
 
@@ -168,6 +169,7 @@ type Card struct {
 	Header string
 	Body   []InlineNode
 	Tag    *Tag
+	Class  string // additional CSS classes
 }
 
 func (Card) NodeType() string { return "card" }
@@ -241,6 +243,25 @@ type Kicker struct {
 }
 
 func (Kicker) NodeType() string { return "kicker" }
+
+// Subtitle is a secondary title line.
+type Subtitle struct {
+	Text string
+}
+
+func (Subtitle) NodeType() string { return "subtitle" }
+
+// AttrNode is a generic key-value attribute node.
+// Used for @-directives like @kicker, @speaker, @subtitle.
+// The renderer maps Type to an HTML class or element.
+type AttrNode struct {
+	Type  string
+	Attrs map[string]string
+	Value string
+	Class string // additional CSS classes from bare-word attributes
+}
+
+func (AttrNode) NodeType() string { return "attr" }
 
 // Heading is a slide title or section heading.
 type Heading struct {
