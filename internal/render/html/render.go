@@ -48,6 +48,7 @@ func Render(doc *parser.Document, t *theme.Theme) (string, error) {
 		"SlideW":     w,
 		"SlideH":     h,
 		"Ratio":      fmt.Sprintf("%.4f", ratio),
+		"Logo":       doc.Meta.Logo,
 	}
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", err

@@ -16,7 +16,8 @@ type Meta struct {
 	Footer   string `yaml:"footer"`
 	Paginate bool   `yaml:"paginate"`
 	SizeRaw  string `yaml:"size"`  // "1920x1080", "16:9", "4:3", etc.
-	Style    string `yaml:"style"` // raw CSS block for document-specific overrides
+	Style    string `yaml:"style"` // raw CSS block
+	Logo     string `yaml:"logo"`  // path to logo image
 }
 
 const (

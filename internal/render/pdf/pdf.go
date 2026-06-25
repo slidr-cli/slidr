@@ -3,7 +3,11 @@ package pdf
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -20,6 +24,11 @@ func Render(htmlStr string, widthIn, heightIn float64, baseDir string) ([]byte, 
 	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	// Embed local images as base64 so they work without file:// access.
+	if baseDir != "" {
+		htmlStr = embedLocalImages(htmlStr, baseDir)
+	}
+
 	var buf []byte
 
 	err := chromedp.Run(ctx,
@@ -29,11 +38,7 @@ func Render(htmlStr string, widthIn, heightIn float64, baseDir string) ([]byte, 
 			if err != nil {
 				return err
 			}
-			htmlWithBase := htmlStr
-			if baseDir != "" {
-				htmlWithBase = injectBaseTag(htmlStr, "file://"+baseDir+"/")
-			}
-			return page.SetDocumentContent(frameTree.Frame.ID, htmlWithBase).Do(ctx)
+			return page.SetDocumentContent(frameTree.Frame.ID, htmlStr).Do(ctx)
 		}),
 		chromedp.Sleep(500*time.Millisecond),
 		chromedp.ActionFunc(func(ctx context.Context) error {
@@ -59,4 +64,33 @@ func Render(htmlStr string, widthIn, heightIn float64, baseDir string) ([]byte, 
 
 func injectBaseTag(html, baseURL string) string {
 	return strings.Replace(html, "<head>", "<head><base href=\""+baseURL+"\">", 1)
+}
+
+func embedLocalImages(html, baseDir string) string {
+	re := regexp.MustCompile(`src="(\./[^"]+)"`)
+	return re.ReplaceAllStringFunc(html, func(match string) string {
+		// Extract the relative path.
+		sub := re.FindStringSubmatch(match)
+		if sub == nil {
+			return match
+		}
+		relPath := sub[1]
+		absPath := filepath.Join(baseDir, relPath)
+		data, err := os.ReadFile(absPath)
+		if err != nil {
+			return match
+		}
+		ext := strings.ToLower(filepath.Ext(absPath))
+		mime := "image/png"
+		switch ext {
+		case ".jpg", ".jpeg":
+			mime = "image/jpeg"
+		case ".svg":
+			mime = "image/svg+xml"
+		case ".gif":
+			mime = "image/gif"
+		}
+		b64 := base64.StdEncoding.EncodeToString(data)
+		return fmt.Sprintf("src=\"data:%s;base64,%s\"", mime, b64)
+	})
 }

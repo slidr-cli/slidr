@@ -10,6 +10,7 @@ import (
 	"github.com/slidr-cli/slidr/internal/parser"
 	"github.com/slidr-cli/slidr/internal/render/html"
 	"github.com/slidr-cli/slidr/internal/render/pdf"
+	"github.com/slidr-cli/slidr/internal/render/pptx"
 	"github.com/slidr-cli/slidr/internal/theme"
 )
 
@@ -158,6 +159,7 @@ func buildCmd() {
 
 	genAll := !flags.pdfOnly && !flags.pptxOnly
 	genPDF := genAll || flags.pdfOnly
+	genPPTX := genAll || flags.pptxOnly
 
 	// Theme loading.
 	t := theme.Load("", doc.Meta.Style)
@@ -196,6 +198,20 @@ func buildCmd() {
 			os.Exit(1)
 		}
 		fmt.Printf("Wrote %s (%d bytes)\n", pdfPath, len(pdfBuf))
+	}
+
+	if genPPTX {
+		pptxPath := filepath.Join(outputDir, outName+".pptx")
+		pptxBuf, err := pptx.Render(doc, doc.Meta.Style)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error rendering PPTX: %v\n", err)
+			os.Exit(1)
+		}
+		if err := os.WriteFile(pptxPath, pptxBuf, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "error writing %s: %v\n", pptxPath, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Wrote %s (%d bytes)\n", pptxPath, len(pptxBuf))
 	}
 
 	// Always write HTML.
