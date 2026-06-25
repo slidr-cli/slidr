@@ -10,14 +10,22 @@
 
 /* ---- layout defaults (theme overrides these) ---- */
 section {
-  font-size: 20px; /* base for em units */
+  font-size: 14px;
+}
+
+p {
+  margin-bottom: 0.5em;
+}
+
+h2, h3 {
+  margin-bottom: 0.5em;
 }
 
 .grid { display: grid; gap: 1em; }
 
 .card {
   border-radius: 0.4em;
-  padding: 0.8em 1em;
+  padding: 1em;
 }
 
 .quote {
@@ -64,6 +72,17 @@ footer {
     display: block !important;
   }
 
+  .layout-title .kicker {
+    margin-bottom: 0.5em;
+  }
+
+  .layout-title h1 {
+    margin-bottom: 0.3em;
+  }
+
+  .layout-title .subtitle {
+    margin-bottom: 1em;
+  }
 }
 
 /* ---- print mode ---- */
