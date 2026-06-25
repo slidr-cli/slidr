@@ -602,6 +602,9 @@ func mergeMeta(base, override Meta) Meta {
 	if override.SizeRaw != "" {
 		base.SizeRaw = override.SizeRaw
 	}
+	if override.Style != "" {
+		base.Style = override.Style
+	}
 	return base
 }
 

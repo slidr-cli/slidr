@@ -8,6 +8,7 @@ import (
 func TestParseTable(t *testing.T) {
 	input := `---
 theme: test
+size: "1920x1080"
 ---
 
 ## heading

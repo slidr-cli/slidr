@@ -1,0 +1,4 @@
+<section class="slide layout-{{.Layout}}"{{if .Notes}} data-notes="{{.Notes}}"{{end}}>
+{{.Children}}
+{{if .Footer}}<footer>{{.Footer}}{{if .Paginate}} &mdash; {{.Num}}{{end}}</footer>{{end}}
+</section>

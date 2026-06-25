@@ -4,8 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/slidr-cli/slidr/internal/parser"
+	"github.com/slidr-cli/slidr/internal/render/html"
+	"github.com/slidr-cli/slidr/internal/render/pdf"
+	"github.com/slidr-cli/slidr/internal/theme"
 )
 
 func main() {
@@ -86,6 +91,9 @@ func buildCmd() {
 
 	if flags.debug {
 		dumpDebug(doc)
+		if doc.Meta.Style != "" {
+			fmt.Printf("\n=== THEME (raw) ===\n%d bytes\n", len(doc.Meta.Style))
+		}
 		return
 	}
 
@@ -129,7 +137,58 @@ func buildCmd() {
 	}
 
 	_ = flags
-	fmt.Println("\nBuild: renderers not yet implemented (PDF + PPTX coming in phase 3-4)")
+
+	// Theme loading.
+	t := theme.Load("", doc.Meta.Style)
+
+	// Determine output name from input file.
+	outName := strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
+
+	// Resolve slide dimensions (pixels to inches at 96 DPI).
+	dims := doc.Meta.Size(nil)
+	widthIn := float64(dims[0]) / 96.0
+	heightIn := float64(dims[1]) / 96.0
+
+	genAll := !flags.pdfOnly && !flags.pptxOnly
+	genPDF := genAll || flags.pdfOnly
+
+	// HTML (always generated, needed for PDF).
+	htmlStr, err := html.Render(doc, t)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error rendering HTML: %v\n", err)
+		os.Exit(1)
+	}
+
+	if genPDF {
+		pdfPath := filepath.Join(flags.outputDir, outName+".pdf")
+		pdfBuf, err := pdf.Render(htmlStr, widthIn, heightIn)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error rendering PDF: %v\n", err)
+			os.Exit(1)
+		}
+		if err := os.WriteFile(pdfPath, pdfBuf, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "error writing %s: %v\n", pdfPath, err)
+			os.Exit(1)
+		}
+		fmt.Printf("Wrote %s (%d bytes)\n", pdfPath, len(pdfBuf))
+	}
+
+	// Always write HTML (needed for PDF, useful standalone).
+	htmlPath := filepath.Join(flags.outputDir, outName+".html")
+	if err := os.WriteFile(htmlPath, []byte(htmlStr), 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", htmlPath, err)
+		os.Exit(1)
+	}
+	fmt.Printf("Wrote %s (%d bytes)\n", htmlPath, len(htmlStr))
+
+	if flags.pptxOnly && !genPDF {
+		fmt.Fprintln(os.Stderr, "PPTX output not yet implemented (phase 4)")
+		os.Exit(1)
+	}
+
+	if doc.Meta.Style != "" {
+		fmt.Printf("Theme: style block injected (%d bytes)\n", len(doc.Meta.Style))
+	}
 }
 
 func dumpDebug(doc *parser.Document) {

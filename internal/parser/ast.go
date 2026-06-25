@@ -2,6 +2,8 @@ package parser
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -13,13 +15,21 @@ type Meta struct {
 	Title    string `yaml:"title"`
 	Footer   string `yaml:"footer"`
 	Paginate bool   `yaml:"paginate"`
-	SizeRaw  string `yaml:"size"` // "1920x1080", "16:9", "4:3", etc.
+	SizeRaw  string `yaml:"size"`  // "1920x1080", "16:9", "4:3", etc.
+	Style    string `yaml:"style"` // raw CSS block for document-specific overrides
 }
 
 const (
 	minSlideDim = 320
 	maxSlideDim = 7680
 	maxSizeLen  = 32
+)
+
+var (
+	// All regexes are anchored (^...$) and Go's regexp is RE2-backed (linear time).
+	// Combined with the 32-char length limit, these are safe against ReDoS.
+	wxHRe   = regexp.MustCompile(`^(\d+)x(\d+)$`)
+	arrayRe = regexp.MustCompile(`^\[(\d+),\s*(\d+)\]$`)
 )
 
 func clampDim(v int) int {
@@ -45,8 +55,13 @@ func DefaultAspects() AspectMap {
 }
 
 // Size resolves the size field into [width, height] pixels.
-// Accepted formats: "1920x1080", "[1920, 1080]", "16:9".
-// Values outside [320, 7680] are clamped. Input longer than 32 chars is rejected.
+// Accepted formats:
+//   "1920x1080"       explicit WxH (digits only, no trailing garbage)
+//   "[1920, 1080]"    JSON array (legacy)
+//   "16:9"            aspect ratio, resolved via aspects map
+//
+// Malformed input (e.g., "1920x1080trailing", "1920x", "abc") is rejected
+// and falls back to the default 1920x1080. Values outside [320, 7680] are clamped.
 func (m Meta) Size(aspects AspectMap) [2]int {
 	raw := strings.TrimSpace(m.SizeRaw)
 	if raw == "" {
@@ -59,18 +74,30 @@ func (m Meta) Size(aspects AspectMap) [2]int {
 		aspects = DefaultAspects()
 	}
 
-	var w, h int
-	if _, err := fmt.Sscanf(raw, "%dx%d", &w, &h); err == nil && w > 0 && h > 0 {
-		return [2]int{clampDim(w), clampDim(h)}
-	}
-	if strings.HasPrefix(raw, "[") {
-		if _, err := fmt.Sscanf(raw, "[%d, %d]", &w, &h); err == nil && w > 0 && h > 0 {
+	// "1920x1080" -- strict: digits, 'x', digits, nothing else.
+	if m := wxHRe.FindStringSubmatch(raw); m != nil {
+		w, _ := strconv.Atoi(m[1])
+		h, _ := strconv.Atoi(m[2])
+		if w > 0 && h > 0 {
 			return [2]int{clampDim(w), clampDim(h)}
 		}
 	}
+
+	// "[1920, 1080]" -- legacy JSON array.
+	if m := arrayRe.FindStringSubmatch(raw); m != nil {
+		w, _ := strconv.Atoi(m[1])
+		h, _ := strconv.Atoi(m[2])
+		if w > 0 && h > 0 {
+			return [2]int{clampDim(w), clampDim(h)}
+		}
+	}
+
+	// "16:9" -- named aspect ratio (exact match only, no trailing chars).
 	if dims, ok := aspects[raw]; ok {
 		return [2]int{clampDim(dims[0]), clampDim(dims[1])}
 	}
+
+	// Unknown format -- silently fall back to default.
 	return [2]int{1920, 1080}
 }
 
