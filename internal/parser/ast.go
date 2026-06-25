@@ -1,0 +1,304 @@
+package parser
+
+import (
+	"fmt"
+	"strings"
+)
+
+// ---- Meta / config ----
+
+// Meta holds document-level frontmatter.
+type Meta struct {
+	Theme    string `yaml:"theme"`
+	Title    string `yaml:"title"`
+	Footer   string `yaml:"footer"`
+	Paginate bool   `yaml:"paginate"`
+	SizeRaw  string `yaml:"size"` // "1920x1080", "16:9", "4:3", etc.
+}
+
+const (
+	minSlideDim = 320
+	maxSlideDim = 7680
+	maxSizeLen  = 32
+)
+
+func clampDim(v int) int {
+	if v < minSlideDim {
+		return minSlideDim
+	}
+	if v > maxSlideDim {
+		return maxSlideDim
+	}
+	return v
+}
+
+// AspectMap maps named aspect ratios to [width, height] resolutions.
+type AspectMap map[string][2]int
+
+// DefaultAspects provides sensible defaults that callers can override.
+func DefaultAspects() AspectMap {
+	return AspectMap{
+		"16:9":  {1920, 1080},
+		"4:3":   {1920, 1440},
+		"16:10": {1920, 1200},
+	}
+}
+
+// Size resolves the size field into [width, height] pixels.
+// Accepted formats: "1920x1080", "[1920, 1080]", "16:9".
+// Values outside [320, 7680] are clamped. Input longer than 32 chars is rejected.
+func (m Meta) Size(aspects AspectMap) [2]int {
+	raw := strings.TrimSpace(m.SizeRaw)
+	if raw == "" {
+		return [2]int{1920, 1080}
+	}
+	if len(raw) > maxSizeLen {
+		return [2]int{1920, 1080}
+	}
+	if aspects == nil {
+		aspects = DefaultAspects()
+	}
+
+	var w, h int
+	if _, err := fmt.Sscanf(raw, "%dx%d", &w, &h); err == nil && w > 0 && h > 0 {
+		return [2]int{clampDim(w), clampDim(h)}
+	}
+	if strings.HasPrefix(raw, "[") {
+		if _, err := fmt.Sscanf(raw, "[%d, %d]", &w, &h); err == nil && w > 0 && h > 0 {
+			return [2]int{clampDim(w), clampDim(h)}
+		}
+	}
+	if dims, ok := aspects[raw]; ok {
+		return [2]int{clampDim(dims[0]), clampDim(dims[1])}
+	}
+	return [2]int{1920, 1080}
+}
+
+// Resolution returns the size as a "WxH" string.
+func (m Meta) Resolution(aspects AspectMap) string {
+	dims := m.Size(aspects)
+	return fmt.Sprintf("%dx%d", dims[0], dims[1])
+}
+
+// ---- Document / Slide AST ----
+
+// Document is the root node of a parsed markdown file.
+type Document struct {
+	Meta   Meta
+	Slides []Slide
+}
+
+// Slide represents one presentation slide.
+type Slide struct {
+	Meta       Meta
+	Layout     LayoutType
+	Background Background
+	Children   []Node
+	Notes      string
+}
+
+// LayoutType identifies the slide's structural layout.
+type LayoutType string
+
+const (
+	LayoutTitle   LayoutType = "title"
+	LayoutContent LayoutType = "content"
+	LayoutGrid2   LayoutType = "grid-2"
+	LayoutGrid3   LayoutType = "grid-3"
+	LayoutGrid4   LayoutType = "grid-4"
+	LayoutColumns LayoutType = "columns"
+	LayoutClosing LayoutType = "closing"
+)
+
+// Background defines a slide-level background (fill + optional decorative image).
+type Background struct {
+	Fill          string
+	Image         string
+	ImagePosition string
+	ImageSize     string
+	ImageOffset   string
+	Opacity       float64
+}
+
+// ---- Block nodes ----
+
+// Node is a block-level element in a slide.
+type Node interface {
+	NodeType() string
+}
+
+// Grid arranges children in n columns.
+type Grid struct {
+	Cols     int
+	Gap      int
+	Children []Node
+}
+
+func (Grid) NodeType() string { return "grid" }
+
+// Card is a bordered container with optional header and tag.
+type Card struct {
+	Header string
+	Body   []InlineNode
+	Tag    *Tag
+}
+
+func (Card) NodeType() string { return "card" }
+
+// Table is a structured table.
+type Table struct {
+	Headers   []string
+	Rows      [][]string
+	ColWidths []float64
+}
+
+func (Table) NodeType() string { return "table" }
+
+// Stack is a vertical layered diagram.
+type Stack struct {
+	Layers   []StackLayer
+	FocusIdx int
+}
+
+func (Stack) NodeType() string { return "stack" }
+
+// StackLayer is one layer in a stack diagram.
+type StackLayer struct {
+	Name  string
+	Desc  string
+	Focus bool
+}
+
+// Columns arranges children side-by-side.
+type Columns struct {
+	Cols     int
+	Children []Node
+}
+
+func (Columns) NodeType() string { return "columns" }
+
+// Funnel is a vertical narrowing funnel diagram.
+type Funnel struct {
+	Steps []FunnelStep
+}
+
+func (Funnel) NodeType() string { return "funnel" }
+
+// FunnelStep is one step in a funnel.
+type FunnelStep struct {
+	Label  string
+	Sub    string
+	Width  float64
+	Accent bool
+}
+
+// Quote is a callout block with a left border.
+type Quote struct {
+	Text []InlineNode
+	Size string
+}
+
+func (Quote) NodeType() string { return "quote" }
+
+// Speaker is a name + role pair for title slides.
+type Speaker struct {
+	Name string
+	Role string
+}
+
+func (Speaker) NodeType() string { return "speaker" }
+
+// Kicker is a small label above the title.
+type Kicker struct {
+	Text string
+}
+
+func (Kicker) NodeType() string { return "kicker" }
+
+// Heading is a slide title or section heading.
+type Heading struct {
+	Level   int
+	Content []InlineNode
+}
+
+func (Heading) NodeType() string { return "heading" }
+
+// Paragraph is a block of inline content.
+type Paragraph struct {
+	Content []InlineNode
+}
+
+func (Paragraph) NodeType() string { return "paragraph" }
+
+// RawHTML is pass-through HTML the parser can't classify.
+type RawHTML struct {
+	Content string
+}
+
+func (RawHTML) NodeType() string { return "rawhtml" }
+
+// ListNode is a bullet or ordered list.
+type ListNode struct {
+	Items []string
+}
+
+func (ListNode) NodeType() string { return "list" }
+
+// ---- Inline nodes ----
+
+// InlineNode is inline-level markup.
+type InlineNode interface {
+	inlineNodeType() string
+}
+
+// Text is plain text content.
+type Text struct {
+	Content string
+}
+
+func (Text) inlineNodeType() string { return "text" }
+
+// Strong is bold text.
+type Strong struct {
+	Children []InlineNode
+}
+
+func (Strong) inlineNodeType() string { return "strong" }
+
+// CodeSpan is inline code.
+type CodeSpan struct {
+	Content string
+}
+
+func (CodeSpan) inlineNodeType() string { return "code" }
+
+// Link is an inline hyperlink.
+type Link struct {
+	URL  string
+	Text string
+}
+
+func (Link) inlineNodeType() string { return "link" }
+
+// SoftBreak is a line break.
+type SoftBreak struct{}
+
+func (SoftBreak) inlineNodeType() string { return "softbreak" }
+
+// Tag is a colored pill badge.
+type Tag struct {
+	Text  string
+	Color TagColor
+}
+
+func (Tag) inlineNodeType() string { return "tag" }
+
+// TagColor is a named color for tags.
+type TagColor string
+
+const (
+	TagGreen  TagColor = "green"
+	TagCyan   TagColor = "cyan"
+	TagYellow TagColor = "yellow"
+	TagRed    TagColor = "red"
+)
