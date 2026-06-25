@@ -4,6 +4,7 @@ package pdf
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/chromedp/cdproto/page"
@@ -11,13 +12,11 @@ import (
 )
 
 // Render converts an HTML string to a PDF byte slice.
-// htmlStr must be a complete HTML document.
-// width and height are in inches (used for page size).
-func Render(htmlStr string, widthIn, heightIn float64) ([]byte, error) {
+// baseDir is the directory to resolve relative URLs against.
+func Render(htmlStr string, widthIn, heightIn float64, baseDir string) ([]byte, error) {
 	ctx, cancel := chromedp.NewContext(context.Background())
 	defer cancel()
 
-	// Timeout for the entire operation.
 	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
@@ -30,9 +29,12 @@ func Render(htmlStr string, widthIn, heightIn float64) ([]byte, error) {
 			if err != nil {
 				return err
 			}
-			return page.SetDocumentContent(frameTree.Frame.ID, htmlStr).Do(ctx)
+			htmlWithBase := htmlStr
+			if baseDir != "" {
+				htmlWithBase = injectBaseTag(htmlStr, "file://"+baseDir+"/")
+			}
+			return page.SetDocumentContent(frameTree.Frame.ID, htmlWithBase).Do(ctx)
 		}),
-		// Wait for fonts and images to load.
 		chromedp.Sleep(500*time.Millisecond),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			var err error
@@ -53,4 +55,8 @@ func Render(htmlStr string, widthIn, heightIn float64) ([]byte, error) {
 	}
 
 	return buf, nil
+}
+
+func injectBaseTag(html, baseURL string) string {
+	return strings.Replace(html, "<head>", "<head><base href=\""+baseURL+"\">", 1)
 }

@@ -40,7 +40,7 @@ footer {
   right: 64px;
 }
 
-/* ---- screen mode: one slide at a time ---- */
+/* ---- screen mode: one slide at a time, aspect-ratio constrained ---- */
 @media screen {
   html, body {
     width: 100vw;
@@ -51,20 +51,31 @@ footer {
   body > section {
     display: none !important;
     position: absolute;
-    top: 0; left: 0;
-    width: 100vw;
-    height: 100vh;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Scale to fit viewport, preserving {{.SlideW}}x{{.SlideH}} aspect. */
+    width:  min(100vw, calc(100vh * {{.Ratio}}));
+    height: min(100vh, calc(100vw / {{.Ratio}}));
     overflow: hidden;
   }
   body > section.active {
     display: block !important;
+  }
+
+  /* Title slide: center content block vertically.
+     Override in theme CSS with stronger selector if needed. */
+  .layout-title {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100%;
   }
 }
 
 /* ---- print mode: one slide per page ---- */
 @media print {
   @page {
-    size: {{.Resolution}};
     margin: 0;
   }
   html, body {
@@ -78,8 +89,13 @@ footer {
   body > section {
     display: block !important;
     position: relative !important;
-    width: 100vw !important;
-    height: 100vh !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    width: {{.SlideW}}px !important;
+    height: {{.SlideH}}px !important;
+    max-width: none !important;
+    max-height: none !important;
     page-break-after: always;
     page-break-inside: avoid;
     overflow: hidden;

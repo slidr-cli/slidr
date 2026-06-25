@@ -36,12 +36,18 @@ func Render(doc *parser.Document, t *theme.Theme) (string, error) {
 		return "", err
 	}
 
+	dims := doc.Meta.Size(nil)
+	w, h := dims[0], dims[1]
+	ratio := float64(w) / float64(h)
+
 	var buf bytes.Buffer
 	data := map[string]interface{}{
 		"Meta":       doc.Meta,
 		"SlidesHTML": template.HTML(strings.Join(slidesHTML, "\n")),
 		"ThemeCSS":   template.CSS(t.Full()),
-		"Resolution": doc.Meta.Resolution(nil),
+		"SlideW":     w,
+		"SlideH":     h,
+		"Ratio":      fmt.Sprintf("%.4f", ratio),
 	}
 	if err := tmpl.Execute(&buf, data); err != nil {
 		return "", err

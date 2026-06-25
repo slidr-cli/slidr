@@ -50,7 +50,7 @@ func buildCmd() {
 	flags := buildFlags{}
 
 	fs := flag.NewFlagSet("build", flag.ExitOnError)
-	fs.StringVar(&flags.outputDir, "o", ".", "output directory")
+	fs.StringVar(&flags.outputDir, "o", "", "output directory (default: <input>/dist/)")
 	fs.BoolVar(&flags.pdfOnly, "pdf", false, "generate PDF only")
 	fs.BoolVar(&flags.pptxOnly, "pptx", false, "generate PPTX only")
 	fs.StringVar(&flags.theme, "theme", "", "theme name (overrides frontmatter)")
@@ -138,8 +138,11 @@ func buildCmd() {
 
 	_ = flags
 
-	// Theme loading.
-	t := theme.Load("", doc.Meta.Style)
+	// Determine output directory: default to <input_dir>/dist/.
+	outputDir := flags.outputDir
+	if outputDir == "" {
+		outputDir = filepath.Join(filepath.Dir(inputPath), "dist")
+	}
 
 	// Determine output name from input file.
 	outName := strings.TrimSuffix(filepath.Base(inputPath), filepath.Ext(inputPath))
@@ -152,6 +155,9 @@ func buildCmd() {
 	genAll := !flags.pdfOnly && !flags.pptxOnly
 	genPDF := genAll || flags.pdfOnly
 
+	// Theme loading.
+	t := theme.Load("", doc.Meta.Style)
+
 	// HTML (always generated, needed for PDF).
 	htmlStr, err := html.Render(doc, t)
 	if err != nil {
@@ -159,9 +165,24 @@ func buildCmd() {
 		os.Exit(1)
 	}
 
+	// Ensure output directory exists.
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "error creating output dir: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Copy assets directory if it exists alongside the input file.
+	assetsDir := filepath.Join(filepath.Dir(inputPath), "assets")
+	if _, err := os.Stat(assetsDir); err == nil {
+		destAssets := filepath.Join(outputDir, "assets")
+		if err := copyDir(assetsDir, destAssets); err != nil {
+			fmt.Fprintf(os.Stderr, "warning: could not copy assets: %v\n", err)
+		}
+	}
+
 	if genPDF {
-		pdfPath := filepath.Join(flags.outputDir, outName+".pdf")
-		pdfBuf, err := pdf.Render(htmlStr, widthIn, heightIn)
+		pdfPath := filepath.Join(outputDir, outName+".pdf")
+		pdfBuf, err := pdf.Render(htmlStr, widthIn, heightIn, filepath.Dir(inputPath))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error rendering PDF: %v\n", err)
 			os.Exit(1)
@@ -173,8 +194,8 @@ func buildCmd() {
 		fmt.Printf("Wrote %s (%d bytes)\n", pdfPath, len(pdfBuf))
 	}
 
-	// Always write HTML (needed for PDF, useful standalone).
-	htmlPath := filepath.Join(flags.outputDir, outName+".html")
+	// Always write HTML.
+	htmlPath := filepath.Join(outputDir, outName+".html")
 	if err := os.WriteFile(htmlPath, []byte(htmlStr), 0644); err != nil {
 		fmt.Fprintf(os.Stderr, "error writing %s: %v\n", htmlPath, err)
 		os.Exit(1)
@@ -287,4 +308,23 @@ func renderInline(nodes []parser.InlineNode) string {
 		s = s[:77] + "..."
 	}
 	return s
+}
+
+// copyDir recursively copies src to dst.
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, _ := filepath.Rel(src, path)
+		target := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(target, info.Mode())
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(target, data, info.Mode())
+	})
 }
