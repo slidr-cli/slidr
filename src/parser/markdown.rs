@@ -46,8 +46,19 @@ fn parse_slide(content: &str) -> Slide {
     opts.extension.table = true;
     let root = parse_document(&arena, &content, &opts);
 
-    let mut nodes: Vec<Node> = Vec::new();
+    // Single ordered list: comrak first (headings/quotes/tables/paragraphs),
+    // then fenced blocks (grids/cards), then directives (@kicker/@tiny/etc).
+    // This preserves the common case: content → structure → annotations.
+    let mut nodes = comrak_nodes(&arena, root);
+    nodes.extend(fenced);
+    nodes.extend(directives);
 
+    let layout = detect_layout(&nodes);
+    Slide { layout, children: nodes, notes }
+}
+
+fn comrak_nodes<'a>(_arena: &'a Arena, root: &'a CNode<'a>) -> Vec<Node> {
+    let mut nodes = Vec::new();
     for edge in root.traverse() {
         if let NodeEdge::Start(node) = edge {
             let data = node.data();
@@ -83,13 +94,7 @@ fn parse_slide(content: &str) -> Slide {
             }
         }
     }
-
-    let mut all = nodes;
-    all.extend(fenced);
-    all.extend(directives);
-
-    let layout = detect_layout(&all);
-    Slide { layout, children: all, notes }
+    nodes
 }
 
 fn node_text<'a>(node: &'a CNode<'a>) -> String {
