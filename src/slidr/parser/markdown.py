@@ -1,4 +1,4 @@
-"""Markdown parser using markdown-it-py with fenced block extraction."""
+"""Markdown parser using markdown-it-py with plugin extensions."""
 
 import re
 import frontmatter
@@ -7,11 +7,12 @@ from markdown_it.token import Token
 
 from slidr.parser.ast import (
     Document, Meta, Slide, LayoutType,
-    Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode,
+    Heading, Paragraph, Grid, Table, Quote, ListNode, AttrNode,
     Text, CodeSpan, SoftBreak,
 )
-
-FENCE_MARKER = "\u25caFENCE"
+from slidr.plugins.fenced import extract_fenced, interleave_fences
+from slidr.plugins.directives import preprocess_directives, extract_attrs, parse_attr_token
+from slidr.plugins.cards import group_cards
 
 
 def parse(input_text: str) -> Document:
@@ -51,116 +52,21 @@ def _parse_slide(content: str) -> Slide:
             content = trimmed[end + 3:].strip()
 
     content = re.sub(r"<!--(?!attr:).*?-->", "", content, flags=re.DOTALL).strip()
-    content = _preprocess_directives(content)
+    content = preprocess_directives(content)
 
-    # Extract ::: fenced blocks, replace with numbered markers
-    content, fence_nodes = _extract_fenced_blocks(content)
+    # Extract fenced blocks
+    content, fence_nodes = extract_fenced(content)
 
     md = MarkdownIt("gfm-like", {"breaks": True, "html": True})
     tokens = md.parse(content)
     nodes = _tokens_to_nodes(tokens)
 
-    nodes = _interleave_fences(nodes, fence_nodes)
-    nodes = _extract_attrs(nodes)
-    nodes = _group_cards(nodes)
+    nodes = interleave_fences(nodes, fence_nodes)
+    nodes = extract_attrs(nodes)
+    nodes = group_cards(nodes)
 
     layout = _detect_layout(nodes)
     return Slide(layout=layout, children=nodes, notes=notes)
-
-
-def _preprocess_directives(content: str) -> str:
-    lines = content.split("\n")
-    result = []
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith("@") and not stripped.startswith("@@") and " " in stripped:
-            directive = stripped[1:].split(" ", 1)
-            typ, value = directive[0], directive[1] if len(directive) > 1 else ""
-            result.append(f"<!--attr:{typ}:{value}-->")
-        else:
-            result.append(line)
-    return "\n".join(result)
-
-
-def _extract_fenced_blocks(content: str) -> tuple[str, list]:
-    """Extract ::: fence blocks, return (content with markers, parsed nodes)."""
-    lines = content.split("\n")
-    result = []
-    nodes = []
-    fence_count = 0
-    i = 0
-    while i < len(lines):
-        t = lines[i].strip()
-        if t == ":::":
-            i += 1
-            continue
-        if t.startswith(":::") and not t.startswith("::::"):
-            rest = t[3:].strip()
-            typ = rest.split()[0].split("{")[0]
-            # Find matching :::
-            depth = 1
-            inner = []
-            j = i + 1
-            while j < len(lines) and depth > 0:
-                lt = lines[j].strip()
-                if lt.startswith(":::") and not lt.startswith("::::") and lt != ":::":
-                    depth += 1
-                elif lt == ":::":
-                    depth -= 1
-                if depth > 0:
-                    inner.append(lines[j])
-                j += 1
-            inner_text = "\n".join(inner)
-
-            if typ == "card":
-                card = _parse_card_body(inner_text)
-                nodes.append(card)
-            elif typ == "grid":
-                _, children = _extract_fenced_blocks(inner_text)
-                raw = " ".join(rest.split()[1:]).strip("{}")
-                cols = 0  # 0 = auto from children
-                class_ = ""
-                for attr in raw.split(","):
-                    attr = attr.strip()
-                    if not attr:
-                        continue
-                    if "=" in attr:
-                        k, v = attr.split("=", 1)
-                        k, v = k.strip(), v.strip().strip('"')
-                        if k == "cols":
-                            cols = int(v)
-                        elif k == "class":
-                            class_ = v
-                    else:
-                        # Bare word → CSS class
-                        if class_:
-                            class_ += " " + attr
-                        else:
-                            class_ = attr
-                if cols == 0:
-                    cols = len(children) or 2
-                nodes.append(Grid(cols=cols, class_=class_, children=children))
-
-            result.append(f"{FENCE_MARKER}_{fence_count}")
-            fence_count += 1
-            i = j
-            continue
-        result.append(lines[i])
-        i += 1
-
-    return "\n".join(result), nodes
-
-
-def _parse_card_body(text: str) -> Card:
-    header = ""
-    body = []
-    for line in text.strip().split("\n"):
-        line = line.strip()
-        if line.startswith("### "):
-            header = line[4:]
-        elif line:
-            body.append(line)
-    return Card(header=header, body=body)
 
 
 def _tokens_to_nodes(tokens: list[Token]) -> list:
@@ -245,17 +151,9 @@ def _tokens_to_nodes(tokens: list[Token]) -> list:
             i += 1
         elif token.type == "html_block":
             html = token.content.strip()
-            if html.startswith("<!--attr:"):
-                m = re.match(r"<!--attr:(\w+):(.*)-->", html)
-                if m:
-                    typ, value = m.group(1), m.group(2)
-                    attrs = {}
-                    for ma in re.finditer(r'(\w+)="([^"]*)"', value):
-                        attrs[ma.group(1)] = ma.group(2)
-                    for ma in re.finditer(r'(\w+)=(\S+)', value):
-                        if ma.group(1) not in attrs:
-                            attrs[ma.group(1)] = ma.group(2)
-                    nodes.append(AttrNode(type=typ, value=value, attrs=attrs))
+            node = parse_attr_token(html)
+            if node:
+                nodes.append(node)
             i += 1
         else:
             i += 1
@@ -277,68 +175,6 @@ def _token_inline(token: Token) -> list:
     elif token.type == "hardbreak":
         return [SoftBreak()]
     return []
-
-
-def _interleave_fences(nodes: list, fence_nodes: list) -> list:
-    """Replace FENCE_MARKER_N paragraphs with actual fence nodes."""
-    result = []
-    fi = 0
-    for node in nodes:
-        if isinstance(node, Paragraph) and node.content:
-            text = node.content[0].content if isinstance(node.content[0], Text) else ""
-            if text.startswith(FENCE_MARKER):
-                if fi < len(fence_nodes):
-                    result.append(fence_nodes[fi])
-                    fi += 1
-                continue
-        result.append(node)
-    # Append any remaining
-    while fi < len(fence_nodes):
-        result.append(fence_nodes[fi])
-        fi += 1
-    return result
-
-
-def _extract_attrs(nodes: list) -> list:
-    result = []
-    for node in nodes:
-        if isinstance(node, Paragraph) and len(node.content) == 1:
-            text = node.content[0].content if isinstance(node.content[0], Text) else ""
-            m = re.match(r"<!--attr:(\w+):(.*)-->", text)
-            if m:
-                typ, value = m.group(1), m.group(2)
-                attrs = {}
-                for ma in re.finditer(r'(\w+)="([^"]*)"', value):
-                    attrs[ma.group(1)] = ma.group(2)
-                for ma in re.finditer(r'(\w+)=(\S+)', value):
-                    if ma.group(1) not in attrs:
-                        attrs[ma.group(1)] = ma.group(2)
-                result.append(AttrNode(type=typ, value=value, attrs=attrs))
-                continue
-        result.append(node)
-    return result
-
-
-def _group_cards(nodes: list) -> list:
-    """Auto-group consecutive Card nodes into Grid."""
-    result = []
-    i = 0
-    while i < len(nodes):
-        if isinstance(nodes[i], Card):
-            cards = [nodes[i]]
-            j = i + 1
-            while j < len(nodes) and isinstance(nodes[j], Card):
-                cards.append(nodes[j])
-                j += 1
-            if len(cards) >= 2:
-                result.append(Grid(cols=len(cards), children=cards))
-            else:
-                result.append(cards[0])
-            i = j
-        else:
-            result.append(nodes[i])
-            i += 1
-    return result
 
 
 def _detect_layout(nodes: list) -> LayoutType:
