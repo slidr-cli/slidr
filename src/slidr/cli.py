@@ -7,6 +7,7 @@ import typer
 
 from slidr.parser.markdown import parse
 from slidr.render.html import render as render_html
+from slidr.render.pptx import render as render_pptx
 
 app = typer.Typer(help="Markdown to styled PPTX + PDF", no_args_is_help=True)
 
@@ -34,6 +35,12 @@ def main(
     html_path = out_dir / f"{stem}.html"
     html_path.write_text(html)
     typer.echo(f"Wrote {html_path} ({len(html)} bytes)")
+
+    if pptx:
+        pptx_path = out_dir / f"{stem}.pptx"
+        render_pptx(doc, pptx_path)
+        typer.echo(f"Wrote {pptx_path} ({pptx_path.stat().st_size} bytes)")
+        return
 
     typer.echo(f"Parsed {len(doc.slides)} slides")
     if debug:
