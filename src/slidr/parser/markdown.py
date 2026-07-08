@@ -1,10 +1,9 @@
-"""Markdown parser using markdown-it-py with custom ::: container support."""
+"""Markdown parser using markdown-it-py with fenced block extraction."""
 
 import re
 import frontmatter
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
-from markdown_it.rules_block import StateBlock
 
 from slidr.parser.ast import (
     Document, Meta, Slide, LayoutType,
@@ -12,11 +11,10 @@ from slidr.parser.ast import (
     Text, CodeSpan, SoftBreak,
 )
 
+FENCE_MARKER = "\u25caFENCE"
+
 
 def parse(input_text: str) -> Document:
-    """Parse markdown with YAML frontmatter into a Document AST."""
-
-    # Split frontmatter
     post = frontmatter.loads(input_text)
     raw_meta = dict(post.metadata)
     style_raw = raw_meta.pop("style", "") or ""
@@ -33,8 +31,6 @@ def parse(input_text: str) -> Document:
     )
 
     body = post.content
-
-    # Split into slides at ---
     slides = []
     for part in body.split("\n---\n"):
         part = part.strip()
@@ -46,9 +42,6 @@ def parse(input_text: str) -> Document:
 
 
 def _parse_slide(content: str) -> Slide:
-    """Parse a single slide's content into a list of AST nodes."""
-
-    # Extract speaker notes (HTML comment at start)
     notes = ""
     trimmed = content.strip()
     if trimmed.startswith("<!--"):
@@ -57,204 +50,226 @@ def _parse_slide(content: str) -> Slide:
             notes = trimmed[4:end].strip()
             content = trimmed[end + 3:].strip()
 
-    # Pre-process: convert ::: blocks to markdown-it container syntax
-    # and @directives to HTML that we can extract
-    content = _preprocess_fences(content)
+    content = re.sub(r"<!--(?!attr:).*?-->", "", content, flags=re.DOTALL).strip()
     content = _preprocess_directives(content)
 
-    # Parse with markdown-it (GFM preset: tables, strikethrough, task lists, autolinks)
+    # Extract ::: fenced blocks, replace with numbered markers
+    content, fence_nodes = _extract_fenced_blocks(content)
+
     md = MarkdownIt("gfm-like", {"breaks": True, "html": True})
-
     tokens = md.parse(content)
-
-    # Convert tokens to AST nodes
     nodes = _tokens_to_nodes(tokens)
 
-    # Post-process: convert <fence-card> and <fence-grid> HTML tokens to Card/Grid nodes
-    nodes = _extract_fences(nodes)
-
-    # Post-process: convert <attr-*> HTML tokens to AttrNode
+    nodes = _interleave_fences(nodes, fence_nodes)
     nodes = _extract_attrs(nodes)
+    nodes = _group_cards(nodes)
 
-    # Detect layout
     layout = _detect_layout(nodes)
-
     return Slide(layout=layout, children=nodes, notes=notes)
 
 
-def _preprocess_fences(content: str) -> str:
-    """Convert ::: fence blocks to HTML tags that markdown-it preserves."""
-    lines = content.split("\n")
-    result = []
-    i = 0
-    while i < len(lines):
-        line = lines[i].strip()
-        if line == ":::":
-            result.append("</fence-wrapper>")
-            i += 1
-            continue
-        if line.startswith(":::") and not line.startswith("::::"):
-            rest = line[3:].strip()
-            typ = rest.split()[0].rstrip("{")
-            result.append(f"<fence-wrapper><fence-{typ}>")
-            i += 1
-            continue
-        result.append(lines[i])
-        i += 1
-    return "\n".join(result)
-
-
 def _preprocess_directives(content: str) -> str:
-    """Convert @directive lines to HTML tags."""
     lines = content.split("\n")
     result = []
     for line in lines:
         stripped = line.strip()
         if stripped.startswith("@") and not stripped.startswith("@@") and " " in stripped:
             directive = stripped[1:].split(" ", 1)
-            typ = directive[0]
-            value = directive[1] if len(directive) > 1 else ""
-            result.append(f"<attr-{typ}>{value}</attr-{typ}>")
+            typ, value = directive[0], directive[1] if len(directive) > 1 else ""
+            result.append(f"<!--attr:{typ}:{value}-->")
         else:
             result.append(line)
     return "\n".join(result)
 
 
+def _extract_fenced_blocks(content: str) -> tuple[str, list]:
+    """Extract ::: fence blocks, return (content with markers, parsed nodes)."""
+    lines = content.split("\n")
+    result = []
+    nodes = []
+    fence_count = 0
+    i = 0
+    while i < len(lines):
+        t = lines[i].strip()
+        if t == ":::":
+            i += 1
+            continue
+        if t.startswith(":::") and not t.startswith("::::"):
+            rest = t[3:].strip()
+            typ = rest.split()[0].split("{")[0]
+            # Find matching :::
+            depth = 1
+            inner = []
+            j = i + 1
+            while j < len(lines) and depth > 0:
+                lt = lines[j].strip()
+                if lt.startswith(":::") and not lt.startswith("::::") and lt != ":::":
+                    depth += 1
+                elif lt == ":::":
+                    depth -= 1
+                if depth > 0:
+                    inner.append(lines[j])
+                j += 1
+            inner_text = "\n".join(inner)
+
+            if typ == "card":
+                card = _parse_card_body(inner_text)
+                nodes.append(card)
+            elif typ == "grid":
+                _, children = _extract_fenced_blocks(inner_text)
+                raw = " ".join(rest.split()[1:]).strip("{}")
+                cols = 0  # 0 = auto from children
+                class_ = ""
+                for attr in raw.split(","):
+                    attr = attr.strip()
+                    if not attr:
+                        continue
+                    if "=" in attr:
+                        k, v = attr.split("=", 1)
+                        k, v = k.strip(), v.strip().strip('"')
+                        if k == "cols":
+                            cols = int(v)
+                        elif k == "class":
+                            class_ = v
+                    else:
+                        # Bare word → CSS class
+                        if class_:
+                            class_ += " " + attr
+                        else:
+                            class_ = attr
+                if cols == 0:
+                    cols = len(children) or 2
+                nodes.append(Grid(cols=cols, class_=class_, children=children))
+
+            result.append(f"{FENCE_MARKER}_{fence_count}")
+            fence_count += 1
+            i = j
+            continue
+        result.append(lines[i])
+        i += 1
+
+    return "\n".join(result), nodes
+
+
+def _parse_card_body(text: str) -> Card:
+    header = ""
+    body = []
+    for line in text.strip().split("\n"):
+        line = line.strip()
+        if line.startswith("### "):
+            header = line[4:]
+        elif line:
+            body.append(line)
+    return Card(header=header, body=body)
+
+
 def _tokens_to_nodes(tokens: list[Token]) -> list:
-    """Convert markdown-it tokens to AST nodes."""
     nodes = []
     i = 0
-
     while i < len(tokens):
         token = tokens[i]
-
         if token.type == "heading_open":
             level = int(token.tag[1])
             i += 1
             content = []
             while i < len(tokens) and tokens[i].type != "heading_close":
-                inodes = _token_to_inline(tokens[i])
-                content.extend(inodes)
+                content.extend(_token_inline(tokens[i]))
                 i += 1
             nodes.append(Heading(level=level, content=content))
-            i += 1  # skip heading_close
-
+            i += 1
         elif token.type == "paragraph_open":
             i += 1
             content = []
             while i < len(tokens) and tokens[i].type != "paragraph_close":
-                inodes = _token_to_inline(tokens[i])
-                content.extend(inodes)
+                content.extend(_token_inline(tokens[i]))
                 i += 1
             if content:
                 nodes.append(Paragraph(content=content))
-            i += 1  # skip paragraph_close
-
+            i += 1
         elif token.type == "blockquote_open":
             i += 1
             content = []
             while i < len(tokens) and tokens[i].type != "blockquote_close":
                 if tokens[i].type == "inline":
-                    inodes = _token_to_inline(tokens[i])
-                    content.extend(inodes)
+                    content.extend(_token_inline(tokens[i]))
                 i += 1
             if content:
                 nodes.append(Quote(content=content))
             i += 1
-
         elif token.type == "table_open":
-            headers, rows = [], []
+            rows = []
+            cur = []
             i += 1
             while i < len(tokens) and tokens[i].type != "table_close":
-                if tokens[i].type == "thead_open":
+                t = tokens[i]
+                if t.type in ("th_open", "td_open"):
                     i += 1
-                    while i < len(tokens) and tokens[i].type != "thead_close":
-                        if tokens[i].type == "tr_open":
-                            i += 1
-                            while i < len(tokens) and tokens[i].type != "tr_close":
-                                if tokens[i].type in ("th_open", "td_open"):
-                                    i += 1
-                                    cell = ""
-                                    while i < len(tokens) and tokens[i].type not in ("th_close", "td_close"):
-                                        cell += tokens[i].content
-                                        i += 1
-                                    headers.append(cell.strip())
-                                i += 1
-                            i += 1  # skip tr_close
+                    cell = ""
+                    while i < len(tokens) and tokens[i].type not in ("th_close", "td_close"):
+                        cell += tokens[i].content
                         i += 1
-
-                elif tokens[i].type == "tbody_open":
-                    i += 1
-                    while i < len(tokens) and tokens[i].type != "tbody_close":
-                        if tokens[i].type == "tr_open":
-                            i += 1
-                            row = []
-                            while i < len(tokens) and tokens[i].type != "tr_close":
-                                if tokens[i].type in ("th_open", "td_open"):
-                                    i += 1
-                                    cell = ""
-                                    while i < len(tokens) and tokens[i].type not in ("th_close", "td_close"):
-                                        cell += tokens[i].content
-                                        i += 1
-                                    row.append(cell.strip())
-                                i += 1
-                            if row:
-                                rows.append(row)
-                            i += 1  # skip tr_close
-                        i += 1
+                    cur.append(cell.strip())
+                elif t.type == "tr_close":
+                    if cur:
+                        rows.append(cur)
+                        cur = []
                 i += 1
-            if headers or rows:
-                nodes.append(Table(headers=headers, rows=rows))
+            if cur:
+                rows.append(cur)
+            if rows:
+                nodes.append(Table(headers=rows[0], rows=rows[1:]))
             i += 1
-
-        elif token.type == "bullet_list_open" or token.type == "ordered_list_open":
+        elif token.type in ("bullet_list_open", "ordered_list_open"):
+            close_type = token.type.replace("_open", "_close")
             items = []
             i += 1
-            while i < len(tokens) and tokens[i].type not in ("bullet_list_close", "ordered_list_close"):
+            while i < len(tokens) and tokens[i].type != close_type:
                 if tokens[i].type == "list_item_open":
                     i += 1
-                    item_text = ""
+                    text = ""
                     while i < len(tokens) and tokens[i].type != "list_item_close":
                         if tokens[i].type == "inline":
-                            item_text += tokens[i].content
+                            text += tokens[i].content
                         i += 1
-                    items.append(item_text.strip())
+                    items.append(text.strip())
                     i += 1
                 else:
                     i += 1
             if items:
                 nodes.append(ListNode(items=items))
             i += 1
-
-        elif token.type == "html_block":
-            html = token.content.strip()
-            nodes.append(_html_to_node(html))
-            i += 1
-
         elif token.type == "inline":
-            # Standalone inline (e.g., image or raw text not in paragraph)
-            content = _token_to_inline(token)
+            content = _token_inline(token)
             if content:
                 nodes.append(Paragraph(content=content))
             i += 1
-
+        elif token.type == "html_block":
+            html = token.content.strip()
+            if html.startswith("<!--attr:"):
+                m = re.match(r"<!--attr:(\w+):(.*)-->", html)
+                if m:
+                    typ, value = m.group(1), m.group(2)
+                    attrs = {}
+                    for ma in re.finditer(r'(\w+)="([^"]*)"', value):
+                        attrs[ma.group(1)] = ma.group(2)
+                    for ma in re.finditer(r'(\w+)=(\S+)', value):
+                        if ma.group(1) not in attrs:
+                            attrs[ma.group(1)] = ma.group(2)
+                    nodes.append(AttrNode(type=typ, value=value, attrs=attrs))
+            i += 1
         else:
             i += 1
-
     return nodes
 
 
-def _token_to_inline(token: Token) -> list:
-    """Convert a single markdown-it token to inline AST nodes."""
+def _token_inline(token: Token) -> list:
     if token.type == "inline":
         result = []
         for child in (token.children or []):
-            result.extend(_token_to_inline(child))
+            result.extend(_token_inline(child))
         return result
     elif token.type == "text":
         return [Text(content=token.content)]
-    elif token.type == "strong_open":
-        return []  # handled by parser chasing content
     elif token.type == "code_inline":
         return [CodeSpan(content=token.content)]
     elif token.type == "softbreak":
@@ -264,125 +279,75 @@ def _token_to_inline(token: Token) -> list:
     return []
 
 
-def _html_to_node(html: str):
-    """Convert HTML block (from pre-processing) back to AST node."""
-    html = html.strip()
-
-    if html.startswith("<attr-"):
-        m = re.match(r"<attr-(\w+)>(.*)</attr-\1>", html)
-        if m:
-            typ, value = m.group(1), m.group(2)
-            return AttrNode(type=typ, value=value)
-
-    if html.startswith("<fence-card"):
-        return _parse_fence_card(html)
-
-    if html.startswith("<fence-grid"):
-        return _parse_fence_grid(html)
-
-    # Pass through as plain text
-    return Paragraph(content=[Text(content=html)])
-
-
-def _parse_fence_card(html: str) -> "Node":
-    """Parse <fence-card> HTML back to Card node."""
-    m = re.search(r"<fence-card>(.*)</fence-card>", html, re.DOTALL)
-    if not m:
-        return Paragraph(content=[Text(content=html)])
-
-    inner = m.group(1).strip()
-    lines = inner.split("\n")
-    header = ""
-    body = []
-
-    for line in lines:
-        line = line.strip()
-        if line.startswith("### "):
-            header = line[4:]
-        elif line:
-            body.append(line)
-
-    return Card(header=header, body=body)
-
-
-def _parse_fence_grid(html: str) -> "Node":
-    """Parse <fence-grid> HTML back to Grid node with nested children."""
-    # Grid contains nested fence-card children
-    m = re.search(r"<fence-grid>(.*)</fence-grid>", html, re.DOTALL)
-    if not m:
-        return Paragraph(content=[Text(content=html)])
-
-    inner = m.group(1)
-    children = []
-
-    # Find all fence-card blocks
-    for card_m in re.finditer(r"<fence-card>(.*?)</fence-card>", inner, re.DOTALL):
-        children.append(_parse_fence_card(card_m.group(0)))
-
-    return Grid(cols=len(children) or 2, children=children)
-
-
-def _extract_fences(nodes: list) -> list:
-    """Post-process: convert fence placeholder paragraphs to actual nodes."""
+def _interleave_fences(nodes: list, fence_nodes: list) -> list:
+    """Replace FENCE_MARKER_N paragraphs with actual fence nodes."""
     result = []
-    pending = []
-    in_grid = False
-
+    fi = 0
     for node in nodes:
-        if isinstance(node, Paragraph) and len(node.content) == 1:
+        if isinstance(node, Paragraph) and node.content:
             text = node.content[0].content if isinstance(node.content[0], Text) else ""
-            if text.startswith("<fence-grid>"):
-                in_grid = True
-                pending = [text]
+            if text.startswith(FENCE_MARKER):
+                if fi < len(fence_nodes):
+                    result.append(fence_nodes[fi])
+                    fi += 1
                 continue
-            elif text.startswith("<fence-card>"):
-                if in_grid:
-                    pending.append(text)
-                else:
-                    result.append(_parse_fence_card(text))
-                continue
-            elif text == "</fence-wrapper>":
-                if in_grid and pending:
-                    inner = "\n".join(pending)
-                    children = []
-                    for card_m in re.finditer(r"<fence-card>(.*?)</fence-card>", inner, re.DOTALL):
-                        children.append(_parse_fence_card(card_m.group(0)))
-                    result.append(Grid(cols=len(children) or 2, children=children))
-                in_grid = False
-                pending = []
-                continue
-
-        if not in_grid:
-            result.append(node)
-
+        result.append(node)
+    # Append any remaining
+    while fi < len(fence_nodes):
+        result.append(fence_nodes[fi])
+        fi += 1
     return result
 
 
 def _extract_attrs(nodes: list) -> list:
-    """Post-process: convert <attr-*> paragraphs to AttrNodes."""
     result = []
     for node in nodes:
         if isinstance(node, Paragraph) and len(node.content) == 1:
             text = node.content[0].content if isinstance(node.content[0], Text) else ""
-            m = re.match(r"<attr-(\w+)>(.*)</attr-\1>", text)
+            m = re.match(r"<!--attr:(\w+):(.*)-->", text)
             if m:
-                result.append(AttrNode(type=m.group(1), value=m.group(2)))
+                typ, value = m.group(1), m.group(2)
+                attrs = {}
+                for ma in re.finditer(r'(\w+)="([^"]*)"', value):
+                    attrs[ma.group(1)] = ma.group(2)
+                for ma in re.finditer(r'(\w+)=(\S+)', value):
+                    if ma.group(1) not in attrs:
+                        attrs[ma.group(1)] = ma.group(2)
+                result.append(AttrNode(type=typ, value=value, attrs=attrs))
                 continue
         result.append(node)
     return result
 
 
+def _group_cards(nodes: list) -> list:
+    """Auto-group consecutive Card nodes into Grid."""
+    result = []
+    i = 0
+    while i < len(nodes):
+        if isinstance(nodes[i], Card):
+            cards = [nodes[i]]
+            j = i + 1
+            while j < len(nodes) and isinstance(nodes[j], Card):
+                cards.append(nodes[j])
+                j += 1
+            if len(cards) >= 2:
+                result.append(Grid(cols=len(cards), children=cards))
+            else:
+                result.append(cards[0])
+            i = j
+        else:
+            result.append(nodes[i])
+            i += 1
+    return result
+
+
 def _detect_layout(nodes: list) -> LayoutType:
-    """Auto-detect slide layout from child nodes."""
     has_h1 = any(isinstance(n, Heading) and n.level == 1 for n in nodes)
     has_kicker = any(isinstance(n, AttrNode) and n.type == "kicker" for n in nodes)
     has_speaker = any(isinstance(n, AttrNode) and n.type == "speaker" for n in nodes)
-
     if has_h1 or has_kicker or has_speaker:
         return LayoutType.TITLE
-
     for n in nodes:
         if isinstance(n, Grid):
             return {2: LayoutType.GRID2, 3: LayoutType.GRID3, 4: LayoutType.GRID4}.get(n.cols, LayoutType.CONTENT)
-
     return LayoutType.CONTENT
