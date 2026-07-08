@@ -146,8 +146,6 @@ fn render_node(node: &Node) -> Option<String> {
                 _ => Some(format!("<div class=\"{}\">{}</div>", a.typ, a.value)),
             }
         }
-        Node::Image(url, alt) => Some(format!("<img src=\"{}\" alt=\"{}\" />", url, alt)),
-        Node::RawHtml(s) => Some(s.clone()),
     }
 }
 
@@ -160,9 +158,8 @@ fn render_inline(nodes: &[Inline]) -> String {
                 write!(s, "<strong>{}</strong>", render_inline(children)).unwrap();
             }
             Inline::Code(c) => write!(s, "<code>{}</code>", html_escape(c)).unwrap(),
-            Inline::Link(url, text) => write!(s, "<a href=\"{}\">{}</a>", url, html_escape(text)).unwrap(),
             Inline::SoftBreak => s.push(' '),
-            Inline::Image(url, alt) => write!(s, "<img src=\"{}\" alt=\"{}\" />", url, alt).unwrap(),
+            _ => {}
         }
     }
     s

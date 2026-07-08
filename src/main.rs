@@ -31,7 +31,7 @@ fn main() {
         Commands::Build { file, output_dir, pdf, pptx } => {
             let input = std::fs::read_to_string(&file).expect("cannot read input file");
             let doc = parser::markdown::parse_markdown(&input);
-            let t = theme::Theme::new(doc.meta.style.clone());
+            let t = theme::Theme::new(doc.meta.style.clone().unwrap_or_default());
 
             let gen_all = !pdf && !pptx;
             let gen_pdf = gen_all || pdf;
@@ -47,7 +47,7 @@ fn main() {
             let stem = Path::new(&file).file_stem().unwrap().to_str().unwrap();
 
             // HTML
-            let html = render::html::render(&doc, &doc.meta.style, doc.meta.logo.as_deref());
+            let html = render::html::render(&doc, doc.meta.style.as_deref().unwrap_or_default(), doc.meta.logo.as_deref());
             let html_path = out_dir.join(format!("{}.html", stem));
             std::fs::write(&html_path, &html).unwrap();
             println!("Wrote {} ({} bytes)", html_path.display(), html.len());

@@ -1,298 +1,113 @@
-use comrak::{
-    Arena, Options,
-    arena_tree::NodeEdge,
-    nodes::{AstNode as CNode, NodeValue},
-    parse_document,
-};
+use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use crate::parser::ast::*;
 
 pub fn parse_markdown(input: &str) -> Document {
-    let (frontmatter, body) = split_frontmatter(input);
-    let meta: Meta = serde_yaml::from_str(&frontmatter).unwrap_or_default();
-    let slides = split_slides(&body, &meta);
+    let (fm, body) = split_frontmatter(input);
+    let meta: Meta = serde_yaml::from_str(&fm).unwrap_or_default();
+    let slides = split_slides(&body);
     Document { meta, slides }
 }
 
 fn split_frontmatter(input: &str) -> (String, String) {
-    let trimmed = input.trim_start();
-    if !trimmed.starts_with("---") {
-        return (String::new(), input.to_string());
-    }
-    let after = &trimmed[3..];
+    let t = input.trim_start();
+    if !t.starts_with("---") { return (String::new(), input.to_string()); }
+    let after = &t[3..];
     if let Some(end) = after.find("\n---") {
-        let fm = after[..end].trim().to_string();
-        let body = after[end + 4..].to_string();
-        (fm, body)
+        (after[..end].trim().to_string(), after[end + 4..].to_string())
     } else {
         (String::new(), input.to_string())
     }
 }
 
-fn split_slides(body: &str, _meta: &Meta) -> Vec<Slide> {
+fn split_slides(body: &str) -> Vec<Slide> {
     body.split("\n---\n")
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
-        .map(|content| parse_slide(content))
+        .map(parse_slide)
         .collect()
 }
 
 fn parse_slide(content: &str) -> Slide {
     let (notes, content) = extract_notes(content);
-    let (content, directives) = extract_directives(&content);
-    let (content, fenced) = extract_fenced(&content);
+    let opts = Options::ENABLE_TABLES;
+    let parser = Parser::new_ext(&content, opts);
 
-    let arena = Arena::new();
-    let mut opts = Options::default();
-    opts.extension.table = true;
-    let root = parse_document(&arena, &content, &opts);
+    let mut nodes: Vec<Node> = Vec::new();
+    let mut buf = String::new();
+    let mut h_level = 0u8;
+    let mut in_quote = false;
+    let mut hdrs: Vec<String> = Vec::new();
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    let mut cells: Vec<String> = Vec::new();
+    let mut is_hdr = true;
+    let mut list: Vec<String> = Vec::new();
+    let mut in_table = false;
 
-    // Single ordered list: comrak first (headings/quotes/tables/paragraphs),
-    // then fenced blocks (grids/cards), then directives (@kicker/@tiny/etc).
-    // This preserves the common case: content → structure → annotations.
-    let mut nodes = comrak_nodes(&arena, root);
-    nodes.extend(fenced);
-    nodes.extend(directives);
+    for ev in parser { let _ = std::fs::write("/tmp/pd_log", format!("EVT: {:?}\n", ev));
+        match ev {
+            Event::Start(t) => match t {
+                Tag::Heading { level, .. } => h_level = level as u8,
+                Tag::BlockQuote(..) => in_quote = true,
+                Tag::Table(_) => { let _ = std::fs::write("/tmp/pd_log", "TABLE_START\n"); in_table = true; is_hdr = true; }
+                Tag::TableHead => is_hdr = true,
+                Tag::TableRow => cells.clear(),
+                _ => {}
+            },
+            Event::End(t) => match t {
+                TagEnd::Heading(..) => { push_h(&mut nodes, h_level, &mut buf); h_level = 0; }
+                TagEnd::Paragraph => { push_pq(&mut nodes, in_quote, &mut buf); }
+                TagEnd::BlockQuote(_) => in_quote = false,
+                TagEnd::Table => { let _ = std::fs::write("/tmp/pd_log", "TABLE_END\n"); if !hdrs.is_empty() { nodes.push(Node::Table(Table { headers: std::mem::take(&mut hdrs), rows: std::mem::take(&mut rows) })); } in_table = false; }
+                TagEnd::TableHead => is_hdr = false,
+                TagEnd::TableRow => { if !cells.is_empty() { if is_hdr { hdrs = std::mem::take(&mut cells); } else { rows.push(std::mem::take(&mut cells)); } } }
+                TagEnd::List(..) => { if !list.is_empty() { nodes.push(Node::List(std::mem::take(&mut list))); } }
+                TagEnd::Item => { let s = trim(&buf); buf.clear(); if !s.is_empty() { list.push(s); } }
+                _ => {}
+            },
+            Event::Text(t) => { if in_table { let _ = std::fs::write("/tmp/pd_log", format!("TABLE_TEXT: {}\n", t)); cells.push(t.to_string()); } else { buf.push_str(&t); } }
+            Event::Code(c) => { if in_table { if let Some(last) = cells.last_mut() { last.push('`'); last.push_str(&c); last.push('`'); } } else { buf.push('`'); buf.push_str(&c); buf.push('`'); } }
+            Event::SoftBreak | Event::HardBreak => { if !in_table { buf.push(' '); } }
+            _ => {}
+        }
+    }
 
-    let layout = detect_layout(&nodes);
+    let s = trim(&buf);
+    if !s.is_empty() { nodes.push(Node::Paragraph(vec![Inline::Text(s)])); }
+
+    let layout = detect(&nodes);
     Slide { layout, children: nodes, notes }
 }
 
-fn comrak_nodes<'a>(_arena: &'a Arena, root: &'a CNode<'a>) -> Vec<Node> {
-    let mut nodes = Vec::new();
-    for edge in root.traverse() {
-        if let NodeEdge::Start(node) = edge {
-            let data = node.data();
-            match &data.value {
-                NodeValue::Heading(h) => {
-                    nodes.push(Node::Heading(Heading {
-                        level: u8::try_from(h.level).unwrap_or(1),
-                        content: vec![Inline::Text(node_text(&node))],
-                    }));
-                }
-                NodeValue::Paragraph => {
-                    let text = node_text(&node);
-                    if !text.is_empty() && !text.starts_with('<') {
-                        nodes.push(Node::Paragraph(vec![Inline::Text(text)]));
-                    }
-                }
-                NodeValue::BlockQuote => {
-                    let text = node_text(&node);
-                    if !text.is_empty() {
-                        nodes.push(Node::Quote(vec![Inline::Text(text)]));
-                    }
-                }
-                NodeValue::Table(_) => {
-                    nodes.push(extract_table(&node));
-                }
-                NodeValue::List(_) => {
-                    let items = extract_list(&node);
-                    if !items.is_empty() {
-                        nodes.push(Node::List(items));
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-    nodes
+fn push_h(nodes: &mut Vec<Node>, level: u8, buf: &mut String) {
+    let s = trim(buf); buf.clear();
+    if !s.is_empty() { nodes.push(Node::Heading(Heading { level, content: vec![Inline::Text(s)] })); }
 }
 
-fn node_text<'a>(node: &'a CNode<'a>) -> String {
-    let mut s = String::new();
-    for edge in node.traverse() {
-        if let NodeEdge::Start(child) = edge {
-            if let NodeValue::Text(t) = &child.data().value {
-                s.push_str(t);
-            }
-        }
+fn push_pq(nodes: &mut Vec<Node>, in_quote: bool, buf: &mut String) {
+    let s = trim(buf); buf.clear();
+    if !s.is_empty() {
+        nodes.push(if in_quote { Node::Quote(vec![Inline::Text(s)]) } else { Node::Paragraph(vec![Inline::Text(s)]) });
     }
-    s.trim().to_string()
 }
 
-fn extract_table<'a>(node: &'a CNode<'a>) -> Node {
-    let mut headers = Vec::new();
-    let mut rows = Vec::new();
-    let mut first = true;
-
-    for edge in node.traverse() {
-        if let NodeEdge::Start(child) = edge {
-            match &child.data().value {
-                NodeValue::TableRow(_) => {
-                    let mut cells = Vec::new();
-                    for ce in child.traverse() {
-                        if let NodeEdge::Start(cell) = ce {
-                            if let NodeValue::TableCell = cell.data().value {
-                                cells.push(node_text(&cell));
-                            }
-                        }
-                    }
-                    if !cells.is_empty() {
-                        if first { headers = cells; first = false; }
-                        else { rows.push(cells); }
-                    }
-                }
-                _ => {}
-            }
-        }
-    }
-
-    Node::Table(Table { headers, rows })
-}
-
-fn extract_list<'a>(node: &'a CNode<'a>) -> Vec<String> {
-    let mut items = Vec::new();
-    for edge in node.traverse() {
-        if let NodeEdge::Start(child) = edge {
-            if let NodeValue::Item(_) = &child.data().value {
-                let text = node_text(&child);
-                if !text.is_empty() {
-                    items.push(text);
-                }
-            }
-        }
-    }
-    items
-}
+fn trim(s: &str) -> String { s.trim().to_string() }
 
 fn extract_notes(content: &str) -> (String, String) {
-    let trimmed = content.trim_start();
-    if trimmed.starts_with("<!--") {
-        if let Some(end) = trimmed.find("-->") {
-            let notes = trimmed[4..end].trim().to_string();
-            let rest = trimmed[end + 3..].trim().to_string();
-            return (notes, rest);
+    let t = content.trim_start();
+    if let Some(start) = t.find("<!--") {
+        if t[..start].trim().is_empty() {
+            let rest = &t[start + 4..];
+            if let Some(end) = rest.find("-->") {
+                return (rest[..end].trim().to_string(), rest[end + 3..].trim().to_string());
+            }
         }
     }
     (String::new(), content.to_string())
 }
 
-fn extract_directives(content: &str) -> (String, Vec<Node>) {
-    let mut nodes = Vec::new();
-    let mut result = String::new();
-
-    for line in content.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with('@') && !trimmed.starts_with("@@") {
-            let rest = &trimmed[1..];
-            if let Some(space) = rest.find(' ') {
-                let typ = &rest[..space];
-                let value = rest[space + 1..].trim();
-                let mut attrs = Vec::new();
-                let mut remaining = String::new();
-                for word in value.split_whitespace() {
-                    if let Some(eq) = word.find('=') {
-                        attrs.push((word[..eq].to_string(), word[eq + 1..].trim_matches('"').to_string()));
-                    }
-                }
-                if attrs.is_empty() { remaining = value.to_string(); }
-                nodes.push(Node::Attr(AttrNode { typ: typ.to_string(), value: remaining, attrs }));
-                continue;
-            }
-        }
-        result.push_str(line);
-        result.push('\n');
-    }
-    (result, nodes)
-}
-
-fn extract_fenced(content: &str) -> (String, Vec<Node>) {
-    let mut nodes = Vec::new();
-    let mut result = String::new();
-    let mut lines_buf: Vec<String> = Vec::new();
-    let mut stack: Vec<(String, Vec<Node>, Vec<(String, String)>)> = Vec::new();
-
-    for line in content.lines() {
-        let t = line.trim();
-        if t.starts_with(":::") && !t.starts_with("::::") {
-            if t == ":::" {
-                if let Some((ftype, mut children, attrs)) = stack.pop() {
-                    let node = build_fenced(&ftype, &lines_buf, &mut children, &attrs);
-                    if let Some(n) = node {
-                        if let Some(top) = stack.last_mut() { top.1.push(n); }
-                        else { nodes.push(n); }
-                    }
-                }
-                lines_buf.clear();
-                continue;
-            }
-            let rest = t[3..].trim_start();
-            let parts: Vec<&str> = rest.splitn(2, ' ').collect();
-            if parts.is_empty() || parts[0].is_empty() { continue; }
-            let typ = parts[0].trim_end_matches('{');
-            let raw = parts.get(1).unwrap_or(&"").trim_matches(|c: char| c == '{' || c == '}');
-            let attrs = parse_attrs(raw);
-            lines_buf.clear();
-            stack.push((typ.to_string(), Vec::new(), attrs));
-            continue;
-        }
-        if stack.is_empty() {
-            result.push_str(line);
-            result.push('\n');
-        } else {
-            lines_buf.push(line.to_string());
-        }
-    }
-    (result, nodes)
-}
-
-fn build_fenced(typ: &str, lines: &[String], children: &mut Vec<Node>, attrs: &[(String, String)]) -> Option<Node> {
-    match typ {
-        "card" => {
-            let (header, body) = parse_card_body(lines);
-            let mut class = String::new();
-            for (k, v) in attrs {
-                if k == "class" { class = v.clone(); }
-                else if k != "tag" { if !class.is_empty() { class.push(' '); } class.push_str(k); }
-            }
-            Some(Node::Card(Card { header, body, tag: None, class }))
-        }
-        "grid" => {
-            let cols = attrs.iter().find(|(k,_)| k == "cols").and_then(|(_,v)| v.parse().ok()).unwrap_or(children.len().max(2));
-            let class = attrs.iter().find(|(k,_)| k == "class").map(|(_,v)| v.clone()).unwrap_or_default();
-            Some(Node::Grid(Grid { cols, class, children: std::mem::take(children) }))
-        }
-        _ => None,
-    }
-}
-
-fn parse_card_body(lines: &[String]) -> (String, Vec<String>) {
-    let mut header = String::new();
-    let mut body = Vec::new();
-    for line in lines {
-        let t = line.trim();
-        if t.starts_with("### ") { header = t[4..].to_string(); }
-        else if !t.is_empty() { body.push(t.to_string()); }
-    }
-    (header, body)
-}
-
-fn parse_attrs(raw: &str) -> Vec<(String, String)> {
-    let mut v = Vec::new();
-    for p in raw.split(',') {
-        let p = p.trim();
-        if let Some(eq) = p.find('=') {
-            v.push((p[..eq].trim().to_string(), p[eq+1..].trim().trim_matches('"').to_string()));
-        } else if !p.is_empty() { v.push((p.to_string(), String::new())); }
-    }
-    v
-}
-
-fn detect_layout(nodes: &[Node]) -> LayoutType {
-    let (mut h1, mut kicker, mut speaker, mut cols) = (false, false, false, 0);
-    for n in nodes {
-        match n {
-            Node::Heading(h) if h.level == 1 => h1 = true,
-            Node::Attr(a) => match a.typ.as_str() {
-                "kicker" => kicker = true,
-                "speaker" => speaker = true,
-                _ => {}
-            },
-            Node::Grid(g) => cols = g.cols,
-            _ => {}
-        }
-    }
-    if h1 || kicker || speaker { LayoutType::Title }
-    else { match cols { 2 => LayoutType::Grid2, 3 => LayoutType::Grid3, 4 => LayoutType::Grid4, _ => LayoutType::Content } }
+fn detect(ns: &[Node]) -> LayoutType {
+    for n in ns { if let Node::Heading(h) = n { if h.level == 1 { return LayoutType::Title; } } }
+    LayoutType::Content
 }
 
 #[cfg(test)]
@@ -300,15 +115,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simple() {
-        let doc = parse_markdown("---\ntheme: t\n---\n\n# Title\n\ntext");
-        assert_eq!(doc.slides.len(), 1);
+    fn test_heading() {
+        let d = parse_markdown("---\ntheme:t\n---\n\n# Title\n\ntext");
+        assert_eq!(d.slides.len(), 1);
+        assert!(d.slides[0].children.iter().any(|n| matches!(n, Node::Heading(_))));
     }
 
     #[test]
     fn test_table() {
-        let doc = parse_markdown("---\ntheme: t\n---\n\n## h\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\ntext");
-        assert_eq!(doc.slides.len(), 1);
-        assert!(doc.slides[0].children.iter().any(|n| matches!(n, Node::Table(_))));
+        let d = parse_markdown("---\ntheme:t\n---\n\n|a|b|\n|---|---|\n|1|2|");
+        assert_eq!(d.slides.len(), 1);
+        assert!(d.slides[0].children.iter().any(|n| matches!(n, Node::Table(_))));
+    }
+
+    #[test]
+    fn test_quote() {
+        let d = parse_markdown("---\ntheme:t\n---\n\n> quoted");
+        assert_eq!(d.slides.len(), 1);
+        assert!(d.slides[0].children.iter().any(|n| matches!(n, Node::Quote(_))));
     }
 }

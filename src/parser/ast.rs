@@ -6,27 +6,24 @@ pub struct Meta {
     pub title: Option<String>,
     pub footer: Option<String>,
     pub paginate: Option<bool>,
-    #[serde(default)]
-    pub size: String,
-    #[serde(default)]
-    pub style: String,
+    pub size: Option<String>,
+    pub style: Option<String>,
     pub logo: Option<String>,
 }
 
 impl Meta {
     pub fn dimensions(&self) -> (u32, u32) {
-        if self.size.is_empty() {
-            return (1280, 720);
-        }
-        if let Some((w, h)) = self.size.split_once('x') {
-            if let (Ok(w), Ok(h)) = (w.parse::<u32>(), h.parse::<u32>()) {
-                return (w.min(7680).max(320), h.min(7680).max(320));
-            }
-        }
-        match self.size.as_str() {
-            "16:9" => (1280, 720),
+        match self.size.as_deref().unwrap_or("16:9") {
             "4:3" => (1024, 768),
             "16:10" => (1280, 800),
+            s if s.contains('x') => {
+                if let Some((w, h)) = s.split_once('x') {
+                    if let (Ok(w), Ok(h)) = (w.parse::<u32>(), h.parse::<u32>()) {
+                        return (w.min(7680).max(320), h.min(7680).max(320));
+                    }
+                }
+                (1280, 720)
+            }
             _ => (1280, 720),
         }
     }
@@ -46,13 +43,7 @@ pub struct Slide {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum LayoutType {
-    Title,
-    Grid2,
-    Grid3,
-    Grid4,
-    Content,
-}
+pub enum LayoutType { Title, Grid2, Grid3, Grid4, Content }
 
 #[derive(Debug)]
 pub enum Node {
@@ -64,50 +55,22 @@ pub enum Node {
     Quote(Vec<Inline>),
     List(Vec<String>),
     Attr(AttrNode),
-    Image(String, String),
-    RawHtml(String),
 }
 
 #[derive(Debug)]
-pub struct Heading {
-    pub level: u8,
-    pub content: Vec<Inline>,
-}
+pub struct Heading { pub level: u8, pub content: Vec<Inline> }
 
 #[derive(Debug)]
-pub struct Grid {
-    pub cols: usize,
-    pub class: String,
-    pub children: Vec<Node>,
-}
+pub struct Grid { pub cols: usize, pub class: String, pub children: Vec<Node> }
 
 #[derive(Debug)]
-pub struct Card {
-    pub header: String,
-    pub body: Vec<String>,
-    pub tag: Option<(String, String)>, // (text, color)
-    pub class: String,
-}
+pub struct Card { pub header: String, pub body: Vec<String>, pub tag: Option<String>, pub class: String }
 
 #[derive(Debug)]
-pub struct Table {
-    pub headers: Vec<String>,
-    pub rows: Vec<Vec<String>>,
-}
+pub struct Table { pub headers: Vec<String>, pub rows: Vec<Vec<String>> }
 
 #[derive(Debug)]
-pub struct AttrNode {
-    pub typ: String,
-    pub value: String,
-    pub attrs: Vec<(String, String)>,
-}
+pub struct AttrNode { pub typ: String, pub value: String, pub attrs: Vec<(String, String)> }
 
 #[derive(Debug)]
-pub enum Inline {
-    Text(String),
-    Strong(Vec<Inline>),
-    Code(String),
-    Link(String, String),
-    SoftBreak,
-    Image(String, String),
-}
+pub enum Inline { Text(String), Strong(Vec<Inline>), Code(String), Link(String, String), SoftBreak }
