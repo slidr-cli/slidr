@@ -16,6 +16,11 @@ def default_theme() -> str:
     return p.read_text() if p.exists() else ""
 
 
+def base_css() -> str:
+    p = TEMPLATE_DIR / "base.css"
+    return p.read_text() if p.exists() else ""
+
+
 def render(doc: Document, theme_css: str, logo: str = "") -> str:
     """Render a Document to complete HTML."""
     dims = doc.meta.dimensions()
@@ -57,8 +62,7 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
         ratio=ratio,
         slide_w=dims[0],
         slide_h=dims[1],
-        theme_css=theme_css,
-        logo_css=logo_css,
+        css=base_css().format(slide_w=dims[0], slide_h=dims[1], theme_css=theme_css, logo_css=logo_css),
         slides="\n".join(slides_html),
     )
 

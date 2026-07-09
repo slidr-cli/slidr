@@ -1,52 +1,71 @@
-"""PPTX renderer using python-pptx. Produces native PowerPoint shapes."""
+"""PPTX renderer using python-pptx. Produces native PowerPoint shapes.
+Colors are extracted from the theme CSS via tinycss2."""
 
 from pathlib import Path
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN
 
 from slidr.parser.ast import (
     Document, Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode,
     Text as ASText, CodeSpan, SoftBreak,
 )
+from slidr.theme.colors import parse_theme, to_rgb
 
-# Sizes and colors -- override per theme as needed
+# Font sizes in points
 FONT = {1: 44, 2: 32, 3: 18, -1: 24, 0: 18}
-INK_RGB = (0xEE, 0xF7, 0xF0)
-MUTED_RGB = (0xAE, 0xC0, 0xB3)
+
+
+def _theme_colors(css: str) -> dict:
+    """Extract key colors from theme CSS."""
+    vars_ = parse_theme(css)
+    bg = vars_.get("--bg", "#ffffff")
+    ink = vars_.get("--ink", "#333333")
+    muted = vars_.get("--muted", "#777777")
+    accent = vars_.get("--green2", vars_.get("--accent", "#0288d1"))
+    table_bg = vars_.get("--panel", "#0f1d15") if bg.startswith("#0") else "#f5f5f5"
+    table_ink = vars_.get("--ink", "#333333")
+    return {
+        "ink": to_rgb(ink),
+        "muted": to_rgb(muted),
+        "accent": to_rgb(accent),
+        "white": (0xFF, 0xFF, 0xFF),
+        "table_bg": to_rgb(table_bg),
+        "table_ink": to_rgb(table_ink),
+        "bg": bg,
+    }
 
 
 def render(doc: Document, output_path: Path) -> None:
     dims = doc.meta.dimensions()
     sw, sh = dims[0], dims[1]
+    colors = _theme_colors(doc.meta.style)
 
     prs = Presentation()
     prs.slide_width = Inches(sw / 96)
     prs.slide_height = Inches(sh / 96)
 
-    bg = _extract_bg(doc.meta.style)
     slide_master = prs.slide_masters[0]
-    if bg:
-        _set_bg(slide_master, bg)
+    if colors["bg"]:
+        _set_bg(slide_master, colors["bg"])
 
     for slide in doc.slides:
         sld = prs.slides.add_slide(prs.slide_layouts[6])
-        _render_slide(sld, slide, sw, sh)
+        _render_slide(sld, slide, sw, sh, colors)
 
     prs.save(str(output_path))
 
 
-def _render_slide(sld, slide, sw: int, sh: int):
+def _render_slide(sld, slide, sw: int, sh: int, colors: dict):
     left = Pt(64)
     top = Pt(5)
     width = Pt(sw - 128)
 
     for node in slide.children:
-        top = _render_node(sld, node, left, top, width, sw, sh)
+        top = _render_node(sld, node, left, top, width, colors)
 
 
-def _render_node(sld, node, left, top, width, sw, sh):
+def _render_node(sld, node, left, top, width, colors):
     if isinstance(node, Heading):
         return _add_text(sld, node.content, left, top, width, node.level)
     elif isinstance(node, Paragraph):
@@ -79,7 +98,7 @@ def _add_text(sld, inlines: list, left, top, width, level: int):
     p.text = text
     p.font.size = size
     p.font.bold = bold
-    p.font.color.rgb = RGBColor(*INK_RGB)
+    p.font.color.rgb = RGBColor(*colors["ink"])
 
     lines = max(1, len(text) // 60 + 1)
     return top + Pt(18 * lines)
@@ -107,7 +126,7 @@ def _add_table(sld, table: Table, left, top, width):
             cell.text = cell_text
             for p in cell.text_frame.paragraphs:
                 p.font.size = Pt(12)
-                p.font.color.rgb = RGBColor(0xE2, 0xEF, 0xE6)
+                p.font.color.rgb = RGBColor(*colors["table_ink"])
 
     return top + height + Pt(8)
 
@@ -133,7 +152,7 @@ def _add_list(sld, node: ListNode, left, top, width):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.text = f"• {item}"
         p.font.size = Pt(18)
-        p.font.color.rgb = RGBColor(*INK_RGB)
+        p.font.color.rgb = RGBColor(*colors["ink"])
 
     return top + height + Pt(4)
 
@@ -154,7 +173,7 @@ def _add_attr(sld, node: AttrNode, left, top, width):
     p = tf.paragraphs[0]
     p.text = text
     p.font.size = size
-    color = RGBColor(0x70, 0xF5, 0xA2) if node.type == "kicker" else RGBColor(*MUTED_RGB)
+    color = RGBColor(*colors["accent"]) if node.type == "kicker" else RGBColor(*colors["muted"])
     p.font.color.rgb = color
     p.font.bold = node.type == "kicker"
 
