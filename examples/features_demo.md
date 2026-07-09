@@ -178,7 +178,6 @@ fractional allocation, zero manual
 intervention needed
 :::
 
----
 
 ::: card{ tag="quote" }
 > HAMi is the only CNCF project that provides hardware-level GPU sharing without requiring vendor-specific drivers or kernel modifications.
