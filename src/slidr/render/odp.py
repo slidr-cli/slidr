@@ -384,6 +384,7 @@ def _render_seaborn_odp(
         return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
                                      TextStyleRegistry(), odp)
 
+    svg = _normalize_svg(svg)
     # Write SVG to temp file for add_file
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".svg", mode="w", delete=False) as f:
@@ -410,6 +411,25 @@ def _render_seaborn_odp(
     )
     ctx.y += height + ctx.gap
     return [frame]
+
+
+def _normalize_svg(svg: str) -> str:
+    """Shift negative viewBox origin to 0,0 and wrap content in translate group."""
+    import re
+    m = re.search(r'viewBox="([\d.-]+)\s+([\d.-]+)\s+([\d.]+)\s+([\d.]+)"', svg)
+    if not m:
+        return svg
+    x, y, w, h = float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4))
+    if x >= 0 and y >= 0:
+        return svg
+    dx, dy = x, y
+    new_w, new_h = w + abs(dx), h + abs(dy)
+    svg = svg.replace(m.group(0), f'viewBox="0 0 {new_w:g} {new_h:g}"', 1)
+    svg = re.sub(
+        r'(<svg[^>]*>)', rf'\1\n<g transform="translate({-dx:g},{-dy:g})">', svg, count=1,
+    )
+    svg = svg.replace("</svg>", "</g>\n</svg>", 1)
+    return svg
 
 
 def _svg_dims(svg: str) -> tuple[float, float]:
@@ -439,6 +459,7 @@ def _render_mermaid_odp(
         d = render_mmd(elem.content)
         svg = d.svg()
 
+        svg = _normalize_svg(svg)
         with tempfile.NamedTemporaryFile(
             suffix=".svg", mode="w", delete=False
         ) as f:
