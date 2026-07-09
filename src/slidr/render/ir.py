@@ -48,6 +48,8 @@ class Elem:
     children: list[Elem] = field(default_factory=list)
     attrs: dict[str, str] = field(default_factory=dict)
     layout: str = ""
+    inlines: list[Any] = field(default_factory=list)
+    item_inlines: list[list] = field(default_factory=list)
 
 
 @dataclass
@@ -157,10 +159,12 @@ def _convert_node(node, styles: dict) -> Elem:
         fs = {1: styles.get("font_h1", 44), 2: styles.get("font_h2", 32), 3: styles.get("font_h3", 18)}.get(node.level, 18)
         return Elem(kind="heading", content=_render_inline_html(node.content),
                     text=_render_inline_text(node.content),
+                    inlines=node.content,
                     level=node.level, font_size=fs, color=base.color)
     elif isinstance(node, Paragraph):
         return Elem(kind="text", content=_render_inline_html(node.content),
                     text=_render_inline_text(node.content),
+                    inlines=node.content,
                     font_size=base.font_size, color=base.color)
     elif isinstance(node, CodeBlock):
         fs = styles.get("font_code", 14)
@@ -171,13 +175,16 @@ def _convert_node(node, styles: dict) -> Elem:
         items_text = [_render_inline_text(item) for item in node.items]
         fs = styles.get("font_li", 16)
         return Elem(kind="list", content=items_html, text=">".join(items_text),
-                    items=items_text, font_size=fs, color=base.color)
+                    items=items_text,
+                    item_inlines=[list(item) for item in node.items],
+                    font_size=fs, color=base.color)
     elif isinstance(node, Table):
         return Elem(kind="table", headers=node.headers, rows=node.rows)
     elif isinstance(node, Quote):
         fs = styles.get("font_quote", 24)
         return Elem(kind="quote", content=_render_inline_html(node.content),
                     text=_render_inline_text(node.content),
+                    inlines=node.content,
                     font_size=fs, color=base.muted, accent=base.accent)
     elif isinstance(node, Grid):
         children = [_convert_node(c, styles) for c in node.children]
