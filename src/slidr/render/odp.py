@@ -415,7 +415,7 @@ def _render_seaborn_odp(
 def _svg_dims(svg: str) -> tuple[float, float]:
     """Extract SVG dimensions in cm from viewBox, fallback to default."""
     import re
-    m = re.search(r'viewBox="0\s+0\s+([\d.]+)\s+([\d.]+)"', svg)
+    m = re.search(r'viewBox="[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)"', svg)
     if m:
         w_pt = float(m.group(1))
         h_pt = float(m.group(2))
