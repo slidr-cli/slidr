@@ -6,6 +6,57 @@
 <title>{{ title }}</title>
 <style>
 {{ css }}
+
+/* ---- presenter mode ---- */
+html.presenter { overflow: hidden; }
+html.presenter body > section { display: none !important; }
+html.presenter #slidr-nav { display: none !important; }
+html.presenter #presenter-panel {
+  display: grid !important;
+  grid-template-columns: 1fr 0.5fr;
+  grid-template-rows: 1fr auto;
+  height: 100vh;
+  background: #111;
+  color: #eee;
+  font-family: sans-serif;
+  font-size: 13px;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 2000;
+}
+#presenter-panel { display: none; }
+#pres-main {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#pres-main section { display: none !important; width: 100%; height: 100%; overflow: hidden; }
+#pres-main section.active { display: block !important; }
+#pres-notes {
+  grid-column: 2;
+  grid-row: 2;
+  padding: 1em;
+  color: #aaa;
+  border-top: 1px solid #333;
+  max-height: 25vh;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+#pres-next {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: hidden;
+  border-left: 1px solid #333;
+  padding: 1em;
+}
+#pres-next section { display: none !important; width: 100%; height: auto; overflow: hidden; }
+#pres-next section.active { display: block !important; }
 </style>
 </head>
 <body>
@@ -22,6 +73,20 @@
   <button id="slidr-next" title="Next (Right arrow)">&rarr;</button>
   <button id="slidr-fullscreen" title="Toggle fullscreen (f)">&#9974;</button>
   <button id="slidr-presenter" title="Open presenter view (p)">&#9654;</button>
+</div>
+
+<div id="presenter-panel">
+  <div id="pres-main">
+{% for slide in slides %}
+    <section class="slide layout-{{ slide.layout }}">{{ slide.children }}</section>
+{% endfor %}
+  </div>
+  <div id="pres-next">
+{% for slide in slides %}
+    <section class="slide layout-{{ slide.layout }}">{{ slide.children }}</section>
+{% endfor %}
+  </div>
+  <div id="pres-notes"></div>
 </div>
 
 <script>

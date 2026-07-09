@@ -1,6 +1,6 @@
 # Slidr
 
-Markdown to styled PPTX + PDF. Layout primitives (cards, grids, tables) with CSS theming. Python + markdown-it.
+Markdown to styled PPTX + PDF. Cards, grids, tables, directives. CSS theming with cascading overrides. Python + markdown-it + weasyprint.
 
 ## Install
 
@@ -11,22 +11,25 @@ pdm install
 ## Quick start
 
 ```bash
-pdm run slidr slides.md          # → dist/slides.html
-pdm run slidr slides.md --debug  # dump parsed AST
+pdm run slidr slides.md           # → dist/slides.html + dist/slides.presenter.html
+pdm run slidr slides.md --pdf     # → dist/slides.pdf
+pdm run slidr slides.md --pptx    # → dist/slides.pptx
+pdm run slidr slides.md --debug   # dump parsed AST
 ```
 
-Output goes to `<input_dir>/dist/` by default. Assets are copied alongside.
+Output goes to `<input_dir>/dist/` by default.
 
 ## Slide structure
 
-A slidr deck is a markdown file with YAML frontmatter. Slides are separated by `---`.
+Slides are separated by `---`. Frontmatter is YAML between `---` markers.
 
 ```markdown
 ---
-theme: default
 title: My Presentation
 footer: "Conf 2026"
 size: 16:9
+paginate: true
+logo: ./assets/logo.png
 style: |
   :root { --accent: #0fd05d; }
 ---
@@ -53,12 +56,7 @@ Description here.
 More description.
 :::
 
-::: card
-### Topic Three
-More description.
-:::
-
-> A blockquote with important context.
+> A blockquote with context.
 
 ---
 
@@ -67,23 +65,32 @@ More description.
 | Column | Value |
 |--------|-------|
 | A      | 1     |
-| B      | 2     |
 ```
 
-## Cards
+## Markdown extensions
 
-Cards are the primary content container. Each card has a heading (`### Header`) and body text.
+### Cards
 
-**Syntax:**
+Cards are the primary content container. Each card has a heading and body text.
 
 ```markdown
 ::: card
 ### Header
-Body text. Multiple paragraphs supported.
+Body text. Supports multiple paragraphs.
 :::
 ```
 
-**Auto-grouping:** two or more consecutive cards automatically form a grid. Column count matches the number of cards.
+**Attributes** (any `key=value` becomes a `key-value` CSS class):
+
+```markdown
+::: card {tag="green"}
+### Header
+Body
+:::
+```
+→ `<div class="card tag-green">`
+
+**Auto-grouping**: two or more consecutive cards automatically form a grid. Column count matches the number of cards.
 
 ```markdown
 ::: card
@@ -96,62 +103,48 @@ Content.
 Content.
 :::
 ```
-→ Renders as a 2-column grid. No `::: grid` wrapper needed.
+→ 2-column grid. No `::: grid` wrapper needed.
 
-## Grids
+### Grids
 
-Explicit grids are only needed when you want to override the default behavior: custom column count, CSS class, or a different number of columns than the card count.
+Explicit grids for custom column counts or CSS classes.
 
 ```markdown
-::: grid {cols=3, class="compact-grid"}
+::: grid {cols=4, class="road-grid"}
 ::: card
 ### Card 1
 :::
 ::: card
 ### Card 2
 :::
-::: card
-### Card 3
-:::
 :::
 ```
 
 **Attributes:**
 
-| Attribute | Description |
-|-----------|-------------|
-| `cols=N` | Column count (default: auto from card count) |
-| `class="name"` | Additional CSS class |
-| Bare words | Shorthand for CSS class: `::: grid {road-grid}` |
+| Key | Description |
+|-----|-------------|
+| `cols=N` | Column count (default: auto from cards) |
+| `class="name"` | CSS class |
+| Bare words | Shorthand: `::: grid {road-grid}` |
 
-**Grid variant classes** (from theme CSS):
-
-| Class | Typical cols | Use |
-|-------|-------------|-----|
-| `compact-grid` | 3 | Dense card layout |
-| `road-grid` | 4 | Four-column feature grid |
-| `evidence-grid` | 2 | Wide evidence cards |
-| `end-grid` | 2 | Closing section cards |
-| `end-links` | 3 | Link cards at end |
-| `mt-grid` | 2 | Grid with top margin |
-
-## Directives
+### Directives
 
 Single-line annotations using `@type` syntax.
 
-| Directive | Renders as |
-|-----------|-----------|
-| `@kicker text` | `<div class="kicker">` |
-| `@subtitle text` | `<p class="subtitle">` |
-| `@speaker name=X role=Y` | `<div class="speaker"><span>` |
-| `@tiny text` | `<p class="tiny">` |
-| `@muted text` | `<p class="muted">` |
+| Directive | Output |
+|-----------|--------|
+| `@kicker text` | `<div class="kicker">text</div>` |
+| `@subtitle text` | `<p class="subtitle">text</p>` |
+| `@speaker name=Name role=Role` | `<div class="speaker">Name \| Role</div>` |
+| `@tiny text` | `<p class="tiny">text</p>` |
+| `@muted text` | `<p class="muted">text</p>` |
 
-Custom types render generically: `@custom-badge label=NEW text` → `<div class="custom-badge" data-label="NEW">text</div>`.
+Custom types work generically: `@custom-badge text` → `<p class="custom-badge">text</p>`.
 
-## Tables
+### Tables
 
-Standard markdown pipe tables (GFM):
+Standard GFM pipe tables with markdown-it.
 
 ```markdown
 | Header | Header |
@@ -159,22 +152,23 @@ Standard markdown pipe tables (GFM):
 | Cell   | Cell   |
 ```
 
-## Blockquotes
+### Blockquotes
 
 ```markdown
-> Important quote or callout text.
+> Callout or quoted text.
+Rendered as `<div class="quote">`.
 ```
 
-## Speaker notes
+### Speaker notes
 
-HTML comments at the start of a slide become speaker notes:
+HTML comments at the start of a slide become speaker notes (visible in presenter view).
 
 ```markdown
 ---
 
 <!--
 These are speaker notes.
-Only visible in presenter mode.
+Visible in presenter mode.
 -->
 
 ## Slide Title
@@ -183,19 +177,22 @@ Only visible in presenter mode.
 ## Frontmatter
 
 ```yaml
-theme: default       # theme name
 title: "..."         # document title
-footer: "..."        # slide footer
+footer: "..."        # slide footer text
 paginate: true       # show page numbers
-size: 16:9           # 16:9 (1280x720), 4:3 (1024x768), 16:10 (1280x800), or "1920x1080"
+size: 16:9           # 16:9 → 1280x720, 4:3 → 1024x768, or "1920x1080"
+logo: ./assets/logo.png  # logo on every slide
 style: |             # raw CSS injected into output (overrides defaults)
-  .card { border-color: red; }
-logo: ./assets/brand/logo.png  # logo on every slide
+  :root { --accent: #0fd05d; }
 ```
 
 ## Styling
 
-CSS is written directly in the `style:` frontmatter block. No CSS parser — it's injected raw into the HTML and handled by the browser.
+CSS is written in the `style:` frontmatter block. Injected raw into the HTML output.
+
+**Cascade order**: base.css (layout) → default theme → user `style:` block.
+
+**Base font**: 18pt on `section`. Internal spacing uses `em` for consistency.
 
 ```yaml
 style: |
@@ -213,26 +210,33 @@ style: |
     background: rgba(255,255,255,0.05);
     border: 1px solid var(--accent);
   }
-  .quote {
-    border-left: 0.25em solid var(--accent);
-  }
 ```
 
-Base font-size is 18pt on `section`. Use `em` units for spacing.
+## Viewer features
+
+- **Arrow keys**: navigate slides
+- **Mouse wheel**: scroll through slides
+- **f**: toggle fullscreen
+- **q**: close presenter window
+- **▶ button**: open presenter view (current slide + next preview + speaker notes)
+- **Bidirectional sync**: navigating in either window updates the other
+
+## Output formats
+
+| Format | Engine | Notes |
+|--------|--------|-------|
+| HTML | Jinja2 | Screen + print CSS, presenter view |
+| PDF | weasyprint | Pure Python, no Chrome dependency |
+| PPTX | python-pptx | Native shapes, theme colors from CSS via tinycss2 |
 
 ## Marp migration
 
-1. Remove `marp: true` and `description:` from frontmatter
-2. Convert HTML divs:
-   - `<div class="grid">` → remove wrapper (cards auto-group)
-   - `<div class="card">` → `::: card`
-   - `<div class="quote">text</div>` → `> text`
-   - `<div class="kicker">text</div>` → `@kicker text`
-   - `<div class="speaker">Name<span>Role</span></div>` → `@speaker name=Name role=Role`
-   - `<p class="subtitle">text</p>` → `@subtitle text`
-   - `<p class="tiny">text</p>` → `@tiny text`
-   - `<table>...</table>` → markdown pipe tables
-3. Convert `px` to `em` (divide by 18) in the `style:` block
-4. Remove `section::before` logo CSS — use `logo:` frontmatter field
-```
-
+- Remove `marp: true` from frontmatter
+- `<div class="grid">` → remove wrapper (cards auto-group)
+- `<div class="card"><h3>...</h3><p>...</p></div>` → `::: card` / `### ...` / body
+- `<div class="quote">text</div>` → `> text`
+- `<div class="kicker">text</div>` → `@kicker text`
+- `<div class="speaker">Name<span>Role</span></div>` → `@speaker name=Name role=Role`
+- `<table>` → markdown pipe table
+- `px` → `em` (divide by 18) in CSS
+- `section::before` logo → `logo:` frontmatter field
