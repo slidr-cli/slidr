@@ -413,14 +413,21 @@ def _render_seaborn_odp(
 
 
 def _svg_dims(svg: str) -> tuple[float, float]:
-    """Extract SVG dimensions in cm from viewBox, fallback to default."""
+    """Extract SVG dimensions. For viewBox-based SVGs, use aspect ratio.
+    Fallback to (16, 9) cm."""
     import re
-    m = re.search(r'viewBox="[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)"', svg)
-    if m:
-        w_pt = float(m.group(1))
-        h_pt = float(m.group(2))
-        return (w_pt * 0.0353, h_pt * 0.0353)  # pt -> cm
-    return (16.0, 9.0)  # fallback
+    vb = re.search(r'viewBox="[\d.-]+\s+[\d.-]+\s+([\d.]+)\s+([\d.]+)"', svg)
+    if vb:
+        vb_w, vb_h = float(vb.group(1)), float(vb.group(2))
+    else:
+        return (16.0, 9.0)
+    # If width=100%, use viewBox aspect ratio with a fixed width
+    has_pct_width = 'width="100%"' in svg
+    if has_pct_width:
+        target_w = 20.0  # cm
+        target_h = target_w * (vb_h / vb_w) if vb_w else target_w
+        return (target_w, target_h)
+    return (vb_w * 0.0353, vb_h * 0.0353)  # pt -> cm
 
 
 def _render_mermaid_odp(
