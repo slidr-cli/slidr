@@ -8,6 +8,12 @@ from slidr.parser.ast import (
 )
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
+THEME_DIR = Path(__file__).parent.parent / "themes"
+
+
+def default_theme() -> str:
+    p = THEME_DIR / "default.css"
+    return p.read_text() if p.exists() else ""
 
 
 def render(doc: Document, theme_css: str, logo: str = "") -> str:

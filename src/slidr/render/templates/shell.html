@@ -54,8 +54,8 @@ th, td {{ padding: 0.5em 0.65em; text-align: left; vertical-align: top; }}
 footer {{
   position: absolute;
   bottom: 1em;
-  left: 3em;
   right: 3em;
+  text-align: right;
 }}
 
 /* ---- theme ---- */
@@ -76,53 +76,52 @@ footer {{
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    width: {slide_w}px;
+    height: {slide_h}px;
+    transform-origin: center center;
+    transform: translate(-50%, -50%) scale(var(--s));
     overflow: hidden !important;
-    width:  min(100vw, calc(100vh * {ratio}));
-    height: min(100vh, calc(100vw / {ratio}));
   }}
   body > section.active {{
     display: block !important;
+  }}
+  .layout-title {{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-top: 10%;
   }}
   .layout-title .kicker {{
     margin-bottom: 0.5em;
   }}
   .layout-title h1 {{
-    margin-bottom: 0.3em;
+    font-size: 3.5em;
+    margin-bottom: 0.5em;
   }}
   .layout-title .subtitle {{
-    margin-bottom: 1em;
+    margin-bottom: 1.5em;
+    font-size: 1.5em;
   }}
   h2 {{
     padding-top: 4%;
+    margin-bottom: 1em;
   }}
 }}
 
 /* ---- print mode ---- */
 @media print {{
   @page {{
+    size: {slide_w}px {slide_h}px;
     margin: 0;
   }}
   html, body {{
-    width: auto;
-    height: auto;
     margin: 0;
     padding: 0;
-    overflow: visible;
-    background: none;
   }}
   body > section {{
-    display: block !important;
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    transform: none !important;
-    width: {slide_w}px !important;
-    height: {slide_h}px !important;
-    max-width: none !important;
-    max-height: none !important;
+    width: {slide_w}px;
+    height: {slide_h}px;
     page-break-after: always;
-    page-break-inside: avoid;
     overflow: hidden !important;
   }}
   body > section:last-child {{
@@ -197,6 +196,14 @@ footer {{
   var counter = document.getElementById('slidr-counter');
   var prevBtn = document.getElementById('slidr-prev');
   var nextBtn = document.getElementById('slidr-next');
+
+  function setScale() {{
+    var sw = {slide_w}, sh = {slide_h};
+    var scale = Math.min(window.innerWidth / sw, window.innerHeight / sh);
+    document.documentElement.style.setProperty('--s', scale);
+  }}
+  setScale();
+  window.addEventListener('resize', setScale);
 
   function show(n) {{
     if (n < 0 || n >= total) return;
