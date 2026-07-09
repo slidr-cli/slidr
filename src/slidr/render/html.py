@@ -187,10 +187,31 @@ def _render_mermaid(content: str) -> str:
     try:
         from mmdc import render as render_mmd
         d = render_mmd(content)
-        svg = d.svg()
+        svg = _normalize_viewbox(d.svg())
         return f'<div class="mermaid">\n{svg}\n</div>'
     except Exception:
         return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
+
+
+def _render_seaborn_html(content: str) -> str:
+    from slidr.render.seaborn_runner import render_seaborn_svg
+
+    svg = render_seaborn_svg(content)
+    if svg:
+        return f'<div class="seaborn-plot">\n{svg}\n</div>'
+    return f'<pre class="seaborn-fallback"><code>{_escape(content)}</code></pre>'
+
+
+def _normalize_viewbox(svg: str) -> str:
+    import re
+    m = re.search(r'viewBox="([\d.-]+)\s+([\d.-]+)\s+([\d.]+)\s+([\d.]+)"', svg)
+    if not m:
+        return svg
+    x, y, w, h = float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4))
+    if x >= 0 and y >= 0:
+        return svg
+    new_w, new_h = w + abs(x), h + abs(y)
+    return svg.replace(m.group(0), f'viewBox="0 0 {new_w:g} {new_h:g}"', 1)
 
 
 def _escape(s: str) -> str:
