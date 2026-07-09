@@ -32,11 +32,14 @@ if (isPresenter) {
   }
 
   document.getElementById('pres-main').addEventListener('click', function() { advance(1); });
+  document.getElementById('pres-main').addEventListener('contextmenu', function(e) {
+    e.preventDefault(); advance(-1);
+  });
 
   document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
       e.preventDefault(); advance(1);
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'Backspace') {
       e.preventDefault(); advance(-1);
     } else if (e.key === 'Home') {
       e.preventDefault(); show(0); bc.postMessage({ slide: 0 });
@@ -46,11 +49,6 @@ if (isPresenter) {
       window.close();
     }
   });
-
-  document.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    advance(e.deltaY > 0 ? 1 : -1);
-  }, { passive: false });
 
 } else {
   // ===== MAIN VIEW MODE =====
@@ -103,7 +101,7 @@ if (isPresenter) {
   });
 
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'Backspace') {
       e.preventDefault(); show(current - 1);
     } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
       e.preventDefault(); show(current + 1);
@@ -119,11 +117,16 @@ if (isPresenter) {
     }
   });
 
-  document.addEventListener('wheel', function(e) {
+  document.addEventListener('click', function(e) {
+    var t = e.target;
+    if (t.closest('button, a, input, textarea, select, #slidr-nav, #presenter-panel')) return;
+    show(current + 1);
+  });
+
+  document.addEventListener('contextmenu', function(e) {
     e.preventDefault();
-    if (e.deltaY > 0) show(current + 1);
-    else show(current - 1);
-  }, { passive: false });
+    show(current - 1);
+  });
 
   var presenterBtn = document.getElementById('slidr-presenter');
   if (presenterBtn) presenterBtn.addEventListener('click', function() {
