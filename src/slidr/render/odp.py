@@ -430,7 +430,7 @@ def _render_mermaid_odp(
         from mmdc import render as render_mmd
 
         d = render_mmd(elem.content)
-        svg = d.svg().replace(' width="100%"', "", 1)
+        svg = d.svg()
 
         with tempfile.NamedTemporaryFile(
             suffix=".svg", mode="w", delete=False
