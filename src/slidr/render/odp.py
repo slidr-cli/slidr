@@ -377,16 +377,23 @@ def _render_image(elem: Elem, ctx: LayoutContext, gr: GraphicStyleRegistry,
 def _render_seaborn_odp(
     elem: Elem, ctx: LayoutContext, odp: Document
 ) -> list[Element]:
-    from slidr.render.seaborn_runner import render_seaborn_png
+    from slidr.render.seaborn_runner import render_seaborn_svg
 
-    png_path = render_seaborn_png(elem.content)
-    if not png_path:
+    svg = render_seaborn_svg(elem.content)
+    if not svg:
         return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
                                      TextStyleRegistry(), odp)
-    uri = odp.add_file(png_path)
-    size_cm = _image_natural_size(png_path)
-    os.unlink(png_path)
-    # Scale to fit slide width
+
+    # Write SVG to temp file for add_file
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=".svg", mode="w", delete=False) as f:
+        f.write(svg)
+        tmp_path = f.name
+    uri = odp.add_file(tmp_path)
+    os.unlink(tmp_path)
+
+    # Extract dimensions from SVG viewBox
+    size_cm = _svg_dims(svg)
     if size_cm[0] > ctx.width * 0.9:
         scale = (ctx.width * 0.9) / size_cm[0]
         size_cm = (ctx.width * 0.9, size_cm[1] * scale)
@@ -403,6 +410,17 @@ def _render_seaborn_odp(
     )
     ctx.y += height + ctx.gap
     return [frame]
+
+
+def _svg_dims(svg: str) -> tuple[float, float]:
+    """Extract SVG dimensions in cm from viewBox, fallback to default."""
+    import re
+    m = re.search(r'viewBox="0\s+0\s+([\d.]+)\s+([\d.]+)"', svg)
+    if m:
+        w_pt = float(m.group(1))
+        h_pt = float(m.group(2))
+        return (w_pt * 0.0353, h_pt * 0.0353)  # pt -> cm
+    return (16.0, 9.0)  # fallback
 
 
 def _render_text(

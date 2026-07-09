@@ -1,10 +1,7 @@
 """Seaborn code block execution for slide renderers.
 
-Executes Python/seaborn code from fenced code blocks and returns the
-generated plot. Two output modes:
-
-- SVG string (for HTML inline -- scales with slide container)
-- PNG file path (for ODP embedding)
+Executes Python/seaborn code from fenced code blocks and returns SVG
+strings for both HTML inline and ODP embedding.
 
 Only active when seaborn + matplotlib are installed (pdm install -G plot).
 Falls back to plain code highlighting otherwise.
@@ -12,7 +9,6 @@ Falls back to plain code highlighting otherwise.
 
 from __future__ import annotations
 
-import base64
 import os
 import subprocess
 import tempfile
@@ -43,7 +39,7 @@ def render_seaborn_svg(content: str) -> str | None:
 
     svg_path = script_path + ".svg"
     try:
-        _write_seaborn_script(content, svg_path, script_path, fmt="svg")
+        _write_script(content, svg_path, script_path)
         result = subprocess.run(
             ["python", script_path],
             capture_output=True,
@@ -61,45 +57,7 @@ def render_seaborn_svg(content: str) -> str | None:
             os.unlink(svg_path)
 
 
-def render_seaborn_png(content: str) -> str | None:
-    """Execute seaborn code, return path to generated PNG. Caller owns the temp file."""
-    if not _has_seaborn():
-        return None
-    with tempfile.NamedTemporaryFile(
-        suffix=".py", mode="w", delete=False
-    ) as script:
-        script_path = script.name
-
-    png_path = script_path + ".png"
-    try:
-        _write_seaborn_script(content, png_path, script_path, fmt="png")
-        result = subprocess.run(
-            ["python", script_path],
-            capture_output=True,
-            text=True,
-            timeout=_TIMEOUT,
-        )
-        if result.returncode == 0 and os.path.isfile(png_path):
-            return png_path
-        return None
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return None
-    finally:
-        os.unlink(script_path)
-
-
-def render_seaborn_datauri(content: str) -> str | None:
-    """Execute seaborn code, return base64 SVG data URI. None on failure."""
-    svg = render_seaborn_svg(content)
-    if not svg:
-        return None
-    data = base64.b64encode(svg.encode("utf-8")).decode("ascii")
-    return f"data:image/svg+xml;base64,{data}"
-
-
-def _write_seaborn_script(
-    content: str, out_path: str, script_path: str, fmt: str = "svg"
-) -> None:
+def _write_script(content: str, out_path: str, script_path: str) -> None:
     wrapper = f'''
 import warnings
 warnings.filterwarnings("ignore")
@@ -116,7 +74,7 @@ plt.figure(figsize={_DEFAULT_FIGSIZE!r})
 
 {content}
 
-plt.savefig({out_path!r}, format={fmt!r}, dpi={_DPI}, bbox_inches="tight")
+plt.savefig({out_path!r}, format="svg", dpi={_DPI}, bbox_inches="tight")
 plt.close("all")
 '''
     Path(script_path).write_text(wrapper)
