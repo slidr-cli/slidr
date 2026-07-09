@@ -17,9 +17,6 @@ slidr = "slidr.cli:app"
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
-[tool.pdm]
-distribution = true
-
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
@@ -27,9 +24,14 @@ dev = [
 ]
 plot = [
     "pillow>=11.0.0",
+    "seaborn>=0.13.2",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = ["-v", "--tb=short"]
+
+[tool.pdm]
+distribution = true
+

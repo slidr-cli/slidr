@@ -98,6 +98,8 @@ def _render_elem(e: Elem) -> str:
     elif e.kind == "code":
         if e.language == "d2":
             return _render_d2(e.content)
+        if e.language == "seaborn":
+            return _render_seaborn_html(e.content)
         return _highlight_code(e.content, e.language)
     elif e.kind == "list":
         s = "<ul>\n"
@@ -167,6 +169,15 @@ def _pygments_css(style: str = "default") -> str:
     formatter = HtmlFormatter(style=style)
     css = formatter.get_style_defs('.slide .highlight')
     return f"\n/* ---- pygments ---- */\n{css}\n"
+
+
+def _render_seaborn_html(content: str) -> str:
+    from slidr.render.seaborn_runner import render_seaborn_datauri
+
+    datauri = render_seaborn_datauri(content)
+    if datauri:
+        return f'<div class="seaborn-plot"><img src="{datauri}" alt="Seaborn plot"></div>'
+    return f'<pre class="seaborn-fallback"><code>{_escape(content)}</code></pre>'
 
 
 def _render_d2(content: str) -> str:

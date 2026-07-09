@@ -375,6 +375,36 @@ def _render_image(elem: Elem, ctx: LayoutContext, gr: GraphicStyleRegistry,
     return [frame]
 
 
+def _render_seaborn_odp(
+    elem: Elem, ctx: LayoutContext, odp: Document
+) -> list[Element]:
+    from slidr.render.seaborn_runner import render_seaborn_image
+
+    img_path = render_seaborn_image(elem.content)
+    if not img_path:
+        return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
+                                     TextStyleRegistry(), odp)
+    uri = odp.add_file(img_path)
+    size_cm = _image_natural_size(img_path)
+    os.unlink(img_path)
+    if size_cm[0] > ctx.width:
+        scale = ctx.width / size_cm[0]
+        size_cm = (ctx.width, size_cm[1] * scale)
+    height = size_cm[1]
+    frame = Frame.image_frame(
+        image=uri,
+        text="",
+        size=(f"{size_cm[0]:.2f}cm", f"{size_cm[1]:.2f}cm"),
+        position=(
+            f"{ctx.x + (ctx.width - size_cm[0]) / 2:.2f}cm",
+            f"{ctx.y:.2f}cm",
+        ),
+        anchor_type="page",
+    )
+    ctx.y += height + ctx.gap
+    return [frame]
+
+
 def _render_text(
     elem: Elem,
     ctx: LayoutContext,
@@ -382,6 +412,8 @@ def _render_text(
     tr: TextStyleRegistry,
     odp: Document,
 ) -> list[Element]:
+    if elem.kind == "code" and elem.language == "seaborn":
+        return _render_seaborn_odp(elem, ctx, odp)
     if not elem.inlines:
         return []
     if _is_image_elem(elem):
