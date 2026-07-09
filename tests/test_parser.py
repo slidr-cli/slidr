@@ -14,8 +14,7 @@ def test_normalize_svg_negative_origin():
     svg = '<svg viewBox="-10 -5 100 50" width="100%"><rect/></svg>'
     result = _normalize_svg(svg)
     assert 'viewBox="0 0 110 55"' in result
-    assert '<g transform="translate(10,5)">' in result
-    assert '</g>' in result
+    assert '<g transform' not in result  # no translate wrapper
 
 
 def test_normalize_svg_positive_origin():

@@ -414,7 +414,7 @@ def _render_seaborn_odp(
 
 
 def _normalize_svg(svg: str) -> str:
-    """Shift negative viewBox origin to 0,0 and wrap content in translate group."""
+    """Normalize negative viewBox origin to 0,0, expanding dimensions."""
     import re
     m = re.search(r'viewBox="([\d.-]+)\s+([\d.-]+)\s+([\d.]+)\s+([\d.]+)"', svg)
     if not m:
@@ -422,14 +422,8 @@ def _normalize_svg(svg: str) -> str:
     x, y, w, h = float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4))
     if x >= 0 and y >= 0:
         return svg
-    dx, dy = x, y
-    new_w, new_h = w + abs(dx), h + abs(dy)
-    svg = svg.replace(m.group(0), f'viewBox="0 0 {new_w:g} {new_h:g}"', 1)
-    svg = re.sub(
-        r'(<svg[^>]*>)', rf'\1\n<g transform="translate({-dx:g},{-dy:g})">', svg, count=1,
-    )
-    svg = svg.replace("</svg>", "</g>\n</svg>", 1)
-    return svg
+    new_w, new_h = w + abs(x), h + abs(y)
+    return svg.replace(m.group(0), f'viewBox="0 0 {new_w:g} {new_h:g}"', 1)
 
 
 def _svg_dims(svg: str) -> tuple[float, float]:
