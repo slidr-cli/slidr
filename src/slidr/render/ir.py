@@ -23,7 +23,8 @@ from slidr.theme.parser import parse_theme
 class Elem:
     """A single styled element on a slide."""
     kind: str
-    content: str | list[Any] = ""
+    content: str | list[Any] = ""       # HTML (for HTML renderer)
+    text: str = ""                       # plain text (for PPTX renderer)
     # Resolved style properties (for PPTX, informational for HTML)
     font_size: int = 18
     font_weight: str = "normal"
@@ -155,23 +156,28 @@ def _convert_node(node, styles: dict) -> Elem:
     if isinstance(node, Heading):
         fs = {1: styles.get("font_h1", 44), 2: styles.get("font_h2", 32), 3: styles.get("font_h3", 18)}.get(node.level, 18)
         return Elem(kind="heading", content=_render_inline_html(node.content),
+                    text=_render_inline_text(node.content),
                     level=node.level, font_size=fs, color=base.color)
     elif isinstance(node, Paragraph):
         return Elem(kind="text", content=_render_inline_html(node.content),
+                    text=_render_inline_text(node.content),
                     font_size=base.font_size, color=base.color)
     elif isinstance(node, CodeBlock):
         fs = styles.get("font_code", 14)
-        return Elem(kind="code", content=node.content, language=node.language,
-                    font_size=fs)
+        return Elem(kind="code", content=node.content, text=node.content,
+                    language=node.language, font_size=fs)
     elif isinstance(node, ListNode):
-        items = [_render_inline_html(item) for item in node.items]
+        items_html = [_render_inline_html(item) for item in node.items]
+        items_text = [_render_inline_text(item) for item in node.items]
         fs = styles.get("font_li", 16)
-        return Elem(kind="list", items=items, font_size=fs, color=base.color)
+        return Elem(kind="list", content=items_html, text=">".join(items_text),
+                    items=items_text, font_size=fs, color=base.color)
     elif isinstance(node, Table):
         return Elem(kind="table", headers=node.headers, rows=node.rows)
     elif isinstance(node, Quote):
         fs = styles.get("font_quote", 24)
         return Elem(kind="quote", content=_render_inline_html(node.content),
+                    text=_render_inline_text(node.content),
                     font_size=fs, color=base.muted, accent=base.accent)
     elif isinstance(node, Grid):
         children = [_convert_node(c, styles) for c in node.children]
@@ -181,20 +187,24 @@ def _convert_node(node, styles: dict) -> Elem:
                     tag=node.tag or "", class_=node.class_ or "")
     elif isinstance(node, AttrNode):
         if node.type == "speaker":
-            return Elem(kind="speaker", content=_escape(node.value), attrs=node.attrs,
+            name = node.attrs.get("name", node.value)
+            role = node.attrs.get("role", "")
+            text = f"{name}\n{role}" if role else name
+            return Elem(kind="speaker", content=_escape(node.value), text=text,
+                        attrs=node.attrs,
                         font_size=styles.get("font_speaker", 18), color=base.color)
         elif node.type == "kicker":
-            return Elem(kind="kicker", content=_escape(node.value),
+            return Elem(kind="kicker", content=_escape(node.value), text=node.value,
                         font_size=styles.get("font_kicker", 14), color=base.accent)
         elif node.type == "subtitle":
-            return Elem(kind="subtitle", content=_escape(node.value),
+            return Elem(kind="subtitle", content=_escape(node.value), text=node.value,
                         font_size=styles.get("font_subtitle", 32), color=base.muted)
         elif node.type == "tiny":
             fs = styles.get("font_small", 13)
-            return Elem(kind="tiny", content=_escape(node.value),
+            return Elem(kind="tiny", content=_escape(node.value), text=node.value,
                         font_size=fs, color=base.muted)
-        return Elem(kind="text", content=_escape(node.value))
-    return Elem(kind="text", content="")
+        return Elem(kind="text", content=_escape(node.value), text=node.value)
+    return Elem(kind="text", content="", text="")
 
 
 def _escape(s: str) -> str:
