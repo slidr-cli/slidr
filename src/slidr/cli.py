@@ -6,7 +6,7 @@ from typing import Optional
 import typer
 
 from slidr.parser.markdown import parse
-from slidr.render.html import render as render_html, default_theme
+from slidr.render.html import render as render_html, default_theme, base_css
 from slidr.render.pptx import render as render_pptx
 from slidr.render.pdf import render as render_pdf
 
@@ -39,7 +39,7 @@ def main(
 
     if pptx:
         pptx_path = out_dir / f"{stem}.pptx"
-        render_pptx(doc, pptx_path)
+        render_pptx(doc, pptx_path, base_css(), default_theme() + "\n" + (doc.meta.style or ""))
         typer.echo(f"Wrote {pptx_path} ({pptx_path.stat().st_size} bytes)")
         return
 

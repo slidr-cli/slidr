@@ -1,169 +1,133 @@
-"""PPTX renderer using python-pptx. Styling from base.css + theme CSS via tinycss2."""
+"""PPTX renderer consuming SlideIR with resolved styles."""
 
 from pathlib import Path
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 
-from slidr.parser.ast import (
-    Document, Heading, Paragraph, CodeBlock, Grid, Card, Table, Quote, ListNode, AttrNode,
-    Text as ASText, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak,
-)
-from slidr.theme.parser import parse_theme
+from slidr.parser.ast import Document
+from slidr.render.ir import build_ir, SlideIR, Elem
 
 
-def render(doc: Document, output_path: Path) -> None:
+def render(doc: Document, output_path: Path, base_css: str = "", theme_css: str = "") -> None:
     dims = doc.meta.dimensions()
     sw, sh = dims[0], dims[1]
 
-    base = (Path(__file__).parent / "templates" / "base.css").read_text()
-    s = parse_theme(base, doc.meta.style)
+    ir_slides = build_ir(doc, base_css, theme_css)
 
     prs = Presentation()
     prs.slide_width = Inches(sw / 96)
     prs.slide_height = Inches(sh / 96)
 
-    _set_bg(prs.slide_masters[0], s["bg_color"])
+    if ir_slides:
+        first = ir_slides[0]
+        if first.elements:
+            bg = first.elements[0].bg or "#ffffff"
+            _set_bg(prs.slide_masters[0], bg)
 
-    for slide in doc.slides:
+    for slide in ir_slides:
         sld = prs.slides.add_slide(prs.slide_layouts[6])
         top = Pt(5)
-        for node in slide.children:
-            top = _node(sld, node, Pt(64), top, Pt(sw - 128), s)
+        for elem in slide.elements:
+            top = _render_elem(sld, elem, Pt(64), top, Pt(sw - 128))
 
     prs.save(str(output_path))
 
 
-def _node(sld, node, left, top, width, s):
-    if isinstance(node, Heading):
-        return _text(sld, node.content, left, top, width, s, node.level)
-    elif isinstance(node, Paragraph):
-        return _text(sld, node.content, left, top, width, s, 0)
-    elif isinstance(node, Quote):
-        return _text(sld, node.content, left, top, width, s, -1)
-    elif isinstance(node, Table):
-        return _table(sld, node, left, top, width, s)
-    elif isinstance(node, Grid):
-        return _grid(sld, node, left, top, width, s)
-    elif isinstance(node, ListNode):
-        return _list(sld, node, left, top, width, s)
-    elif isinstance(node, AttrNode):
-        return _attr(sld, node, left, top, width, s)
-    elif isinstance(node, CodeBlock):
-        return _text(sld, [ASText(content=node.content)], left, top, width, s, -2)
-    elif isinstance(node, Image):
-        return _text(sld, [ASText(content=f"[{node.alt or 'image'}]")], left, top, width, s, -1)
-    elif isinstance(node, Card):
-        return _card(sld, node, left, top, width, s)
+def _render_elem(sld, e: Elem, left, top, width) -> int:
+    if e.kind in ("heading", "text", "quote", "code", "kicker", "subtitle", "tiny"):
+        return _textbox(sld, e.text or e.content, left, top, width, e)
+
+    elif e.kind == "list":
+        h = Pt(14 * len(e.items))
+        txBox = sld.shapes.add_textbox(left, top, width, h)
+        tf = txBox.text_frame
+        tf.word_wrap = True
+        for i, item in enumerate(e.items):
+            p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+            p.text = f"  {item}"
+            p.font.size = Pt(e.font_size)
+            p.font.color.rgb = _to_rgb(e.color)
+        return top + h + Pt(4)
+
+    elif e.kind == "table":
+        rows = len(e.rows) + 1
+        cols = len(e.headers)
+        h = Pt(18 * rows)
+        shape = sld.shapes.add_table(rows, cols, left, top, width, h)
+        table = shape.table
+        for j, hdr in enumerate(e.headers):
+            cell = table.cell(0, j)
+            cell.text = hdr
+            for p in cell.text_frame.paragraphs:
+                p.font.size = Pt(13)
+                p.font.bold = True
+        for i, row in enumerate(e.rows):
+            for j, ct in enumerate(row):
+                cell = table.cell(i + 1, j)
+                cell.text = ct
+                for p in cell.text_frame.paragraphs:
+                    p.font.size = Pt(e.font_size)
+                    p.font.color.rgb = _to_rgb(e.color)
+        return top + h + Pt(8)
+
+    elif e.kind == "grid":
+        if e.layout == "layout-cols":
+            cols = len(e.children)
+            gap = Pt(16)
+            cw = (width - gap * (cols - 1)) / cols
+            ct = top
+            for i, child in enumerate(e.children):
+                ct = _render_elem(sld, child, left + i * (cw + gap), top, cw)
+            return ct + Pt(8)
+        cols = e.cols or len(e.children) or 2
+        gap = Pt(8)
+        cw = (width - gap * (cols - 1)) / cols
+        ct = top
+        for i, child in enumerate(e.children):
+            ct = _render_elem(sld, child, left + i * (cw + gap), top, cw)
+        return ct + Pt(8)
+
+    elif e.kind == "card":
+        ct = top
+        if e.header:
+            ct = _textbox(sld, e.header, left, ct, width,
+                         Elem(kind="heading", level=3, font_size=18, color=e.color, text=e.header))
+        for line in e.body:
+            ct = _textbox(sld, line, left, ct, width,
+                         Elem(kind="text", font_size=e.font_size, color=e.color, text=line))
+        return ct
+
+    elif e.kind == "speaker":
+        return _textbox(sld, e.text or e.content, left, top, width, e)
+
     return top
 
 
-def _text(sld, inlines, left, top, width, s, level):
-    keys = {-1: "font_quote", 1: "font_h1", 2: "font_h2", 3: "font_h3"}
-    size = Pt(s[keys.get(level, "font_body")])
-    bold = level > 0
+def _textbox(sld, text: str, left, top, width, e: Elem) -> int:
+    if not text:
+        return top
+
+    is_heading = e.kind == "heading"
+    is_quote = e.kind == "quote"
 
     txBox = sld.shapes.add_textbox(left, top, width, Pt(24))
     tf = txBox.text_frame
     tf.word_wrap = True
-    text = _inline(inlines)
     p = tf.paragraphs[0]
     p.text = text
-    p.font.size = size
-    p.font.bold = bold
-    p.font.color.rgb = RGBColor(*s["ink_rgb"])
-    return top + Pt(18 * max(1, len(text) // 60 + 1))
+    p.font.size = Pt(e.font_size)
+    p.font.bold = is_heading or e.kind == "kicker"
+    p.font.color.rgb = _to_rgb(e.color)
+    p.font.italic = is_quote
+    return top + Pt(18 * max(1, len(text) // 60 + 1)) + Pt(4)
 
 
-def _table(sld, tbl, left, top, width, s):
-    rows = len(tbl.rows) + 1
-    cols = len(tbl.headers)
-    height = Pt(18 * rows)
-    shape = sld.shapes.add_table(rows, cols, left, top, width, height)
-    table = shape.table
-
-    for j, h in enumerate(tbl.headers):
-        cell = table.cell(0, j)
-        cell.text = h
-        for p in cell.text_frame.paragraphs:
-            p.font.size = Pt(s["font_small"])
-            p.font.bold = True
-            p.font.color.rgb = RGBColor(*s["table_header_fg"])
-
-    for i, row in enumerate(tbl.rows):
-        for j, ct in enumerate(row):
-            cell = table.cell(i + 1, j)
-            cell.text = ct
-            for p in cell.text_frame.paragraphs:
-                p.font.size = Pt(s["font_body"])
-                p.font.color.rgb = RGBColor(*s["table_cell_fg"])
-
-    return top + height + Pt(8)
-
-
-def _grid(sld, grid, left, top, width, s):
-    cols = grid.cols or len(grid.children) or 2
-    gap = Pt(8)
-    cw = (width - gap * (cols - 1)) / cols
-    ct = top
-    for i, child in enumerate(grid.children):
-        ct = _node(sld, child, left + i * (cw + gap), top, cw, s)
-    return ct + Pt(8)
-
-
-def _list(sld, node, left, top, width, s):
-    h = Pt(14 * len(node.items))
-    txBox = sld.shapes.add_textbox(left, top, width, h)
-    tf = txBox.text_frame
-    tf.word_wrap = True
-    for i, item in enumerate(node.items):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.text = f"• {_inline(item)}"
-        p.font.size = Pt(s["font_body"])
-        p.font.color.rgb = RGBColor(*s["ink_rgb"])
-    return top + h + Pt(4)
-
-
-def _attr(sld, node, left, top, width, s):
-    size = Pt(s["font_small"])
-    text = node.value
-    if node.type == "speaker":
-        name = node.attrs.get("name", text)
-        role = node.attrs.get("role", "")
-        text = f"{name}\n{role}"
-        size = Pt(s["font_body"])
-
-    txBox = sld.shapes.add_textbox(left, top, width, Pt(18))
-    p = txBox.text_frame.paragraphs[0]
-    p.text = text
-    p.font.size = size
-    color = s["accent_rgb"] if node.type == "kicker" else s["muted_rgb"]
-    p.font.color.rgb = RGBColor(*color)
-    return top + Pt(18) + Pt(4)
-
-
-def _inline(nodes: list) -> str:
-    s = ""
-    for n in nodes:
-        if isinstance(n, ASText):
-            s += n.content
-        elif isinstance(n, (Strong, Emphasis, Strikethrough)):
-            s += _inline(n.children)
-        elif isinstance(n, CodeSpan):
-            s += n.content
-        elif isinstance(n, Image):
-            s += f"[{n.alt}]" if n.alt else "[image]"
-        elif isinstance(n, SoftBreak):
-            s += " "
-    return s
-
-
-def _card(sld, node, left, top, width, s):
-    if node.header:
-        top = _text(sld, [ASText(content=node.header)], left, top, width, s, 3)
-    for line in node.body:
-        top = _text(sld, [ASText(content=line)], left, top, width, s, 0)
-    return top
+def _to_rgb(hex_color: str) -> RGBColor:
+    hex_color = hex_color.lstrip("#")
+    if len(hex_color) == 3:
+        hex_color = "".join(c * 2 for c in hex_color)
+    return RGBColor(int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16))
 
 
 def _set_bg(master, color: str):
