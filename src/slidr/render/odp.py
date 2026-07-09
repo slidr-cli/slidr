@@ -426,49 +426,40 @@ def _svg_dims(svg: str) -> tuple[float, float]:
 def _render_mermaid_odp(
     elem: Elem, ctx: LayoutContext, odp: Document
 ) -> list[Element]:
-    import subprocess, tempfile
-
-    with tempfile.NamedTemporaryFile(
-        suffix=".mmd", mode="w", delete=False
-    ) as f:
-        f.write(elem.content)
-        infile = f.name
-
-    outfile = infile + ".svg"
     try:
-        result = subprocess.run(
-            ["mmdc", "-i", infile, "-o", outfile,
-             "-t", "default", "-b", "transparent"],
-            capture_output=True, text=True, timeout=30,
+        from mmdc import render as render_mmd
+
+        d = render_mmd(elem.content)
+        svg = d.svg().replace(' width="100%"', "", 1)
+
+        with tempfile.NamedTemporaryFile(
+            suffix=".svg", mode="w", delete=False
+        ) as f:
+            f.write(svg)
+            tmp_path = f.name
+        uri = odp.add_file(tmp_path)
+        os.unlink(tmp_path)
+
+        size_cm = _svg_dims(svg)
+        if size_cm[0] > ctx.width * 0.9:
+            scale = (ctx.width * 0.9) / size_cm[0]
+            size_cm = (ctx.width * 0.9, size_cm[1] * scale)
+        height = size_cm[1]
+        frame = Frame.image_frame(
+            image=uri,
+            text="",
+            size=(f"{size_cm[0]:.2f}cm", f"{size_cm[1]:.2f}cm"),
+            position=(
+                f"{ctx.x + (ctx.width - size_cm[0]) / 2:.2f}cm",
+                f"{ctx.y:.2f}cm",
+            ),
+            anchor_type="page",
         )
-        if result.returncode == 0 and os.path.isfile(outfile):
-            svg = Path(outfile).read_text()
-            uri = odp.add_file(outfile)
-            size_cm = _svg_dims(svg)
-            if size_cm[0] > ctx.width * 0.9:
-                scale = (ctx.width * 0.9) / size_cm[0]
-                size_cm = (ctx.width * 0.9, size_cm[1] * scale)
-            height = size_cm[1]
-            frame = Frame.image_frame(
-                image=uri,
-                text="",
-                size=(f"{size_cm[0]:.2f}cm", f"{size_cm[1]:.2f}cm"),
-                position=(
-                    f"{ctx.x + (ctx.width - size_cm[0]) / 2:.2f}cm",
-                    f"{ctx.y:.2f}cm",
-                ),
-                anchor_type="page",
-            )
-            ctx.y += height + ctx.gap
-            return [frame]
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    finally:
-        os.unlink(infile)
-        if os.path.isfile(outfile):
-            os.unlink(outfile)
-    return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
-                                 TextStyleRegistry(), odp)
+        ctx.y += height + ctx.gap
+        return [frame]
+    except Exception:
+        return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
+                                     TextStyleRegistry(), odp)
 
 
 def _render_text(

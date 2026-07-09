@@ -25,11 +25,11 @@ graph LR
 ## Flowchart
 
 ```mermaid
-flowchart TD
-    Start([Start]) --> Process[Process Data]
+graph TD
+    Start[Start] --> Process[Process Data]
     Process --> Decision{Valid?}
-    Decision -->|Yes| Success([Success])
-    Decision -->|No| Retry([Retry])
+    Decision -->|Yes| Success[Success]
+    Decision -->|No| Retry[Retry]
     Retry --> Process
 ```
 
@@ -51,24 +51,20 @@ sequenceDiagram
 
 ---
 
-## Class Diagram
+## Entity Relationship
 
 ```mermaid
-classDiagram
-    class User {
-        +int id
-        +string name
-        +string email
-        +login()
-        +logout()
+erDiagram
+    USER ||--o{ ORDER : places
+    USER {
+        int id
+        string name
+        string email
     }
-    class Order {
-        +int id
-        +int user_id
-        +float total
-        +submit()
+    ORDER {
+        int id
+        float total
     }
-    User --> Order : has many
 ```
 
 ---

@@ -184,27 +184,13 @@ def _render_seaborn_html(content: str) -> str:
 
 
 def _render_mermaid(content: str) -> str:
-    with tempfile.NamedTemporaryFile(suffix='.mmd', mode='w', delete=False) as f:
-        f.write(content)
-        infile = f.name
-    outfile = infile + '.svg'
     try:
-        result = subprocess.run(
-            ['mmdc', '-i', infile, '-o', outfile,
-             '-t', 'default', '-b', 'transparent'],
-            capture_output=True, text=True, timeout=30
-        )
-        if result.returncode == 0 and os.path.exists(outfile):
-            with open(outfile) as f:
-                svg = f.read()
-            return f'<div class="mermaid">\n{svg}\n</div>'
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    finally:
-        os.unlink(infile)
-        if os.path.exists(outfile):
-            os.unlink(outfile)
-    return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
+        from mmdc import render as render_mmd
+        d = render_mmd(content)
+        svg = d.svg().replace(' width="100%"', "", 1)
+        return f'<div class="mermaid">\n{svg}\n</div>'
+    except Exception:
+        return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
 
 
 def _escape(s: str) -> str:
