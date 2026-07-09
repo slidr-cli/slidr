@@ -35,7 +35,7 @@ tr:nth-child(even) { background: var(--color-background-stripe); }
 a { color: var(--color-accent); }
 
 .card {
-  background: rgba(0, 0, 0, 0.15);
+  background: #e3f2fd;
   border: 1px solid var(--color-border);
 }
 .card p { font-size: 0.9em; }
@@ -54,9 +54,9 @@ footer { color: var(--color-dimmed); }
 .muted { color: var(--color-dimmed); }
 
 /* ---- tag colors ---- */
-.tag-green { border-color: #0fd05d; }
-.tag-cyan  { border-color: #67d8ff; }
-.tag-yellow { border-color: #ffd166; }
-.tag-red   { border-color: #ff7a7a; }
+.tag-green  { border-color: #0fd05d; background: #e8f5e9; }
+.tag-cyan   { border-color: #67d8ff; background: #e0f7fa; }
+.tag-yellow { border-color: #ffd166; background: #fff9c4; }
+.tag-red    { border-color: #ff7a7a; background: #ffebee; }
 .border-green { border-color: #0fd05d; }
 .border-red   { border-color: #ff7a7a; }
