@@ -7,8 +7,8 @@ from markdown_it.token import Token
 
 from slidr.parser.ast import (
     Document, Meta, Slide,
-    Heading, Paragraph, Grid, Table, Quote, ListNode, AttrNode,
-    Text, CodeSpan, Image, SoftBreak,
+    Heading, Paragraph, CodeBlock, Grid, Table, Quote, ListNode, AttrNode,
+    Text, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak,
 )
 from slidr.plugins.fenced import extract_fenced, interleave_fences
 from slidr.plugins.directives import preprocess_directives, extract_attrs, parse_attr_token
@@ -138,12 +138,12 @@ def _tokens_to_nodes(tokens: list[Token]) -> list:
             while i < len(tokens) and tokens[i].type != close_type:
                 if tokens[i].type == "list_item_open":
                     i += 1
-                    text = ""
+                    inlines = []
                     while i < len(tokens) and tokens[i].type != "list_item_close":
                         if tokens[i].type == "inline":
-                            text += tokens[i].content
+                            inlines.extend(_token_inline(tokens[i]))
                         i += 1
-                    items.append(text.strip())
+                    items.append(inlines)
                     i += 1
                 else:
                     i += 1
@@ -161,6 +161,10 @@ def _tokens_to_nodes(tokens: list[Token]) -> list:
             if node:
                 nodes.append(node)
             i += 1
+        elif token.type in ("fence", "code_block"):
+            lang = token.info.strip() if token.info else ""
+            nodes.append(CodeBlock(content=token.content, language=lang))
+            i += 1
         else:
             i += 1
     return nodes
@@ -168,10 +172,7 @@ def _tokens_to_nodes(tokens: list[Token]) -> list:
 
 def _token_inline(token: Token) -> list:
     if token.type == "inline":
-        result = []
-        for child in (token.children or []):
-            result.extend(_token_inline(child))
-        return result
+        return _walk_inline_children(token.children or [])
     elif token.type == "text":
         return [Text(content=token.content)]
     elif token.type == "code_inline":
@@ -184,6 +185,39 @@ def _token_inline(token: Token) -> list:
         attrs = dict(token.attrs or {})
         return [Image(src=attrs.get("src", ""), alt=token.content or "", title=attrs.get("title", ""))]
     return []
+
+
+def _walk_inline_children(tokens: list) -> list:
+    """Walk inline token children, handling strong/em open/close pairs."""
+    result = []
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t.type == "strong_open":
+            i += 1
+            inner = []
+            while i < len(tokens) and tokens[i].type != "strong_close":
+                inner.extend(_token_inline(tokens[i]))
+                i += 1
+            result.append(Strong(children=inner))
+        elif t.type == "em_open":
+            i += 1
+            inner = []
+            while i < len(tokens) and tokens[i].type != "em_close":
+                inner.extend(_token_inline(tokens[i]))
+                i += 1
+            result.append(Emphasis(children=inner))
+        elif t.type == "s_open":
+            i += 1
+            inner = []
+            while i < len(tokens) and tokens[i].type != "s_close":
+                inner.extend(_token_inline(tokens[i]))
+                i += 1
+            result.append(Strikethrough(children=inner))
+        else:
+            result.extend(_token_inline(t))
+        i += 1
+    return result
 
 
 def _detect_layout(nodes: list) -> str:

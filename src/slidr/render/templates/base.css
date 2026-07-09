@@ -55,9 +55,15 @@ footer {
   position: absolute;
   bottom: 1em;
   left: 3.6em;
-  right: 3.6em;
   font-size: 0.6em;
   text-align: left;
+}
+.slide-num {
+  position: absolute;
+  bottom: 1em;
+  right: 3.6em;
+  font-size: 0.6em;
+  text-align: right;
 }
 
 /* ---- theme ---- */

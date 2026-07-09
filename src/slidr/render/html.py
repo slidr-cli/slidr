@@ -3,10 +3,14 @@
 import re
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name, TextLexer
+from pygments.formatters import HtmlFormatter
+from pygments.util import ClassNotFound
 
 from slidr.parser.ast import (
-    Document, Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode,
-    Text, CodeSpan, Image, SoftBreak,
+    Document, Heading, Paragraph, CodeBlock, Grid, Card, Table, Quote, ListNode, AttrNode,
+    Text, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak,
 )
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -54,6 +58,7 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
     css = base_css().replace('SLIDE_W', str(dims[0])).replace('SLIDE_H', str(dims[1]))
     css = css.replace('THEME_CSS', default_theme() + '\n' + theme_css).replace('LOGO_CSS', logo_css)
     css = css.replace("{theme_css}", default_theme() + "\n" + theme_css).replace("{logo_css}", logo_css)
+    css += _pygments_css()
 
     return _env.get_template("shell.html").render(
         title=doc.meta.title or "Presentation", slide_w=dims[0], slide_h=dims[1], css=css, slides=slides,
@@ -148,9 +153,12 @@ def _render_node(node) -> str | None:
     elif isinstance(node, ListNode):
         s = "<ul>\n"
         for item in node.items:
-            s += f"<li>{_escape(item)}</li>\n"
+            content = _render_inline(item)
+            s += f"<li>{content}</li>\n"
         s += "</ul>"
         return s
+    elif isinstance(node, CodeBlock):
+        return _highlight_code(node.content, node.language)
     elif isinstance(node, AttrNode):
         if node.type == "speaker":
             name = node.attrs.get("name", node.value)
@@ -167,6 +175,12 @@ def _render_inline(nodes: list) -> str:
     for n in nodes:
         if isinstance(n, Text):
             s += _escape(n.content)
+        elif isinstance(n, Strong):
+            s += f"<strong>{_render_inline(n.children)}</strong>"
+        elif isinstance(n, Emphasis):
+            s += f"<em>{_render_inline(n.children)}</em>"
+        elif isinstance(n, Strikethrough):
+            s += f"<s>{_render_inline(n.children)}</s>"
         elif isinstance(n, CodeSpan):
             s += f"<code>{_escape(n.content)}</code>"
         elif isinstance(n, Image):
@@ -175,6 +189,24 @@ def _render_inline(nodes: list) -> str:
         elif isinstance(n, SoftBreak):
             s += " "
     return s
+
+
+def _highlight_code(content: str, language: str) -> str:
+    try:
+        lexer = get_lexer_by_name(language, stripall=True) if language else TextLexer()
+    except ClassNotFound:
+        lexer = TextLexer()
+    formatter = HtmlFormatter(nowrap=True, style="default")
+    highlighted = highlight(content, lexer, formatter)
+    cls = f' class="language-{language}"' if language else ""
+    return f'<pre{cls}><code>{highlighted}</code></pre>'
+
+
+def _pygments_css() -> str:
+    formatter = HtmlFormatter(style="default")
+    css = formatter.get_style_defs('.slide pre code')
+    css += formatter.get_style_defs('.slide .highlight')
+    return f"\n/* ---- pygments ---- */\n{css}\n"
 
 
 def _escape(s: str) -> str:

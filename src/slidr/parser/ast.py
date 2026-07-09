@@ -1,5 +1,7 @@
 """AST node types for slidr."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
@@ -87,7 +89,7 @@ class Quote(Node):
 
 @dataclass
 class ListNode(Node):
-    items: list[str] = field(default_factory=list)
+    items: list[list[Inline]] = field(default_factory=list)
 
 
 @dataclass
@@ -95,6 +97,12 @@ class AttrNode(Node):
     type: str = ""
     value: str = ""
     attrs: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class CodeBlock(Node):
+    content: str = ""
+    language: str = ""
 
 
 @dataclass
@@ -109,6 +117,16 @@ class Text(Inline):
 
 @dataclass
 class Strong(Inline):
+    children: list[Inline] = field(default_factory=list)
+
+
+@dataclass
+class Emphasis(Inline):
+    children: list[Inline] = field(default_factory=list)
+
+
+@dataclass
+class Strikethrough(Inline):
     children: list[Inline] = field(default_factory=list)
 
 

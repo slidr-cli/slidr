@@ -6,8 +6,8 @@ from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 
 from slidr.parser.ast import (
-    Document, Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode,
-    Text as ASText, CodeSpan, SoftBreak,
+    Document, Heading, Paragraph, CodeBlock, Grid, Card, Table, Quote, ListNode, AttrNode,
+    Text as ASText, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak,
 )
 from slidr.theme.parser import parse_theme
 
@@ -49,6 +49,12 @@ def _node(sld, node, left, top, width, s):
         return _list(sld, node, left, top, width, s)
     elif isinstance(node, AttrNode):
         return _attr(sld, node, left, top, width, s)
+    elif isinstance(node, CodeBlock):
+        return _text(sld, [ASText(content=node.content)], left, top, width, s, -2)
+    elif isinstance(node, Image):
+        return _text(sld, [ASText(content=f"[{node.alt or 'image'}]")], left, top, width, s, -1)
+    elif isinstance(node, Card):
+        return _card(sld, node, left, top, width, s)
     return top
 
 
@@ -112,7 +118,7 @@ def _list(sld, node, left, top, width, s):
     tf.word_wrap = True
     for i, item in enumerate(node.items):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.text = f"• {item}"
+        p.text = f"• {_inline(item)}"
         p.font.size = Pt(s["font_body"])
         p.font.color.rgb = RGBColor(*s["ink_rgb"])
     return top + h + Pt(4)
@@ -141,11 +147,23 @@ def _inline(nodes: list) -> str:
     for n in nodes:
         if isinstance(n, ASText):
             s += n.content
+        elif isinstance(n, (Strong, Emphasis, Strikethrough)):
+            s += _inline(n.children)
         elif isinstance(n, CodeSpan):
             s += n.content
+        elif isinstance(n, Image):
+            s += f"[{n.alt}]" if n.alt else "[image]"
         elif isinstance(n, SoftBreak):
             s += " "
     return s
+
+
+def _card(sld, node, left, top, width, s):
+    if node.header:
+        top = _text(sld, [ASText(content=node.header)], left, top, width, s, 3)
+    for line in node.body:
+        top = _text(sld, [ASText(content=line)], left, top, width, s, 0)
+    return top
 
 
 def _set_bg(master, color: str):
