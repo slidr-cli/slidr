@@ -154,6 +154,7 @@ LOGO_CSS
     transform: none !important;
     width: SLIDE_Wpx;
     height: SLIDE_Hpx;
+    overflow: hidden;
     page-break-before: always;
     break-before: page;
   }
@@ -162,6 +163,18 @@ LOGO_CSS
     break-before: avoid;
   }
   #slidr-nav { display: none !important; }
+  section {
+    display: block !important;
+  }
+  .slide-body {
+    flex: none;
+    min-height: auto;
+    padding-bottom: 0;
+  }
+  pre {
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 @page {
