@@ -78,7 +78,18 @@ Any style from [pygments-styles.org](https://pygments-styles.org) is supported.
 | col1 | col2 |                 # pipe table
 `inline code`                   # inline code
 ```language                    # fenced code block with syntax highlighting
+```d2                         # D2 diagram, inline SVG at build time
 ```
+
+D2 blocks require `d2` installed. Rendered to inline SVG -- works in PDF
+with no JS dependency. When using `@layout image-right` with a D2 diagram,
+use `@col` for manual split since D2 blocks aren't auto-detected as images.
+
+## Layout caveats
+
+`@col` overrides auto-detection in all three layouts (`two-col`,
+`image-right`, `image-left`). Use it when auto-split puts content in the
+wrong column -- long lists, D2 diagrams, or mixed content types.
 
 ## Speaker notes
 

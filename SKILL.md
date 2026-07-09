@@ -60,8 +60,53 @@ Custom layouts: `@layout <name>` adds CSS class `layout-<name>`, style via `styl
 | col1 | col2 | col3 |       # pipe table with header row
 `inline code`                # inline code span
 ```language                  # fenced code block, syntax highlighted
-:::
+```d2                        # D2 diagram, rendered at build time as SVG
 ```
+
+## D2 diagrams
+
+Use ````d2` fenced blocks for architecture diagrams, flowcharts, and sequence
+diagrams. Rendered at build time to inline SVG -- works in PDF and PPTX with
+no JS dependency. Requires `d2` installed on the build machine.
+
+```d2
+direction: right
+
+User -> API: Request
+API -> Database: Query
+Database -> API: Result
+API -> User: Response
+```
+
+D2 blocks are `CodeBlock` nodes, not images. When using `@layout image-right`
+or `@layout image-left` with a D2 diagram, the auto-detection won't find it.
+Use `@col` to manually place the split:
+
+```markdown
+@layout two-col
+
+## Title
+
+- Left content
+
+@col
+
+```d2
+...
+```
+```
+
+## Layout caveats
+
+`@col` works in all three layouts (`two-col`, `image-right`, `image-left`).
+When present, it overrides auto-detection -- everything before `@col` goes
+left, everything after goes right.
+
+When to use `@col`:
+- Splitting a single long list into two columns (blank lines don't split lists
+  in CommonMark)
+- Placing a D2 diagram on one side without an actual image in the content
+- Any time auto-detection puts content in the wrong column
 
 ## Speaker notes
 

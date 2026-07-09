@@ -1,5 +1,8 @@
 """HTML renderer for slidr."""
 
+import os
+import subprocess
+import tempfile
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from pygments import highlight
@@ -134,6 +137,8 @@ def _render_node(node) -> str | None:
         s += "</ul>"
         return s
     elif isinstance(node, CodeBlock):
+        if node.language == "d2":
+            return _render_d2(node.content)
         return _highlight_code(node.content, node.language)
     elif isinstance(node, AttrNode):
         if node.type == "speaker":
@@ -182,6 +187,29 @@ def _pygments_css(style: str = "default") -> str:
     formatter = HtmlFormatter(style=style)
     css = formatter.get_style_defs('.slide .highlight')
     return f"\n/* ---- pygments ---- */\n{css}\n"
+
+
+def _render_d2(content: str) -> str:
+    with tempfile.NamedTemporaryFile(suffix='.d2', mode='w', delete=False) as f:
+        f.write(content)
+        infile = f.name
+    outfile = infile + '.svg'
+    try:
+        result = subprocess.run(
+            ['d2', '--theme=0', '--pad=0', infile, outfile],
+            capture_output=True, text=True, timeout=10
+        )
+        if result.returncode == 0 and os.path.exists(outfile):
+            with open(outfile) as f:
+                svg = f.read()
+            return f'<div class="d2">\n{svg}\n</div>'
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    finally:
+        os.unlink(infile)
+        if os.path.exists(outfile):
+            os.unlink(outfile)
+    return f'<pre class="d2-fallback"><code>{_escape(content)}</code></pre>'
 
 
 def _escape(s: str) -> str:

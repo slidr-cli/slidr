@@ -25,9 +25,23 @@ Areas that need help:
   monospace text. python-pptx doesn't support rich text in a single run
   natively for syntax-colored output, but multi-run text frames can achieve it.
 
+## Obsidian extension
+
+An Obsidian plugin that renders `.md` files as slidr presentations directly
+in the editor. Key features: live preview panel, build-on-save, presenter
+mode in a separate pane. Requires familiarity with the Obsidian plugin API
+and TypeScript.
+
 ## Setup
 
 ```bash
 pdm install
 pdm run slidr slides.md --pptx
 ```
+
+## matplotlib / seaborn support
+
+Render ````matplotlib` and ````seaborn` fenced code blocks as embedded images
+at build time. Requires executing Python in a subprocess, capturing the figure
+as base64 PNG, and embedding in the HTML output. Security and dependency
+management are the main design questions.
