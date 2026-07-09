@@ -39,12 +39,13 @@ body {
   grid-column: 2;
   grid-row: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   overflow: hidden;
   border-left: 1px solid #333;
+  padding: 1em;
 }
-#next section { display: none !important; width: 100%; height: 100%; overflow: hidden; }
+#next section { display: none !important; width: 100%; height: auto; overflow: hidden; }
 #next section.active { display: block !important; }
 </style>
 <style>
@@ -85,6 +86,38 @@ setInterval(function() {
   }
 }, 300);
 sync(0);
+
+window.focus();
+document.getElementById('main').addEventListener('click', function() {
+  window.focus();
+  var op = window.opener;
+  if (op && op.slidrCurrent !== undefined) {
+    var next = Math.min(op.slidrCurrent + 1, ms.length - 1);
+    if (next !== op.slidrCurrent) {
+      ms.forEach(function(s) { s.classList.remove("active"); });
+      ns.forEach(function(s) { s.classList.remove("active"); });
+      sync(next);
+      op.slidrCurrent = next;
+    }
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'q') window.close();
+});
+
+document.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var op = window.opener;
+  if (!op || op.slidrCurrent === undefined) return;
+  var n = op.slidrCurrent + (e.deltaY > 0 ? 1 : -1);
+  if (n >= 0 && n < ms.length) {
+    ms.forEach(function(s) { s.classList.remove("active"); });
+    ns.forEach(function(s) { s.classList.remove("active"); });
+    sync(n);
+    op.slidrCurrent = n;
+  }
+}, { passive: false });
 </script>
 </body>
 </html>
