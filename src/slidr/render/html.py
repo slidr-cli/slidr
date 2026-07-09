@@ -1,6 +1,5 @@
 """HTML renderer for slidr."""
 
-import re
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from pygments import highlight
@@ -12,6 +11,9 @@ from slidr.parser.ast import (
     Document, Heading, Paragraph, CodeBlock, Grid, Card, Table, Quote, ListNode, AttrNode,
     Text, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak,
 )
+from slidr.plugins.layouts import apply_layout, KNOWN_LAYOUTS
+
+_pygments_style = "default"
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 THEME_DIR = Path(__file__).parent.parent / "themes"
@@ -29,13 +31,28 @@ def base_css() -> str:
 
 
 def render(doc: Document, theme_css: str, logo: str = "") -> str:
+    global _pygments_style
     dims = doc.meta.dimensions()
 
     slides = []
     for i, slide in enumerate(doc.slides):
         layout = slide.layout
-        rendered = [h for h in (_render_node(n) for n in slide.children) if h is not None]
-        children = _apply_layout(rendered, layout)
+        nodes = slide.children
+
+        heading_html = ""
+        body_nodes = nodes
+        if nodes and isinstance(nodes[0], Heading) and nodes[0].level <= 2:
+            heading_html = _render_node(nodes[0]) or ""
+            body_nodes = nodes[1:]
+
+        if layout in KNOWN_LAYOUTS:
+            body_html = apply_layout(body_nodes, layout, _render_node)
+        else:
+            body_html = "\n".join(filter(None, (_render_node(n) for n in body_nodes)))
+
+        if body_html.strip():
+            heading_html += '\n<div class="slide-body">\n' + body_html + '\n</div>'
+        children = heading_html or body_html
         slides.append({
             "num": i + 1, "layout": layout, "children": children,
             "notes": slide.notes, "footer": doc.meta.footer or "", "paginate": doc.meta.paginate or False,
@@ -58,54 +75,13 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
     css = base_css().replace('SLIDE_W', str(dims[0])).replace('SLIDE_H', str(dims[1]))
     css = css.replace('THEME_CSS', default_theme() + '\n' + theme_css).replace('LOGO_CSS', logo_css)
     css = css.replace("{theme_css}", default_theme() + "\n" + theme_css).replace("{logo_css}", logo_css)
-    css += _pygments_css()
+    pstyle = doc.meta.pygments_style or "default"
+    _pygments_style = pstyle
+    css += _pygments_css(pstyle)
 
     return _env.get_template("shell.html").render(
         title=doc.meta.title or "Presentation", slide_w=dims[0], slide_h=dims[1], css=css, slides=slides,
     )
-
-
-KNOWN_LAYOUTS = {"image-right", "image-left", "two-col"}
-
-
-def _apply_layout(rendered: list[str], layout: str) -> str:
-    """Wrap rendered children into columns for known layouts."""
-    if layout not in KNOWN_LAYOUTS:
-        return "\n".join(rendered)
-
-    heading = ""
-    body = rendered
-    if body and re.match(r'<h[1-6]', body[0]):
-        heading = body[0]
-        body = body[1:]
-
-    if layout == "image-right":
-        left, right = _split_image(body)
-    elif layout == "image-left":
-        right, left = _split_image(body)
-    elif layout == "two-col":
-        mid = (len(body) + 1) // 2
-        left, right = body[:mid], body[mid:]
-    else:
-        return "\n".join(rendered)
-
-    parts = []
-    if heading:
-        parts.append(heading)
-    if left or right:
-        parts.append('<div class="layout-cols">')
-        parts.append('<div class="col-left">\n' + "\n".join(left) + '\n</div>')
-        if right:
-            parts.append('<div class="col-right">\n' + "\n".join(right) + '\n</div>')
-        parts.append('</div>')
-    return "\n".join(parts)
-
-
-def _split_image(body: list[str]) -> tuple[list[str], list[str]]:
-    for i, html in enumerate(body):
-        if '<img' in html:
-            return body[:i] + body[i + 1:], [html]
-    return body, []
 
 
 def _render_node(node) -> str | None:
@@ -196,16 +172,15 @@ def _highlight_code(content: str, language: str) -> str:
         lexer = get_lexer_by_name(language, stripall=True) if language else TextLexer()
     except ClassNotFound:
         lexer = TextLexer()
-    formatter = HtmlFormatter(nowrap=True, style="default")
+    formatter = HtmlFormatter(nowrap=True, style=_pygments_style)
     highlighted = highlight(content, lexer, formatter)
-    cls = f' class="language-{language}"' if language else ""
+    cls = f' class="highlight language-{language}"' if language else ' class="highlight"'
     return f'<pre{cls}><code>{highlighted}</code></pre>'
 
 
-def _pygments_css() -> str:
-    formatter = HtmlFormatter(style="default")
-    css = formatter.get_style_defs('.slide pre code')
-    css += formatter.get_style_defs('.slide .highlight')
+def _pygments_css(style: str = "default") -> str:
+    formatter = HtmlFormatter(style=style)
+    css = formatter.get_style_defs('.slide .highlight')
     return f"\n/* ---- pygments ---- */\n{css}\n"
 
 

@@ -29,6 +29,7 @@ def parse(input_text: str) -> Document:
         size=raw_meta.pop("size", "16:9"),
         style=style_raw,
         logo=logo_raw,
+        pygments_style=raw_meta.pop("pygments_style", "default"),
     )
 
     body = post.content

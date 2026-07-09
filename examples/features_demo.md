@@ -5,6 +5,7 @@ size: 16:9
 logo: "../assets/brand/hami-logo.png"
 title: HAMi Demo
 footer: "HAMi · Hardware Affinity Manager for Inference"
+pygments_style: ayu-mirage
 ---
 
 @kicker v2.6 · July 2026
@@ -93,14 +94,14 @@ HAMi demonstrates near-linear scaling with concurrent inference workloads across
 
 ## Deployment Patterns
 
-- **Standalone**: Single binary with embedded etcd, suitable for edge inference
+**Standalone**: Single binary with embedded etcd, suitable for edge inference
 - **Kubernetes Native**: Helm chart with device plugin, custom scheduler, and CRDs
 - **Multi-Cluster**: Federation via HAMi-gateway with cross-cluster GPU sharing
 - **Air-Gapped**: Offline mode with signed container images and local model registry
 
 
 
-- **Monitoring**: Prometheus metrics for GPU utilization, memory pressure, scheduling latency
+**Monitoring**: Prometheus metrics for GPU utilization, memory pressure, scheduling latency
 - **Autoscaling**: HPA integration based on GPU queue depth and pending workload count
 - **Security**: OPA/Gatekeeper policies for GPU resource quotas and tenant isolation
 
