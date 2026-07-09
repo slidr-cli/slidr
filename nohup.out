@@ -1,0 +1,19 @@
+Wrote examples/dist/demo_deck.html (9672 bytes)
+Wrote examples/dist/demo_deck.pdf (29229 bytes)
+Wrote examples/dist/demo_deck.html (9672 bytes)
+Wrote examples/dist/demo_deck.pdf (29229 bytes)
+warning: Failed to hash file '/home/timebomb/git/opencode/dynamia/presentation_framework/slidr/examples/demo_deck.pdf'; fileinfo lookup may be unreliable.
+warning: UNHANDLED EXCEPTION!
+system error: cannot open /home/timebomb/git/opencode/dynamia/presentation_framework/slidr/examples/demo_deck.pdf: No such file or directory
+error: could not open document
+
+warning: Failed to hash file '/home/timebomb/git/opencode/dynamia/presentation_framework/slidr/examples/demo_deck.pdf'; fileinfo lookup may be unreliable.
+warning: UNHANDLED EXCEPTION!
+system error: cannot open /home/timebomb/git/opencode/dynamia/presentation_framework/slidr/examples/demo_deck.pdf: No such file or directory
+error: could not open document
+
+warning: Failed to hash file '/home/timebomb/git/opencode/dynamia/presentation_framework/slidr/examples/demo_deck.pdf'; fileinfo lookup may be unreliable.
+warning: UNHANDLED EXCEPTION!
+system error: cannot open /home/timebomb/git/opencode/dynamia/presentation_framework/slidr/examples/demo_deck.pdf: No such file or directory
+error: could not open document
+

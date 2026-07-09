@@ -2,7 +2,7 @@
 theme: default
 paginate: true
 size: 16:9
-logo: "../assets/brand/hami-logo.png"
+logo: "assets/brand/hami-logo.png"
 title: HAMi Demo
 footer: "HAMi · Hardware Affinity Manager for Inference"
 pygments_style: ayu-mirage
@@ -67,7 +67,7 @@ HAMi intercepts CUDA API calls at the library level to enable fine-grained GPU s
 - Scheduler bins workloads by memory footprint and priority
 - Fractional GPU allocation down to 1% granularity
 
-![Ecosystem Pyramid](../assets/ecosystem/hami-ecosystem-pyramid.png)
+![Ecosystem Pyramid](assets/ecosystem/hami-ecosystem-pyramid.png)
 
 <!--
 Key point: the library-level interception means zero container modification. Just mount the HAMi lib and set resource limits.
@@ -79,7 +79,7 @@ Key point: the library-level interception means zero container modification. Jus
 
 ## Performance Benchmarks
 
-![CNCF Logo](../assets/brand/cncf-logo.png)
+![CNCF Logo](assets/brand/cncf-logo.png)
 
 HAMi demonstrates near-linear scaling with concurrent inference workloads across 8× A100 GPUs. The key metric is GPU utilization efficiency -- HAMi achieves 92% average utilization vs. 65% baseline with default Kubernetes scheduling.
 

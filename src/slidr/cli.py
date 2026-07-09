@@ -32,6 +32,7 @@ def main(
 
     out_dir = output_dir or file.parent / "dist"
     out_dir.mkdir(parents=True, exist_ok=True)
+    _symlink_assets(file.parent, out_dir, file)
     stem = file.stem
 
     html = render_html(doc, default_theme() + "\n" + (doc.meta.style or ""), doc.meta.logo)
@@ -47,7 +48,8 @@ def main(
 
     if odp:
         odp_path = out_dir / f"{stem}.odp"
-        render_odp(doc, odp_path, base_css(), default_theme() + "\n" + (doc.meta.style or ""))
+        render_odp(doc, odp_path, base_css(), default_theme() + "\n" + (doc.meta.style or ""),
+                   source_dir=file.parent)
         typer.echo(f"Wrote {odp_path} ({odp_path.stat().st_size} bytes)")
         return
 
@@ -82,3 +84,13 @@ def _node_summary(node) -> str:
     elif isinstance(node, AttrNode):
         return f"{node.type}: {node.value}"
     return ""
+
+
+def _symlink_assets(source_dir: Path, dist_dir: Path, input_file: Path) -> None:
+    """Symlink everything except the input .md and dist itself into dist."""
+    for item in source_dir.iterdir():
+        if item.name == dist_dir.name or item == input_file:
+            continue
+        dest = dist_dir / item.name
+        if not dest.exists():
+            dest.symlink_to(item.resolve())

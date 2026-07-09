@@ -53,6 +53,7 @@ class LayoutContext:
     margin_left: float = 2.0
     margin_top: float = 2.0
     gap: float = 0.5
+    source_dir: Path | None = None
 
 
 class GraphicStyleRegistry:
@@ -310,6 +311,17 @@ def _image_natural_size(path: str) -> tuple[float, float]:
         return (16.0, 9.0)
 
 
+def _resolve_img_path(src: str, source_dir: Path | None) -> str | None:
+    """Resolve an image src relative to the markdown file's directory."""
+    if not src:
+        return None
+    if os.path.isabs(src):
+        return src
+    if source_dir:
+        return str((source_dir / src).resolve())
+    return src if os.path.isfile(src) else None
+
+
 # ---------------------------------------------------------------------------
 # Element renderers
 # ---------------------------------------------------------------------------
@@ -336,10 +348,11 @@ def _render_fallback_text(elem: Elem, ctx, gr, tr, odp):
 def _render_image(elem: Elem, ctx: LayoutContext, gr: GraphicStyleRegistry,
                   tr: TextStyleRegistry, odp: Document) -> list[Element]:
     img = elem.inlines[0]
-    if not img.src or not os.path.isfile(img.src):
+    img_path = _resolve_img_path(img.src, ctx.source_dir)
+    if not img_path or not os.path.isfile(img_path):
         return _render_fallback_text(elem, ctx, gr, tr, odp)
-    uri = odp.add_file(img.src)
-    size_cm = _image_natural_size(img.src)
+    uri = odp.add_file(img_path)
+    size_cm = _image_natural_size(img_path)
     if size_cm[0] > ctx.width:
         scale = ctx.width / size_cm[0]
         size_cm = (ctx.width, size_cm[1] * scale)
@@ -632,15 +645,22 @@ def render(
     page_width: float = 28.0,
     page_height: float = 15.75,
     margin: float = 2.0,
+    source_dir: Path | None = None,
 ) -> None:
-    """Render Document AST to an ODP file."""
+    """Render Document AST to an ODP file.
+
+    source_dir: markdown file's parent directory, for resolving relative image paths.
+    """
     slides = build_ir(doc, base_css, theme_css)
     odp = Document("presentation")
     odp.body.clear()
 
     logo_uri = None
-    if doc.meta.logo and os.path.isfile(doc.meta.logo):
-        logo_uri = odp.add_file(doc.meta.logo)
+    logo_path = doc.meta.logo
+    if logo_path and source_dir:
+        logo_path = str((source_dir / logo_path).resolve())
+    if logo_path and os.path.isfile(logo_path):
+        logo_uri = odp.add_file(logo_path)
 
     gr = GraphicStyleRegistry()
     tr = TextStyleRegistry()
@@ -654,6 +674,7 @@ def render(
         margin_left=margin,
         margin_top=margin,
         gap=0.5,
+        source_dir=source_dir,
     )
 
     for i, slide in enumerate(slides):
