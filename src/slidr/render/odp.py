@@ -74,7 +74,6 @@ class GraphicStyleRegistry:
             style = Style(
                 "graphic",
                 name=name,
-                parent="standard",
                 stroke="none",
                 padding_top=key.padding,
                 padding_bottom=key.padding,
