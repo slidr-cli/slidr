@@ -152,13 +152,15 @@ Native support for PyTorch, TensorFlow, vLLM, TGI, Ollama. One-click integration
 Production deployments at ByteDance, Alibaba Cloud, Xiaohongshu, and 15+ Fortune 500 companies.
 :::
 
-::: card{ tag="quote" }
-> HAMi is the only CNCF project that provides hardware-level GPU sharing without requiring vendor-specific drivers or kernel modifications.
-:::
-
 <!--
 The grid system auto-detects 2×2 cards and places them in a responsive grid. Cards with tags get colored left borders.
 -->
+
+---
+
+::: card{ tag="quote" }
+> HAMi is the only CNCF project that provides hardware-level GPU sharing without requiring vendor-specific drivers or kernel modifications.
+:::
 
 ---
 
