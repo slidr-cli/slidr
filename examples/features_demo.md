@@ -174,7 +174,15 @@ The grid system auto-detects 2×2 cards and places them in a responsive grid. Ca
 
 ---
 
+@layout two-col
+
 ## Installation
+
+Deploy HAMi with a single Helm command. The device plugin registers GPU
+resources and the scheduler handles workload placement. Requires Kubernetes
+1.24+ and NVIDIA GPU operator.
+
+@col
 
 ```bash
 helm repo add hami https://project-hami.github.io/charts
@@ -185,7 +193,15 @@ helm install hami hami/hami \
 
 ---
 
+@layout two-col
+
 ## Workload Spec
+
+Request GPU resources via standard Kubernetes resource limits. HAMi supports
+fractional allocation down to 1% of a GPU and memory limits in MiB. No
+container modification required.
+
+@col
 
 ```yaml
 apiVersion: v1
