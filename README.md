@@ -1,6 +1,7 @@
 # Slidr
 
-Markdown to styled HTML slides, with PDF and PPTX output.
+Markdown to styled HTML slides with PDF output. PPTX is in progress.
+[Contributions welcome](CONTRIBUTING.md) for the python-pptx renderer.
 
 ## Install
 

@@ -214,4 +214,6 @@ LOGO_CSS
   #slidr-nav button:hover { background: rgba(255,255,255,0.1); color: #fff; }
   #slidr-nav button:disabled { opacity: 0.3; cursor: default; }
   #slidr-nav span { min-width: 45pt; text-align: center; }
+  #slidr-nav.hidden { opacity: 0; pointer-events: none; }
+  #slidr-nav { transition: opacity 0.4s; }
 }
