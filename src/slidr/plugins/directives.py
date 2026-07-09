@@ -10,9 +10,10 @@ def preprocess_directives(content: str) -> str:
     result = []
     for line in lines:
         stripped = line.strip()
-        if stripped.startswith("@") and not stripped.startswith("@@") and " " in stripped:
-            directive = stripped[1:].split(" ", 1)
-            typ, value = directive[0], directive[1] if len(directive) > 1 else ""
+        if stripped.startswith("@") and not stripped.startswith("@@"):
+            parts = stripped[1:].split(" ", 1)
+            typ = parts[0]
+            value = parts[1] if len(parts) > 1 else ""
             result.append(f"<!--attr:{typ}:{value}-->")
         else:
             result.append(line)

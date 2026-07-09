@@ -192,6 +192,39 @@ This slide shows a code block. The @tiny directive renders small annotation text
 
 ---
 
+@layout two-col
+
+## Scheduling Flow
+
+HAMi routes GPU requests through device plugins, custom scheduling, and
+library-level CUDA interception. The hot path (inference) bypasses the
+scheduler entirely after initial placement.
+
+@col
+
+```d2
+direction: right
+
+user: User {
+  shape: person
+}
+
+scheduler: HAMi Scheduler {
+  shape: cylinder
+}
+
+gpu_a: GPU Node A
+gpu_b: GPU Node B
+
+user -> scheduler: Submit workload
+scheduler -> gpu_a: Place (70% mem)
+scheduler -> gpu_b: Place (30% mem)
+gpu_a -> user: Inference stream
+gpu_b -> user: Inference stream
+```
+
+---
+
 ## Key Takeaways
 
 ::: grid {cols=3}

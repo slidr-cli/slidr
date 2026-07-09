@@ -11,9 +11,9 @@ def apply_layout(nodes: list, layout: str, render_fn) -> str:
         return "\n".join(filter(None, (render_fn(n) for n in nodes)))
 
     if layout == "image-right":
-        left, right = _split_image_nodes(nodes)
+        left, right = _split_col_or_image(nodes, flip=False)
     elif layout == "image-left":
-        right, left = _split_image_nodes(nodes)
+        left, right = _split_col_or_image(nodes, flip=True)
     elif layout == "two-col":
         left, right = _split_two_col_nodes(nodes)
     else:
@@ -31,16 +31,32 @@ def apply_layout(nodes: list, layout: str, render_fn) -> str:
     return "\n".join(parts)
 
 
-def _split_image_nodes(nodes: list) -> tuple[list, list]:
+def _split_col_or_image(nodes: list, flip: bool = False) -> tuple[list, list]:
+    col_idx = _find_col(nodes)
+    if col_idx >= 0:
+        left, right = nodes[:col_idx], nodes[col_idx + 1:]
+        return (right, left) if flip else (left, right)
+    return _split_image_nodes(nodes, flip)
+
+
+def _split_image_nodes(nodes: list, flip: bool = False) -> tuple[list, list]:
     for i, n in enumerate(nodes):
         if isinstance(n, Paragraph) and any(isinstance(t, Image) for t in n.content):
-            return nodes[:i] + nodes[i + 1:], [n]
-    return nodes, []
+            left, right = nodes[:i] + nodes[i + 1:], [n]
+            return (right, left) if flip else (left, right)
+    return (nodes, []) if not flip else ([], nodes)
 
 
 def _split_two_col_nodes(nodes: list) -> tuple[list, list]:
-    for i, n in enumerate(nodes):
-        if isinstance(n, AttrNode) and n.type == "col":
-            return nodes[:i], nodes[i + 1:]
+    col_idx = _find_col(nodes)
+    if col_idx >= 0:
+        return nodes[:col_idx], nodes[col_idx + 1:]
     mid = (len(nodes) + 1) // 2
     return nodes[:mid], nodes[mid:]
+
+
+def _find_col(nodes: list) -> int:
+    for i, n in enumerate(nodes):
+        if isinstance(n, AttrNode) and n.type == "col":
+            return i
+    return -1
