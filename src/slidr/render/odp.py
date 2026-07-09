@@ -378,18 +378,19 @@ def _render_image(elem: Elem, ctx: LayoutContext, gr: GraphicStyleRegistry,
 def _render_seaborn_odp(
     elem: Elem, ctx: LayoutContext, odp: Document
 ) -> list[Element]:
-    from slidr.render.seaborn_runner import render_seaborn_image
+    from slidr.render.seaborn_runner import render_seaborn_png
 
-    img_path = render_seaborn_image(elem.content)
-    if not img_path:
+    png_path = render_seaborn_png(elem.content)
+    if not png_path:
         return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
                                      TextStyleRegistry(), odp)
-    uri = odp.add_file(img_path)
-    size_cm = _image_natural_size(img_path)
-    os.unlink(img_path)
-    if size_cm[0] > ctx.width:
-        scale = ctx.width / size_cm[0]
-        size_cm = (ctx.width, size_cm[1] * scale)
+    uri = odp.add_file(png_path)
+    size_cm = _image_natural_size(png_path)
+    os.unlink(png_path)
+    # Scale to fit slide width
+    if size_cm[0] > ctx.width * 0.9:
+        scale = (ctx.width * 0.9) / size_cm[0]
+        size_cm = (ctx.width * 0.9, size_cm[1] * scale)
     height = size_cm[1]
     frame = Frame.image_frame(
         image=uri,

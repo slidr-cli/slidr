@@ -172,11 +172,11 @@ def _pygments_css(style: str = "default") -> str:
 
 
 def _render_seaborn_html(content: str) -> str:
-    from slidr.render.seaborn_runner import render_seaborn_datauri
+    from slidr.render.seaborn_runner import render_seaborn_svg
 
-    datauri = render_seaborn_datauri(content)
-    if datauri:
-        return f'<div class="seaborn-plot"><img src="{datauri}" alt="Seaborn plot"></div>'
+    svg = render_seaborn_svg(content)
+    if svg:
+        return f'<div class="seaborn-plot">\n{svg}\n</div>'
     return f'<pre class="seaborn-fallback"><code>{_escape(content)}</code></pre>'
 
 
