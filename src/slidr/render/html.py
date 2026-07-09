@@ -10,13 +10,13 @@ from pygments.lexers import get_lexer_by_name, TextLexer
 from pygments.formatters import HtmlFormatter
 from pygments.util import ClassNotFound
 
-from slidr.parser.ast import (
-    Document, Heading, Paragraph, CodeBlock, Grid, Card, Table, Quote, ListNode, AttrNode,
-    Text, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak,
-)
-from slidr.plugins.layouts import apply_layout, KNOWN_LAYOUTS
+from slidr.parser.ast import Document
+from slidr.render.ir import build_ir, SlideIR, Elem
+from slidr.plugins.layouts import KNOWN_LAYOUTS
 
 _pygments_style = "default"
+
+from slidr.render.ir import build_ir, SlideIR, Elem
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 THEME_DIR = Path(__file__).parent.parent / "themes"
@@ -36,28 +36,15 @@ def base_css() -> str:
 def render(doc: Document, theme_css: str, logo: str = "") -> str:
     global _pygments_style
     dims = doc.meta.dimensions()
+    _pygments_style = doc.meta.pygments_style or "default"
+
+    ir_slides = build_ir(doc, base_css(), default_theme() + "\n" + theme_css)
 
     slides = []
-    for i, slide in enumerate(doc.slides):
-        layout = slide.layout
-        nodes = slide.children
-
-        heading_html = ""
-        body_nodes = nodes
-        if nodes and isinstance(nodes[0], Heading) and nodes[0].level <= 2:
-            heading_html = _render_node(nodes[0]) or ""
-            body_nodes = nodes[1:]
-
-        if layout in KNOWN_LAYOUTS:
-            body_html = apply_layout(body_nodes, layout, _render_node)
-        else:
-            body_html = "\n".join(filter(None, (_render_node(n) for n in body_nodes)))
-
-        if body_html.strip():
-            heading_html += '\n<div class="slide-body">\n' + body_html + '\n</div>'
-        children = heading_html or body_html
+    for i, slide in enumerate(ir_slides):
+        children = _render_slide(slide)
         slides.append({
-            "num": i + 1, "layout": layout, "children": children,
+            "num": i + 1, "layout": slide.layout, "children": children,
             "notes": slide.notes, "footer": doc.meta.footer or "", "paginate": doc.meta.paginate or False,
         })
 
@@ -87,89 +74,82 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
     )
 
 
-def _render_node(node) -> str | None:
-    if isinstance(node, Heading):
-        tag = f"h{node.level}"
-        content = _render_inline(node.content)
-        return f"<{tag}>{content}</{tag}>"
-    elif isinstance(node, Paragraph):
-        content = _render_inline(node.content)
-        return f"<p>{content}</p>" if content else None
-    elif isinstance(node, Quote):
-        content = _render_inline(node.content)
-        return f'<div class="quote">{content}</div>' if content else None
-    elif isinstance(node, Table):
+def _render_slide(slide: SlideIR) -> str:
+    elems = slide.elements
+    heading_html = ""
+    if elems and elems[0].kind == "heading":
+        heading_html = _render_elem(elems[0])
+        elems = elems[1:]
+
+    body_html = "\n".join(filter(None, (_render_elem(e) for e in elems)))
+    if body_html.strip():
+        heading_html += '\n<div class="slide-body">\n' + body_html + '\n</div>'
+    return heading_html or body_html
+
+
+def _render_elem(e: Elem) -> str:
+    if e.kind == "heading":
+        tag = f"h{e.level}"
+        return f"<{tag}>{e.content}</{tag}>"
+    elif e.kind == "text":
+        return f"<p>{e.content}</p>" if e.content else ""
+    elif e.kind == "quote":
+        return f'<div class="quote">{e.content}</div>' if e.content else ""
+    elif e.kind == "code":
+        if e.language == "d2":
+            return _render_d2(e.content)
+        return _highlight_code(e.content, e.language)
+    elif e.kind == "list":
+        s = "<ul>\n"
+        for item in e.items:
+            s += f"<li>{item}</li>\n"
+        s += "</ul>"
+        return s
+    elif e.kind == "table":
         s = "<table>\n<thead>\n<tr>"
-        for h in node.headers:
+        for h in e.headers:
             s += f"<th>{_escape(h)}</th>"
         s += "</tr>\n</thead>\n<tbody>\n"
-        for row in node.rows:
+        for row in e.rows:
             s += "<tr>"
             for cell in row:
                 s += f"<td>{_escape(cell)}</td>"
             s += "</tr>\n"
         s += "</tbody>\n</table>"
         return s
-    elif isinstance(node, Grid):
-        cols = node.cols or len(node.children) or 2
-        cls = "grid"
-        if node.class_:
-            cls += f" {node.class_}"
+    elif e.kind == "grid":
+        if e.layout:
+            cls = f"{e.layout}"
+            children = "\n".join(filter(None, (_render_elem(c) for c in e.children)))
+            return f'<div class="{cls}">\n{children}\n</div>'
+        cols = e.cols or len(e.children) or 2
         style = f"grid-template-columns: repeat({cols}, 1fr); gap: 16px;"
-        children = "\n".join(filter(None, (_render_node(c) for c in node.children)))
+        cls = "grid"
+        if e.class_:
+            cls += f" {e.class_}"
+        children = "\n".join(filter(None, (_render_elem(c) for c in e.children)))
         return f'<div class="{cls}" style="{style}">\n{children}\n</div>'
-    elif isinstance(node, Card):
+    elif e.kind == "card":
         cls = "card"
-        if node.class_:
-            cls += f" {node.class_}"
+        if e.tag:
+            cls += f" tag-{e.tag}"
+        if e.class_:
+            cls += f" {e.class_}"
         s = f'<div class="{cls}">\n'
-        if node.header:
-            s += f"<h3>{_escape(node.header)}</h3>\n"
-        for line in node.body:
+        if e.header:
+            s += f"<h3>{_escape(e.header)}</h3>\n"
+        for line in e.body:
             s += f"<p>{_escape(line)}</p>\n"
         s += "</div>"
         return s
-    elif isinstance(node, ListNode):
-        s = "<ul>\n"
-        for item in node.items:
-            content = _render_inline(item)
-            s += f"<li>{content}</li>\n"
-        s += "</ul>"
-        return s
-    elif isinstance(node, CodeBlock):
-        if node.language == "d2":
-            return _render_d2(node.content)
-        return _highlight_code(node.content, node.language)
-    elif isinstance(node, AttrNode):
-        if node.type == "speaker":
-            name = node.attrs.get("name", node.value)
-            role = node.attrs.get("role", "")
-            text = f"{_escape(name)} | <span class=\"role\">{_escape(role)}</span>" if role else _escape(name)
-            return f'<div class="speaker">{text}</div>'
-        tag = "div" if node.type in ("kicker", "speaker") else "p"
-        return f'<{tag} class="{node.type}">{_escape(node.value)}</{tag}>'
-    return None
-
-
-def _render_inline(nodes: list) -> str:
-    s = ""
-    for n in nodes:
-        if isinstance(n, Text):
-            s += _escape(n.content)
-        elif isinstance(n, Strong):
-            s += f"<strong>{_render_inline(n.children)}</strong>"
-        elif isinstance(n, Emphasis):
-            s += f"<em>{_render_inline(n.children)}</em>"
-        elif isinstance(n, Strikethrough):
-            s += f"<s>{_render_inline(n.children)}</s>"
-        elif isinstance(n, CodeSpan):
-            s += f"<code>{_escape(n.content)}</code>"
-        elif isinstance(n, Image):
-            title = f' title="{_escape(n.title)}"' if n.title else ""
-            s += f'<img src="{_escape(n.src)}" alt="{_escape(n.alt)}"{title}>'
-        elif isinstance(n, SoftBreak):
-            s += " "
-    return s
+    elif e.kind == "speaker":
+        name = e.attrs.get("name", e.content)
+        role = e.attrs.get("role", "")
+        text = f"{_escape(name)} | <span class=\"role\">{_escape(role)}</span>" if role else _escape(name)
+        return f'<div class="speaker">{text}</div>'
+    elif e.kind in ("kicker", "subtitle", "tiny"):
+        return f'<p class="{e.kind}">{e.content}</p>'
+    return ""
 
 
 def _highlight_code(content: str, language: str) -> str:
