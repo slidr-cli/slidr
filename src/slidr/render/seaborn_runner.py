@@ -17,6 +17,12 @@ from pathlib import Path
 _DEFAULT_FIGSIZE = (6.4, 4.8)
 _DPI = 300
 _TIMEOUT = 30
+_palette: str | None = None
+
+
+def set_palette(name: str) -> None:
+    global _palette
+    _palette = name
 
 
 def _has_seaborn() -> bool:
@@ -70,6 +76,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 
+sns.set_palette({_palette!r})
 plt.figure(figsize={_DEFAULT_FIGSIZE!r})
 
 {content}

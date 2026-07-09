@@ -34,9 +34,12 @@ def base_css() -> str:
 
 
 def render(doc: Document, theme_css: str, logo: str = "") -> str:
+    from slidr.render.seaborn_runner import set_palette
+
     global _pygments_style
     dims = doc.meta.dimensions()
     _pygments_style = doc.meta.pygments_style or "default"
+    set_palette(doc.meta.seaborn_theme)
 
     ir_slides = build_ir(doc, base_css(), default_theme() + "\n" + theme_css)
 
