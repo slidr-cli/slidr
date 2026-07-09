@@ -28,8 +28,8 @@ code {
 
 pre {
   background: rgba(0, 0, 0, 0.05);
-  border-radius: 5px;
-  padding: 10px 14px;
+  border-radius: 0.3em;
+  padding: 0.55em 0.8em;
   margin: 0.5em 0;
 }
 pre code { background: none; padding: 0; }
