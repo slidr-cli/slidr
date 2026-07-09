@@ -6,8 +6,9 @@ from typing import Optional
 import typer
 
 from slidr.parser.markdown import parse
-from slidr.render.html import render as render_html
+from slidr.render.html import render as render_html, default_theme
 from slidr.render.pptx import render as render_pptx
+from slidr.render.pdf import render as render_pdf
 
 app = typer.Typer(help="Markdown to styled PPTX + PDF", no_args_is_help=True)
 
@@ -31,7 +32,7 @@ def main(
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = file.stem
 
-    html = render_html(doc, doc.meta.style, doc.meta.logo)
+    html = render_html(doc, default_theme() + "\n" + (doc.meta.style or ""), doc.meta.logo)
     html_path = out_dir / f"{stem}.html"
     html_path.write_text(html)
     typer.echo(f"Wrote {html_path} ({len(html)} bytes)")
@@ -40,6 +41,12 @@ def main(
         pptx_path = out_dir / f"{stem}.pptx"
         render_pptx(doc, pptx_path)
         typer.echo(f"Wrote {pptx_path} ({pptx_path.stat().st_size} bytes)")
+        return
+
+    if pdf:
+        pdf_path = out_dir / f"{stem}.pdf"
+        render_pdf(html_path, pdf_path)
+        typer.echo(f"Wrote {pdf_path} ({pdf_path.stat().st_size} bytes)")
         return
 
     typer.echo(f"Parsed {len(doc.slides)} slides")
