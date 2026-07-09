@@ -1,83 +1,134 @@
-// slidr presentation controller -- shared between main and presenter views
+var isPresenter = window.name === 'slidr-presenter';
+if (isPresenter) document.documentElement.classList.add('presenter');
 
-var slides = document.querySelectorAll('body > section');
-var total = slides.length;
-if (total === 0) throw new Error('no slides found');
-var current = 0;
-var counter = document.getElementById('slidr-counter');
-var prevBtn = document.getElementById('slidr-prev');
-var nextBtn = document.getElementById('slidr-next');
-var presenterWindow = null;
+var slideNotes = [{% for slide in slides %}"{{ slide.notes|e }}"{% if not loop.last %},{% endif %}{% endfor %}];
 
-function setScale() {
-  var sw = {{ slide_w }}, sh = {{ slide_h }};
-  var scale = Math.min(window.innerWidth / sw, window.innerHeight / sh);
-  document.documentElement.style.setProperty('--s', scale);
-}
-setScale();
-window.addEventListener('resize', setScale);
+if (isPresenter) {
+  // ===== PRESENTER MODE =====
+  var ms = document.querySelectorAll("#pres-main section");
+  var ns = document.querySelectorAll("#pres-next section");
+  var nd = document.getElementById("pres-notes");
+  var current = 0;
 
-function show(n) {
-  if (n < 0 || n >= total) return;
-  slides[current].classList.remove('active');
-  current = n;
-  slides[current].classList.add('active');
-  if (counter) counter.textContent = (current + 1) + ' / ' + total;
-  if (prevBtn) prevBtn.disabled = current === 0;
-  if (nextBtn) nextBtn.disabled = current === total - 1;
-}
+  function show(n) {
+    if (n < 0 || n >= ms.length) return;
+    for (var i = 0; i < ms.length; i++) ms[i].classList.toggle("active", i === n);
+    for (var i = 0; i < ns.length; i++) ns[i].classList.toggle("active", i === n + 1);
+    nd.textContent = slideNotes[n] || "No notes";
+    current = n;
+  }
 
-show(0);
+  var bc = new BroadcastChannel('slidr-' + document.title);
+  bc.onmessage = function(e) {
+    if (e.data.slide !== undefined && e.data.slide !== current) show(e.data.slide);
+  };
+  show(0);
 
-if (prevBtn) prevBtn.addEventListener('click', function() { show(current - 1); });
-if (nextBtn) nextBtn.addEventListener('click', function() { show(current + 1); });
+  function advance(delta) {
+    var n = current + delta;
+    if (n < 0 || n >= ms.length) return;
+    show(n);
+    bc.postMessage({ slide: n });
+  }
 
-// Fullscreen
-var fsBtn = document.getElementById('slidr-fullscreen');
-if (fsBtn) fsBtn.addEventListener('click', function() {
-  if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
-  else { document.exitFullscreen(); }
-});
+  document.getElementById('pres-main').addEventListener('click', function() { advance(1); });
 
-// Keyboard navigation
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
-    e.preventDefault(); show(current - 1);
-  } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-    e.preventDefault(); show(current + 1);
-  } else if (e.key === 'Home') {
-    e.preventDefault(); show(0);
-  } else if (e.key === 'End') {
-    e.preventDefault(); show(total - 1);
-  } else if (e.key === 'f') {
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault(); advance(1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); advance(-1);
+    } else if (e.key === 'Home') {
+      e.preventDefault(); show(0); bc.postMessage({ slide: 0 });
+    } else if (e.key === 'End') {
+      e.preventDefault(); show(ms.length - 1); bc.postMessage({ slide: ms.length - 1 });
+    } else if (e.key === 'q') {
+      window.close();
+    }
+  });
+
+  document.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    advance(e.deltaY > 0 ? 1 : -1);
+  }, { passive: false });
+
+} else {
+  // ===== MAIN VIEW MODE =====
+  var slides = document.querySelectorAll('body > section');
+  var total = slides.length;
+  if (total === 0) throw new Error('no slides found');
+  var current = 0;
+  var counter = document.getElementById('slidr-counter');
+  var prevBtn = document.getElementById('slidr-prev');
+  var nextBtn = document.getElementById('slidr-next');
+  var presenterWindow = null;
+
+  function setScale() {
+    var sw = {{ slide_w }}, sh = {{ slide_h }};
+    var scale = Math.min(window.innerWidth / sw, window.innerHeight / sh);
+    document.documentElement.style.setProperty('--s', scale);
+  }
+  setScale();
+  window.addEventListener('resize', setScale);
+
+  function show(n) {
+    if (n < 0 || n >= total) return;
+    slides[current].classList.remove('active');
+    current = n;
+    slides[current].classList.add('active');
+    if (counter) counter.textContent = (current + 1) + ' / ' + total;
+    if (prevBtn) prevBtn.disabled = current === 0;
+    if (nextBtn) nextBtn.disabled = current === total - 1;
+  }
+
+  var bc = new BroadcastChannel('slidr-' + document.title);
+  var _origShow = show;
+  show = function(n) {
+    _origShow(n);
+    bc.postMessage({ slide: n });
+  };
+  bc.onmessage = function(e) {
+    if (e.data.slide !== undefined && e.data.slide !== current) _origShow(e.data.slide);
+  };
+
+  show(0);
+
+  if (prevBtn) prevBtn.addEventListener('click', function() { show(current - 1); });
+  if (nextBtn) nextBtn.addEventListener('click', function() { show(current + 1); });
+
+  var fsBtn = document.getElementById('slidr-fullscreen');
+  if (fsBtn) fsBtn.addEventListener('click', function() {
     if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
     else { document.exitFullscreen(); }
-  } else if (e.key === 'q') {
-    if (presenterWindow && !presenterWindow.closed) presenterWindow.close();
-  }
-});
+  });
 
-// Mouse wheel
-document.addEventListener('wheel', function(e) {
-  e.preventDefault();
-  if (e.deltaY > 0) show(current + 1);
-  else show(current - 1);
-}, { passive: false });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); show(current - 1);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      e.preventDefault(); show(current + 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault(); show(0);
+    } else if (e.key === 'End') {
+      e.preventDefault(); show(total - 1);
+    } else if (e.key === 'f') {
+      if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
+      else { document.exitFullscreen(); }
+    } else if (e.key === 'q') {
+      if (presenterWindow && !presenterWindow.closed) presenterWindow.close();
+    }
+  });
 
-// Presenter window
-var presenterBtn = document.getElementById('slidr-presenter');
-if (presenterBtn) presenterBtn.addEventListener('click', function() {
-  if (presenterWindow && !presenterWindow.closed) { presenterWindow.focus(); return; }
-  var pUrl = window.location.pathname.replace('.html', '.presenter.html');
-  presenterWindow = window.open(pUrl, 'slidr-presenter', 'width={{ slide_w }},height={{ slide_h }}');
-  setTimeout(function() { if (presenterWindow) presenterWindow.focus(); }, 500);
-});
+  document.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    if (e.deltaY > 0) show(current + 1);
+    else show(current - 1);
+  }, { passive: false });
 
-// Bidirectional sync via slidrCurrent property
-var _sc = 0;
-Object.defineProperty(window, 'slidrCurrent', {
-  get: function() { return _sc; },
-  set: function(n) { _sc = n; show(n); }
-});
-var _origShow = show;
-show = function(n) { _origShow(n); _sc = n; };
+  var presenterBtn = document.getElementById('slidr-presenter');
+  if (presenterBtn) presenterBtn.addEventListener('click', function() {
+    if (presenterWindow && !presenterWindow.closed) { presenterWindow.focus(); return; }
+    presenterWindow = window.open(window.location.href, 'slidr-presenter', 'width={{ slide_w }},height={{ slide_h }}');
+    setTimeout(function() { if (presenterWindow) presenterWindow.focus(); }, 500);
+  });
+}
