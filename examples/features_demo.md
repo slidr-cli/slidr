@@ -158,12 +158,6 @@ The grid system auto-detects 2×2 cards and places them in a responsive grid. Ca
 
 ---
 
-::: card{ tag="quote" }
-> HAMi is the only CNCF project that provides hardware-level GPU sharing without requiring vendor-specific drivers or kernel modifications.
-:::
-
----
-
 @layout card-compare
 
 ## Before & After
@@ -182,6 +176,12 @@ required for each workload
 GPU utilization at 92%, automatic
 fractional allocation, zero manual
 intervention needed
+:::
+
+---
+
+::: card{ tag="quote" }
+> HAMi is the only CNCF project that provides hardware-level GPU sharing without requiring vendor-specific drivers or kernel modifications.
 :::
 
 ---
