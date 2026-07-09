@@ -24,6 +24,7 @@ class Meta:
     size: str = "16:9"
     style: str = ""
     logo: str = ""
+    pygments_style: str = "default"
 
     def dimensions(self) -> tuple[int, int]:
         raw = str(self.size)

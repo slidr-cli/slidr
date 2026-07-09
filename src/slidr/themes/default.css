@@ -21,20 +21,7 @@ h1 { font-size: 2.5em; }
 h2 { font-size: 1.8em; }
 h3 { font-size: 1.3em; }
 
-code {
-  background: rgba(0, 0, 0, 0.05);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 0.8em;
-}
-
-pre {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 0.3em;
-  padding: 0.55em 0.8em;
-  margin: 0.5em 0;
-  font-size: 0.75em;
-}
-pre code { padding: 0; }
+li { font-size: 0.9em; padding-left: 0.3em; }
 
 blockquote {
   border-left-color: var(--color-accent);
