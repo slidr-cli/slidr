@@ -57,6 +57,19 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
     )
 
 
+def render_presenter(doc):
+    slides = []
+    for slide in doc.slides:
+        children = "\n".join(filter(None, (_render_node(n) for n in slide.children)))
+        slides.append({"layout": slide.layout.value, "children": children, "notes": slide.notes or ""})
+    dims = doc.meta.dimensions()
+    css = base_css().replace("SLIDE_W", str(dims[0])).replace("SLIDE_H", str(dims[1]))
+    css = css.replace("THEME_CSS", default_theme() + "\n" + (doc.meta.style or "")).replace("LOGO_CSS", "")
+    return _env.get_template("presenter.html").render(
+        title=doc.meta.title or "Presentation", css=css, slides=slides,
+        slide_w=dims[0], slide_h=dims[1])
+
+
 def _render_node(node) -> str | None:
     if isinstance(node, Heading):
         tag = f"h{node.level}"
