@@ -115,6 +115,24 @@ blockquotes, speaker notes, and the `@tiny` / `@kicker` / `@speaker` directives.
 pdm run slidr examples/features_demo.md
 ```
 
+## Pipeline
+
+```
+slides.md
+  → markdown-it-py (parse)
+  → Document AST (structural: headings, paragraphs, grids, cards, tables)
+  → build_ir() (resolve theme styles via tinycss2)
+  → SlideIR (per-element: font_size, color, accent + rendered HTML)
+     ↙              ↘
+  html.py          pptx.py
+  (_render_elem)   (_render_elem, consumes same IR)
+```
+
+The IR is the single source of truth between renderers. Each `Elem` carries
+pre-rendered inline HTML (for the browser renderer) plus resolved style
+properties like `font_size`, `color`, `accent`, `muted` (for the PPTX renderer).
+No duplicate node-walking, no diverging implementations of bold/italic/table logic.
+
 ## Architecture decisions
 
 ### Why Python over Go
