@@ -19,6 +19,7 @@ import tempfile
 from pathlib import Path
 
 _DEFAULT_FIGSIZE = (6.4, 4.8)
+_DPI = 300
 _TIMEOUT = 30
 
 
@@ -115,7 +116,7 @@ plt.figure(figsize={_DEFAULT_FIGSIZE!r})
 
 {content}
 
-plt.savefig({out_path!r}, format={fmt!r}, dpi=150, bbox_inches="tight")
+plt.savefig({out_path!r}, format={fmt!r}, dpi={_DPI}, bbox_inches="tight")
 plt.close("all")
 '''
     Path(script_path).write_text(wrapper)
