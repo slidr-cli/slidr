@@ -315,14 +315,29 @@ def _image_natural_size(path: str) -> tuple[float, float]:
 # ---------------------------------------------------------------------------
 
 
-def _render_image(elem: Elem, ctx: LayoutContext, odp: Document) -> list[Element]:
-    from slidr.parser.ast import Image as ASTImage
+def _render_fallback_text(elem: Elem, ctx, gr, tr, odp):
+    """Render as plain text, ignoring image detection to avoid recursion."""
+    if not elem.text.strip():
+        return []
+    key = _style_key_for(elem)
+    gname = gr.register(key)
+    height = _estimate_text_height(elem.text, elem.font_size, ctx.width)
+    p = Paragraph(elem.text)
+    frame = Frame.text_frame(
+        p,
+        size=(f"{ctx.width:.2f}cm", f"{height:.2f}cm"),
+        position=(f"{ctx.x:.2f}cm", f"{ctx.y:.2f}cm"),
+        style=gname,
+    )
+    ctx.y += height + ctx.gap
+    return [frame]
 
+
+def _render_image(elem: Elem, ctx: LayoutContext, gr: GraphicStyleRegistry,
+                  tr: TextStyleRegistry, odp: Document) -> list[Element]:
     img = elem.inlines[0]
     if not img.src or not os.path.isfile(img.src):
-        return _render_text(
-            elem, ctx, GraphicStyleRegistry(), TextStyleRegistry(), odp
-        )
+        return _render_fallback_text(elem, ctx, gr, tr, odp)
     uri = odp.add_file(img.src)
     size_cm = _image_natural_size(img.src)
     if size_cm[0] > ctx.width:
@@ -357,7 +372,7 @@ def _render_text(
     if not elem.inlines:
         return []
     if _is_image_elem(elem):
-        return _render_image(elem, ctx, odp)
+        return _render_image(elem, ctx, gr, tr, odp)
     if not elem.text.strip():
         return []
     key = _style_key_for(elem)
