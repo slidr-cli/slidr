@@ -14,12 +14,13 @@ section {
   flex: 1;
   min-height: 0;
   padding-bottom: 1.8em;
+  overflow: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 { margin: 0; }
+h1, h2, h3, h4, h5, h6 { margin: 0; overflow-wrap: break-word; }
 h2 { padding-top: 1%; margin-bottom: 1em; }
-p { margin-bottom: 0.5em; }
-li { margin: 0.2em 0; }
+p { margin-bottom: 0.5em; overflow-wrap: break-word; }
+li { margin: 0.2em 0; overflow-wrap: break-word; }
 
 img { max-width: 100%; height: auto; }
 a { text-decoration: none; }
@@ -42,17 +43,24 @@ pre {
   margin: 0.5em 0;
   font-size: 0.75em;
 }
-pre code { padding: 0; }
+pre code {
+  padding: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
 
 table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
-th, td { padding: 0.5em 0.65em; text-align: left; vertical-align: top; }
+th, td { padding: 0.5em 0.65em; text-align: left; vertical-align: top; overflow-wrap: break-word; }
 th { font-weight: 700; }
 
 .grid { display: grid; gap: 1em; margin: 1em 0; }
+.grid > * { min-width: 0; overflow-wrap: break-word; }
 
 .card {
   border-radius: 0.4em;
   padding: 1em;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 .card h3 { margin-top: 0; margin-bottom: 0.5em; }
 .card p { margin-bottom: 0.5em; }
@@ -86,6 +94,16 @@ THEME_CSS
 
 LOGO_CSS
 
+.mermaid, .seaborn-plot, .d2 {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+.mermaid svg, .seaborn-plot svg, .d2 svg {
+  max-width: 100%;
+  height: auto;
+}
+
 /* ---- predefined slide layouts ---- */
 .layout-cols {
   display: grid;
@@ -96,6 +114,7 @@ LOGO_CSS
 }
 .col-left, .col-right {
   min-width: 0;
+  overflow-wrap: break-word;
 }
 .layout-image-right .col-right,
 .layout-image-left .col-left {
@@ -112,6 +131,9 @@ LOGO_CSS
 .layout-two-col .col-left,
 .layout-two-col .col-right {
   padding: 0 0.5em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* ---- screen mode ---- */
