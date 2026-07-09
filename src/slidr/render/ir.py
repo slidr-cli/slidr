@@ -100,6 +100,7 @@ def _rgb_to_hex(rgb: tuple) -> str:
 
 def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
     """Apply layout column wrapping at the IR level."""
+    extra = []
     if layout == "image-right":
         left, right = _split_image_ir(nodes)
     elif layout == "image-left":
@@ -107,7 +108,16 @@ def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
     elif layout == "two-col":
         left, right = _split_two_col_ir(nodes)
     elif layout == "card-compare":
-        left, right = _split_two_col_ir(nodes)
+        # Only the first Grid (cards) goes into columns; rest is slide body
+        from slidr.parser.ast import Grid
+        grid_idx = next((i for i, n in enumerate(nodes) if isinstance(n, Grid)), None)
+        if grid_idx is not None and len(nodes[grid_idx].children) >= 2:
+            g = nodes[grid_idx]
+            left = g.children[0:1]
+            right = g.children[1:2]
+            extra = nodes[:grid_idx] + nodes[grid_idx + 1:]
+        else:
+            left, right = _split_two_col_ir(nodes)
     else:
         return [_convert_node(n, styles) for n in nodes]
 
@@ -119,7 +129,10 @@ def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
     cls = "layout-cols"
     if layout == "card-compare":
         cls += " card-compare"
-    return [Elem(kind="grid", layout=cls, cols=0, children=children)]
+    result = [Elem(kind="grid", layout=cls, cols=0, children=children)]
+    if extra:
+        result.extend(_convert_node(n, styles) for n in extra)
+    return result
 
 
 def _col_elem(side: str, nodes: list, styles: dict) -> Elem:
