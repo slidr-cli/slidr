@@ -30,6 +30,7 @@ def parse(input_text: str) -> Document:
         style=style_raw,
         logo=logo_raw,
         pygments_style=raw_meta.pop("pygments_style", "default"),
+        seaborn_theme=raw_meta.pop("seaborn_theme", None) or Meta.seaborn_theme,
     )
 
     body = post.content

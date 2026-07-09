@@ -25,6 +25,7 @@ class Meta:
     style: str = ""
     logo: str = ""
     pygments_style: str = "default"
+    seaborn_theme: str = "muted"
 
     def dimensions(self) -> tuple[int, int]:
         raw = str(self.size)
