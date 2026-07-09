@@ -423,6 +423,54 @@ def _svg_dims(svg: str) -> tuple[float, float]:
     return (16.0, 9.0)  # fallback
 
 
+def _render_mermaid_odp(
+    elem: Elem, ctx: LayoutContext, odp: Document
+) -> list[Element]:
+    import subprocess, tempfile
+
+    with tempfile.NamedTemporaryFile(
+        suffix=".mmd", mode="w", delete=False
+    ) as f:
+        f.write(elem.content)
+        infile = f.name
+
+    outfile = infile + ".svg"
+    try:
+        result = subprocess.run(
+            ["mmdc", "-i", infile, "-o", outfile,
+             "-t", "default", "-b", "transparent"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode == 0 and os.path.isfile(outfile):
+            svg = Path(outfile).read_text()
+            uri = odp.add_file(outfile)
+            size_cm = _svg_dims(svg)
+            if size_cm[0] > ctx.width * 0.9:
+                scale = (ctx.width * 0.9) / size_cm[0]
+                size_cm = (ctx.width * 0.9, size_cm[1] * scale)
+            height = size_cm[1]
+            frame = Frame.image_frame(
+                image=uri,
+                text="",
+                size=(f"{size_cm[0]:.2f}cm", f"{size_cm[1]:.2f}cm"),
+                position=(
+                    f"{ctx.x + (ctx.width - size_cm[0]) / 2:.2f}cm",
+                    f"{ctx.y:.2f}cm",
+                ),
+                anchor_type="page",
+            )
+            ctx.y += height + ctx.gap
+            return [frame]
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+    finally:
+        os.unlink(infile)
+        if os.path.isfile(outfile):
+            os.unlink(outfile)
+    return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
+                                 TextStyleRegistry(), odp)
+
+
 def _render_text(
     elem: Elem,
     ctx: LayoutContext,
@@ -432,6 +480,8 @@ def _render_text(
 ) -> list[Element]:
     if elem.kind == "code" and elem.language == "seaborn":
         return _render_seaborn_odp(elem, ctx, odp)
+    if elem.kind == "code" and elem.language == "mermaid":
+        return _render_mermaid_odp(elem, ctx, odp)
     if not elem.inlines:
         return []
     if _is_image_elem(elem):
