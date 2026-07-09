@@ -1,11 +1,12 @@
 """HTML renderer for slidr."""
 
+import re
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from slidr.parser.ast import (
     Document, Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode,
-    Text, CodeSpan, SoftBreak,
+    Text, CodeSpan, Image, SoftBreak,
 )
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
@@ -28,9 +29,11 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
 
     slides = []
     for i, slide in enumerate(doc.slides):
-        children = "\n".join(filter(None, (_render_node(n) for n in slide.children)))
+        layout = slide.layout
+        rendered = [h for h in (_render_node(n) for n in slide.children) if h is not None]
+        children = _apply_layout(rendered, layout)
         slides.append({
-            "num": i + 1, "layout": slide.layout.value, "children": children,
+            "num": i + 1, "layout": layout, "children": children,
             "notes": slide.notes, "footer": doc.meta.footer or "", "paginate": doc.meta.paginate or False,
         })
 
@@ -57,17 +60,47 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
     )
 
 
-def render_presenter(doc):
-    slides = []
-    for slide in doc.slides:
-        children = "\n".join(filter(None, (_render_node(n) for n in slide.children)))
-        slides.append({"layout": slide.layout.value, "children": children, "notes": slide.notes or ""})
-    dims = doc.meta.dimensions()
-    css = base_css().replace("SLIDE_W", str(dims[0])).replace("SLIDE_H", str(dims[1]))
-    css = css.replace("THEME_CSS", default_theme() + "\n" + (doc.meta.style or "")).replace("LOGO_CSS", "")
-    return _env.get_template("presenter.html").render(
-        title=doc.meta.title or "Presentation", css=css, slides=slides,
-        slide_w=dims[0], slide_h=dims[1])
+KNOWN_LAYOUTS = {"image-right", "image-left", "two-col"}
+
+
+def _apply_layout(rendered: list[str], layout: str) -> str:
+    """Wrap rendered children into columns for known layouts."""
+    if layout not in KNOWN_LAYOUTS:
+        return "\n".join(rendered)
+
+    heading = ""
+    body = rendered
+    if body and re.match(r'<h[1-6]', body[0]):
+        heading = body[0]
+        body = body[1:]
+
+    if layout == "image-right":
+        left, right = _split_image(body)
+    elif layout == "image-left":
+        right, left = _split_image(body)
+    elif layout == "two-col":
+        mid = (len(body) + 1) // 2
+        left, right = body[:mid], body[mid:]
+    else:
+        return "\n".join(rendered)
+
+    parts = []
+    if heading:
+        parts.append(heading)
+    if left or right:
+        parts.append('<div class="layout-cols">')
+        parts.append('<div class="col-left">\n' + "\n".join(left) + '\n</div>')
+        if right:
+            parts.append('<div class="col-right">\n' + "\n".join(right) + '\n</div>')
+        parts.append('</div>')
+    return "\n".join(parts)
+
+
+def _split_image(body: list[str]) -> tuple[list[str], list[str]]:
+    for i, html in enumerate(body):
+        if '<img' in html:
+            return body[:i] + body[i + 1:], [html]
+    return body, []
 
 
 def _render_node(node) -> str | None:
@@ -136,6 +169,9 @@ def _render_inline(nodes: list) -> str:
             s += _escape(n.content)
         elif isinstance(n, CodeSpan):
             s += f"<code>{_escape(n.content)}</code>"
+        elif isinstance(n, Image):
+            title = f' title="{_escape(n.title)}"' if n.title else ""
+            s += f'<img src="{_escape(n.src)}" alt="{_escape(n.alt)}"{title}>'
         elif isinstance(n, SoftBreak):
             s += " "
     return s

@@ -6,9 +6,9 @@ from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
 from slidr.parser.ast import (
-    Document, Meta, Slide, LayoutType,
+    Document, Meta, Slide,
     Heading, Paragraph, Grid, Table, Quote, ListNode, AttrNode,
-    Text, CodeSpan, SoftBreak,
+    Text, CodeSpan, Image, SoftBreak,
 )
 from slidr.plugins.fenced import extract_fenced, interleave_fences
 from slidr.plugins.directives import preprocess_directives, extract_attrs, parse_attr_token
@@ -66,6 +66,12 @@ def _parse_slide(content: str) -> Slide:
     nodes = group_cards(nodes)
 
     layout = _detect_layout(nodes)
+    for n in nodes:
+        if isinstance(n, AttrNode) and n.type == "layout":
+            layout = n.value.strip()
+            nodes.remove(n)
+            break
+
     return Slide(layout=layout, children=nodes, notes=notes)
 
 
@@ -174,16 +180,19 @@ def _token_inline(token: Token) -> list:
         return [SoftBreak()]
     elif token.type == "hardbreak":
         return [SoftBreak()]
+    elif token.type == "image":
+        attrs = dict(token.attrs or {})
+        return [Image(src=attrs.get("src", ""), alt=token.content or "", title=attrs.get("title", ""))]
     return []
 
 
-def _detect_layout(nodes: list) -> LayoutType:
+def _detect_layout(nodes: list) -> str:
     has_h1 = any(isinstance(n, Heading) and n.level == 1 for n in nodes)
     has_kicker = any(isinstance(n, AttrNode) and n.type == "kicker" for n in nodes)
     has_speaker = any(isinstance(n, AttrNode) and n.type == "speaker" for n in nodes)
     if has_h1 or has_kicker or has_speaker:
-        return LayoutType.TITLE
+        return "title"
     for n in nodes:
         if isinstance(n, Grid):
-            return {2: LayoutType.GRID2, 3: LayoutType.GRID3, 4: LayoutType.GRID4}.get(n.cols, LayoutType.CONTENT)
-    return LayoutType.CONTENT
+            return f"grid-{n.cols}" if n.cols else "grid-2"
+    return "content"

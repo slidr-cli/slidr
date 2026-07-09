@@ -39,7 +39,7 @@ class Document:
 
 @dataclass
 class Slide:
-    layout: LayoutType = LayoutType.CONTENT
+    layout: str = "content"
     children: list["Node"] = field(default_factory=list)
     notes: str = ""
 
@@ -115,6 +115,13 @@ class Strong(Inline):
 @dataclass
 class CodeSpan(Inline):
     content: str = ""
+
+
+@dataclass
+class Image(Inline):
+    src: str = ""
+    alt: str = ""
+    title: str = ""
 
 
 @dataclass
