@@ -2,6 +2,16 @@
 
 Markdown to styled PPTX + PDF. Cards, grids, tables, directives. CSS theming with cascading overrides. Python + markdown-it + weasyprint.
 
+## Why
+
+**Marp and Slidev are too heavy.** Marp-core is a JavaScript framework that wraps every slide in SVG foreignObjects and requires a full Node.js toolchain. Slidev is a Vue SPA with 55,000+ lines of TypeScript -- it's a web application, not a presentation tool. Both force you to write raw HTML divs for anything beyond basic headings and paragraphs. Want a card grid? Write `<div class="grid"><div class="card">...`. Want a kicker above your title? More divs. The markdown becomes half HTML.
+
+**Rust and Go weren't the answer.** We tried pulldown-cmark (Rust) and goldmark (Go). The table extension silently failed in pulldown-cmark 0.13. comrak's arena allocator created lifetime headaches. The fundamental problem: neither ecosystem made custom block syntax simple -- pulldown-cmark has an extension API but it is more complex than markdown-it-py. Adding `::: card` / `::: grid` support required pre-processing hacks or forking the parser.
+
+**Python's ecosystem fits.** markdown-it-py handles GFM tables natively (no silent failures). Its token-based API makes it easy to walk the AST and convert to our own node types. weasyprint renders HTML+CSS to PDF without Chrome. python-pptx produces native PowerPoint shapes. Jinja2 templates are cleaner than Go's text/template or Rust's tera.
+
+**What slidr does differently.** You write markdown with semantic annotations -- not HTML div soup. Cards are `::: card`, grids auto-form from consecutive cards, directives are `@kicker text`. The CSS handles theming. The parser handles structure. No writing `<div class="...">` for every layout element.
+
 ## Install
 
 ```bash
@@ -240,3 +250,14 @@ style: |
 - `<table>` → markdown pipe table
 - `px` → `em` (divide by 18) in CSS
 - `section::before` logo → `logo:` frontmatter field
+
+## Related projects
+
+- [Marp](https://marp.app) -- Markdown Presentation Ecosystem (Node.js)
+- [Slidev](https://sli.dev) -- Presentation Slides for Developers (Vue/TypeScript)
+
+Both inspired slidr. If slidr doesn't fit your workflow, try them.
+
+## License
+
+MIT
