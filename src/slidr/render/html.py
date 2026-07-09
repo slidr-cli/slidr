@@ -187,7 +187,7 @@ def _render_mermaid(content: str) -> str:
     try:
         from mmdc import render as render_mmd
         d = render_mmd(content)
-        svg = d.svg().replace(' width="100%"', "", 1)
+        svg = d.svg()
         return f'<div class="mermaid">\n{svg}\n</div>'
     except Exception:
         return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
