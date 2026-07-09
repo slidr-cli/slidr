@@ -152,3 +152,12 @@ footer {
 .muted {
   color: var(--color-dimmed);
 }
+
+/* ---- tag colors ---- */
+.tag-green { border-color: #0fd05d; }
+.tag-cyan  { border-color: #67d8ff; }
+.tag-yellow { border-color: #ffd166; }
+.tag-red   { border-color: #ff7a7a; }
+
+.border-green { border-color: #0fd05d; }
+.border-red   { border-color: #ff7a7a; }

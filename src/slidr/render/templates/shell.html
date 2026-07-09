@@ -85,43 +85,51 @@ footer {{
   body > section.active {{
     display: block !important;
   }}
-  .layout-title {{
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding-top: 10%;
-  }}
-  .layout-title h1 {{
-    font-size: 3.5em;
-  }}
-  .layout-title .subtitle {{
-    margin-bottom: 0.3em;
-    font-size: 1.8em;
-  }}
-  h2 {{
-    padding-top: 4%;
-    margin-bottom: 1em;
-  }}
+}}
+
+.layout-title {{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 10%;
+}}
+.layout-title h1 {{
+  font-size: 3.5em;
+}}
+.layout-title .subtitle {{
+  margin-bottom: 0.3em;
+  font-size: 1.8em;
+}}
+h2 {{
+  padding-top: 4%;
+  margin-bottom: 1em;
 }}
 
 /* ---- print mode ---- */
 @media print {{
-  @page {{
+  @media print {{
+  body > section {{
+    position: relative !important;
+    display: block !important;
+    transform: none !important;
+    width: {slide_w}px;
+    height: {slide_h}px;
+  }}
+}}
+
+@page {{
     size: {slide_w}px {slide_h}px;
     margin: 0;
-  }}
-  html, body {{
-    margin: 0;
-    padding: 0;
   }}
   body > section {{
     width: {slide_w}px;
     height: {slide_h}px;
-    page-break-after: always;
-    overflow: hidden !important;
+    page-break-before: always;
+    break-before: page;
   }}
-  body > section:last-child {{
-    page-break-after: avoid;
+  body > section:first-child {{
+    page-break-before: avoid;
+    break-before: avoid;
   }}
   #slidr-nav {{
     display: none !important;
