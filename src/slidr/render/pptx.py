@@ -1,5 +1,4 @@
-"""PPTX renderer using python-pptx. Produces native PowerPoint shapes.
-Colors are extracted from the theme CSS via tinycss2."""
+"""PPTX renderer using python-pptx. Styling from base.css + theme CSS via tinycss2."""
 
 from pathlib import Path
 from pptx import Presentation
@@ -10,207 +9,155 @@ from slidr.parser.ast import (
     Document, Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode,
     Text as ASText, CodeSpan, SoftBreak,
 )
-from slidr.theme.colors import parse_theme, to_rgb
-
-# Font sizes in points
-FONT = {1: 44, 2: 32, 3: 18, -1: 24, 0: 18}
-
-
-def _theme_colors(css: str) -> dict:
-    """Extract key colors from theme CSS."""
-    vars_ = parse_theme(css)
-    bg = vars_.get("--bg", "#ffffff")
-    ink = vars_.get("--ink", "#333333")
-    muted = vars_.get("--muted", "#777777")
-    accent = vars_.get("--green2", vars_.get("--accent", "#0288d1"))
-    table_bg = vars_.get("--panel", "#0f1d15") if bg.startswith("#0") else "#f5f5f5"
-    table_ink = vars_.get("--ink", "#333333")
-    return {
-        "ink": to_rgb(ink),
-        "muted": to_rgb(muted),
-        "accent": to_rgb(accent),
-        "white": (0xFF, 0xFF, 0xFF),
-        "table_bg": to_rgb(table_bg),
-        "table_ink": to_rgb(table_ink),
-        "bg": bg,
-    }
+from slidr.theme.parser import parse_theme
 
 
 def render(doc: Document, output_path: Path) -> None:
     dims = doc.meta.dimensions()
     sw, sh = dims[0], dims[1]
-    colors = _theme_colors(doc.meta.style)
+
+    base = (Path(__file__).parent / "templates" / "base.css").read_text()
+    s = parse_theme(base, doc.meta.style)
 
     prs = Presentation()
     prs.slide_width = Inches(sw / 96)
     prs.slide_height = Inches(sh / 96)
 
-    slide_master = prs.slide_masters[0]
-    if colors["bg"]:
-        _set_bg(slide_master, colors["bg"])
+    _set_bg(prs.slide_masters[0], s["bg_color"])
 
     for slide in doc.slides:
         sld = prs.slides.add_slide(prs.slide_layouts[6])
-        _render_slide(sld, slide, sw, sh, colors)
+        top = Pt(5)
+        for node in slide.children:
+            top = _node(sld, node, Pt(64), top, Pt(sw - 128), s)
 
     prs.save(str(output_path))
 
 
-def _render_slide(sld, slide, sw: int, sh: int, colors: dict):
-    left = Pt(64)
-    top = Pt(5)
-    width = Pt(sw - 128)
-
-    for node in slide.children:
-        top = _render_node(sld, node, left, top, width, colors)
-
-
-def _render_node(sld, node, left, top, width, colors):
+def _node(sld, node, left, top, width, s):
     if isinstance(node, Heading):
-        return _add_text(sld, node.content, left, top, width, node.level)
+        return _text(sld, node.content, left, top, width, s, node.level)
     elif isinstance(node, Paragraph):
-        return _add_text(sld, node.content, left, top, width, 0)
+        return _text(sld, node.content, left, top, width, s, 0)
     elif isinstance(node, Quote):
-        return _add_text(sld, node.content, left, top, width, -1)
+        return _text(sld, node.content, left, top, width, s, -1)
     elif isinstance(node, Table):
-        return _add_table(sld, node, left, top, width)
+        return _table(sld, node, left, top, width, s)
     elif isinstance(node, Grid):
-        return _add_grid(sld, node, left, top, width)
+        return _grid(sld, node, left, top, width, s)
     elif isinstance(node, ListNode):
-        return _add_list(sld, node, left, top, width)
+        return _list(sld, node, left, top, width, s)
     elif isinstance(node, AttrNode):
-        return _add_attr(sld, node, left, top, width)
+        return _attr(sld, node, left, top, width, s)
     return top
 
 
-def _add_text(sld, inlines: list, left, top, width, level: int):
-    sizes = {k: Pt(v) for k, v in FONT.items()}
+def _text(sld, inlines, left, top, width, s, level):
+    keys = {-1: "font_quote", 1: "font_h1", 2: "font_h2", 3: "font_h3"}
+    size = Pt(s[keys.get(level, "font_body")])
     bold = level > 0
-    size = sizes.get(level, Pt(18))
 
-    height = Pt(24)
-    txBox = sld.shapes.add_textbox(left, top, width, height)
+    txBox = sld.shapes.add_textbox(left, top, width, Pt(24))
     tf = txBox.text_frame
     tf.word_wrap = True
-
-    text = _render_inline(inlines)
+    text = _inline(inlines)
     p = tf.paragraphs[0]
     p.text = text
     p.font.size = size
     p.font.bold = bold
-    p.font.color.rgb = RGBColor(*colors["ink"])
-
-    lines = max(1, len(text) // 60 + 1)
-    return top + Pt(18 * lines)
+    p.font.color.rgb = RGBColor(*s["ink_rgb"])
+    return top + Pt(18 * max(1, len(text) // 60 + 1))
 
 
-def _add_table(sld, table: Table, left, top, width):
-    rows = len(table.rows) + 1
-    cols = len(table.headers)
+def _table(sld, tbl, left, top, width, s):
+    rows = len(tbl.rows) + 1
+    cols = len(tbl.headers)
     height = Pt(18 * rows)
-
     shape = sld.shapes.add_table(rows, cols, left, top, width, height)
-    tbl = shape.table
+    table = shape.table
 
-    for j, h in enumerate(table.headers):
-        cell = tbl.cell(0, j)
+    for j, h in enumerate(tbl.headers):
+        cell = table.cell(0, j)
         cell.text = h
         for p in cell.text_frame.paragraphs:
-            p.font.size = Pt(14)
+            p.font.size = Pt(s["font_small"])
             p.font.bold = True
-            p.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+            p.font.color.rgb = RGBColor(*s["table_header_fg"])
 
-    for i, row in enumerate(table.rows):
-        for j, cell_text in enumerate(row):
-            cell = tbl.cell(i + 1, j)
-            cell.text = cell_text
+    for i, row in enumerate(tbl.rows):
+        for j, ct in enumerate(row):
+            cell = table.cell(i + 1, j)
+            cell.text = ct
             for p in cell.text_frame.paragraphs:
-                p.font.size = Pt(12)
-                p.font.color.rgb = RGBColor(*colors["table_ink"])
+                p.font.size = Pt(s["font_body"])
+                p.font.color.rgb = RGBColor(*s["table_cell_fg"])
 
     return top + height + Pt(8)
 
 
-def _add_grid(sld, grid: Grid, left, top, width):
+def _grid(sld, grid, left, top, width, s):
     cols = grid.cols or len(grid.children) or 2
     gap = Pt(8)
-    col_w = (width - gap * (cols - 1)) / cols
-    child_top = top
+    cw = (width - gap * (cols - 1)) / cols
+    ct = top
     for i, child in enumerate(grid.children):
-        cl = left + i * (col_w + gap)
-        child_top = _render_node(sld, child, cl, top, col_w, 0, 0)
-    return child_top + Pt(8)
+        ct = _node(sld, child, left + i * (cw + gap), top, cw, s)
+    return ct + Pt(8)
 
 
-def _add_list(sld, node: ListNode, left, top, width):
-    height = Pt(14 * len(node.items))
-    txBox = sld.shapes.add_textbox(left, top, width, height)
+def _list(sld, node, left, top, width, s):
+    h = Pt(14 * len(node.items))
+    txBox = sld.shapes.add_textbox(left, top, width, h)
     tf = txBox.text_frame
     tf.word_wrap = True
-
     for i, item in enumerate(node.items):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.text = f"• {item}"
-        p.font.size = Pt(18)
-        p.font.color.rgb = RGBColor(*colors["ink"])
+        p.font.size = Pt(s["font_body"])
+        p.font.color.rgb = RGBColor(*s["ink_rgb"])
+    return top + h + Pt(4)
 
-    return top + height + Pt(4)
 
-
-def _add_attr(sld, node: AttrNode, left, top, width):
-    sizes = {"kicker": Pt(15), "subtitle": Pt(22), "speaker": Pt(20), "tiny": Pt(13)}  # attr font sizes
-    size = sizes.get(node.type, Pt(18))
-
+def _attr(sld, node, left, top, width, s):
+    size = Pt(s["font_small"])
     text = node.value
     if node.type == "speaker":
         name = node.attrs.get("name", text)
         role = node.attrs.get("role", "")
         text = f"{name}\n{role}"
+        size = Pt(s["font_body"])
 
-    height = Pt(18)
-    txBox = sld.shapes.add_textbox(left, top, width, height)
-    tf = txBox.text_frame
-    p = tf.paragraphs[0]
+    txBox = sld.shapes.add_textbox(left, top, width, Pt(18))
+    p = txBox.text_frame.paragraphs[0]
     p.text = text
     p.font.size = size
-    color = RGBColor(*colors["accent"]) if node.type == "kicker" else RGBColor(*colors["muted"])
-    p.font.color.rgb = color
-    p.font.bold = node.type == "kicker"
-
-    return top + height + Pt(4)
+    color = s["accent_rgb"] if node.type == "kicker" else s["muted_rgb"]
+    p.font.color.rgb = RGBColor(*color)
+    return top + Pt(18) + Pt(4)
 
 
-def _render_inline(nodes: list) -> str:
-    text = ""
+def _inline(nodes: list) -> str:
+    s = ""
     for n in nodes:
         if isinstance(n, ASText):
-            text += n.content
+            s += n.content
         elif isinstance(n, CodeSpan):
-            text += n.content
+            s += n.content
         elif isinstance(n, SoftBreak):
-            text += " "
-    return text
-
-
-def _extract_bg(css: str) -> str:
-    import re
-    m = re.search(r"--bg\s*:\s*([#\w]+)", css)
-    if m:
-        return m.group(1)
-    return ""
+            s += " "
+    return s
 
 
 def _set_bg(master, color: str):
     from pptx.oxml.ns import qn
+    from lxml import etree
     bg = master.element.find(qn('p:cSld'))
     if bg is None:
         return
     bgPr = bg.find(qn('p:bg'))
     if bgPr is None:
-        from lxml import etree
         bgPr = etree.SubElement(bg, qn('p:bg'))
     bgPr.clear()
-    from lxml import etree
     solid = etree.SubElement(bgPr, qn('p:bgPr'))
     fill = etree.SubElement(solid, qn('a:solidFill'))
     clr = etree.SubElement(fill, qn('a:srgbClr'))
