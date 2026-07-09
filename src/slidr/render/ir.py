@@ -116,7 +116,10 @@ def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
         children.append(_col_elem("left", left, styles))
     if right:
         children.append(_col_elem("right", right, styles))
-    return [Elem(kind="grid", layout="layout-cols", cols=0, children=children)]
+    cls = "layout-cols"
+    if layout == "card-compare":
+        cls += " card-compare"
+    return [Elem(kind="grid", layout=cls, cols=0, children=children)]
 
 
 def _col_elem(side: str, nodes: list, styles: dict) -> Elem:
@@ -138,6 +141,10 @@ def _split_two_col_ir(nodes: list) -> tuple[list, list]:
     col_idx = _find_col(nodes)
     if col_idx >= 0:
         return nodes[:col_idx], nodes[col_idx + 1:]
+    # Unwrap single Grid with 2 children for card-compare
+    from slidr.parser.ast import Grid
+    if len(nodes) == 1 and isinstance(nodes[0], Grid) and len(nodes[0].children) == 2:
+        return nodes[0].children[0:1], nodes[0].children[1:2]
     mid = (len(nodes) + 1) // 2
     return nodes[:mid], nodes[mid:]
 
