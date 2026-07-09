@@ -7,6 +7,7 @@ import typer
 
 from slidr.parser.markdown import parse
 from slidr.render.html import render as render_html, default_theme, base_css
+from slidr.render.odp import render as render_odp
 from slidr.render.pptx import render as render_pptx
 from slidr.render.pdf import render as render_pdf
 
@@ -19,6 +20,7 @@ def main(
     output_dir: Optional[Path] = typer.Option(None, "-o", "--output-dir", help="Output directory (default: <input>/dist/)"),
     pdf: bool = typer.Option(False, "--pdf", help="Generate PDF only"),
     pptx: bool = typer.Option(False, "--pptx", help="Generate PPTX only"),
+    odp: bool = typer.Option(False, "--odp", help="Generate ODP"),
     debug: bool = typer.Option(False, "--debug", help="Dump parsed AST per slide"),
 ):
     """Build slides from a markdown file. If no file is given, shows help."""
@@ -41,6 +43,12 @@ def main(
         pptx_path = out_dir / f"{stem}.pptx"
         render_pptx(doc, pptx_path, base_css(), default_theme() + "\n" + (doc.meta.style or ""))
         typer.echo(f"Wrote {pptx_path} ({pptx_path.stat().st_size} bytes)")
+        return
+
+    if odp:
+        odp_path = out_dir / f"{stem}.odp"
+        render_odp(doc, odp_path, base_css(), default_theme() + "\n" + (doc.meta.style or ""))
+        typer.echo(f"Wrote {odp_path} ({odp_path.stat().st_size} bytes)")
         return
 
     if pdf:
