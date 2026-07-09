@@ -377,7 +377,7 @@ def _render_image(elem: Elem, ctx: LayoutContext, gr: GraphicStyleRegistry,
 def _render_seaborn_odp(
     elem: Elem, ctx: LayoutContext, odp: Document
 ) -> list[Element]:
-    from slidr.render.seaborn_runner import render_seaborn_svg
+    from slidr.render.seaborn import render_seaborn_svg
 
     svg = render_seaborn_svg(elem.content)
     if not svg:
