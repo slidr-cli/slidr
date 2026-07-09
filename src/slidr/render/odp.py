@@ -480,6 +480,8 @@ def _render_list(
     tr: TextStyleRegistry,
     odp: Document,
 ) -> list[Element]:
+    from odfdo import List as OdfList, ListItem
+
     key = StyleKey(
         font_size=elem.font_size,
         color=elem.color,
@@ -491,27 +493,26 @@ def _render_list(
         padding="0cm",
     )
     gname = gr.register(key)
-    frames = []
-    indent_cm = 0.8
+
+    lst = OdfList()
     for i, item_text in enumerate(elem.items):
+        li = ListItem()
         if i < len(elem.item_inlines):
             p = _build_paragraph(elem.item_inlines[i], tr)
-            p.insert(Span("\u2022  "), position=0)
         else:
-            p = Paragraph(f"\u2022  {item_text}")
-        h = _estimate_text_height(
-            item_text, elem.font_size, ctx.width - indent_cm
-        )
-        frame = Frame.text_frame(
-            p,
-            size=(f"{ctx.width - indent_cm:.2f}cm", f"{h:.2f}cm"),
-            position=(f"{ctx.x + indent_cm:.2f}cm", f"{ctx.y:.2f}cm"),
-            style=gname,
-        )
-        frames.append(frame)
-        ctx.y += h + 0.2
-    ctx.y += ctx.gap
-    return frames
+            p = Paragraph(item_text)
+        li.append(p)
+        lst.append(li)
+
+    height = len(elem.items) * 1.0 + 0.5  # rough estimate
+    frame = Frame.text_frame(
+        lst,
+        size=(f"{ctx.width:.2f}cm", f"{height:.2f}cm"),
+        position=(f"{ctx.x:.2f}cm", f"{ctx.y:.2f}cm"),
+        style=gname,
+    )
+    ctx.y += height + ctx.gap
+    return [frame]
 
 
 def _render_table(
