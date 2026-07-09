@@ -7,8 +7,6 @@ Only active when seaborn + matplotlib are installed (pdm install -G plot).
 Falls back to plain code highlighting otherwise.
 """
 
-from __future__ import annotations
-
 import io
 
 _DEFAULT_FIGSIZE = (6.4, 4.8)
