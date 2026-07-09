@@ -99,8 +99,28 @@ footer {
 /* ---- layout components (theme overrides) ---- */
 
 .card {
-  background: rgba(0, 0, 0, 0.02);
+  background: rgba(0, 0, 0, 0.15);
   border: 1px solid var(--color-border);
+  border-radius: 0.4em;
+  padding: 1em;
+}
+
+.grid {
+  margin: 1em 0;
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
+.card p {
+  margin: 0 0 0.4em 0;
+  font-size: 0.9em;
+}
+
+.card p:last-child {
+  margin-bottom: 0;
 }
 
 .quote {
@@ -118,12 +138,6 @@ footer {
 .speaker {
   font-size: 1em;
   color: var(--color-foreground);
-}
-
-.speaker span {
-  display: block;
-  font-size: 0.8em;
-  color: var(--color-dimmed);
 }
 
 .subtitle {
