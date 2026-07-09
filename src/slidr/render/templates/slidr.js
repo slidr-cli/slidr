@@ -139,7 +139,7 @@ if (isPresenter) {
     if (navBar) navBar.classList.remove('hidden');
     clearTimeout(hideTimer);
     if (document.fullscreenElement) {
-      hideTimer = setTimeout(function() { if (navBar) navBar.classList.add('hidden'); }, 3000);
+      hideTimer = setTimeout(function() { if (navBar) navBar.classList.add('hidden'); }, 1000);
     }
   }
   document.addEventListener('fullscreenchange', function() {
