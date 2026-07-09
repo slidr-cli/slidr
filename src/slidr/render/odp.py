@@ -384,7 +384,6 @@ def _render_seaborn_odp(
         return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
                                      TextStyleRegistry(), odp)
 
-    svg = _normalize_svg(svg)
     # Write SVG to temp file for add_file
     import tempfile
     with tempfile.NamedTemporaryFile(suffix=".svg", mode="w", delete=False) as f:
