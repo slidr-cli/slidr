@@ -158,6 +158,22 @@ The grid system auto-detects 2×2 cards and places them in a responsive grid. Ca
 
 ---
 
+## Enterprise vs Open Source
+
+| Feature | Open Source | Enterprise |
+|---------|------------|------------|
+| GPU sharing | ✓ | ✓ |
+| Fractional GPU | ✓ | ✓ |
+| MIG support | ✓ | ✓ |
+| Multi-cluster federation | - | ✓ |
+| SSO / RBAC | - | ✓ |
+| Audit logging | - | ✓ |
+| SLA guarantee | - | ✓ |
+| 24/7 support | Community | Dedicated |
+| License | Apache 2.0 | Commercial |
+
+---
+
 ## Quick Start
 
 ```bash
