@@ -1,16 +1,6 @@
 # Slidr
 
-Markdown to styled PPTX + PDF. Cards, grids, tables, directives. CSS theming with cascading overrides. Python + markdown-it + weasyprint.
-
-## Why
-
-**Marp and Slidev are too heavy.** Marp-core is a JavaScript framework that wraps every slide in SVG foreignObjects and requires a full Node.js toolchain. Slidev is a Vue SPA with 55,000+ lines of TypeScript -- it's a web application, not a presentation tool. Both force you to write raw HTML divs for anything beyond basic headings and paragraphs. Want a card grid? Write `<div class="grid"><div class="card">...`. Want a kicker above your title? More divs. The markdown becomes half HTML.
-
-**Rust and Go weren't the answer.** We tried pulldown-cmark (Rust) and goldmark (Go). The table extension silently failed in pulldown-cmark 0.13. comrak's arena allocator created lifetime headaches. The fundamental problem: neither ecosystem made custom block syntax simple -- pulldown-cmark has an extension API but it is more complex than markdown-it-py. Adding `::: card` / `::: grid` support required pre-processing hacks or forking the parser.
-
-**Python's ecosystem fits.** markdown-it-py handles GFM tables natively (no silent failures). Its token-based API makes it easy to walk the AST and convert to our own node types. weasyprint renders HTML+CSS to PDF without Chrome. python-pptx produces native PowerPoint shapes. Jinja2 templates are cleaner than Go's text/template or Rust's tera.
-
-**What slidr does differently.** You write markdown with semantic annotations -- not HTML div soup. Cards are `::: card`, grids auto-form from consecutive cards, directives are `@kicker text`. The CSS handles theming. The parser handles structure. No writing `<div class="...">` for every layout element.
+Markdown to styled HTML slides, with PDF and PPTX output.
 
 ## Install
 
@@ -18,246 +8,134 @@ Markdown to styled PPTX + PDF. Cards, grids, tables, directives. CSS theming wit
 pdm install
 ```
 
-## Quick start
+## Usage
 
 ```bash
-pdm run slidr slides.md           # → dist/slides.html + dist/slides.presenter.html
-pdm run slidr slides.md --pdf     # → dist/slides.pdf
-pdm run slidr slides.md --pptx    # → dist/slides.pptx
-pdm run slidr slides.md --debug   # dump parsed AST
+pdm run slidr slides.md          # HTML + presenter view
+pdm run slidr slides.md --pdf    # + PDF
+pdm run slidr slides.md --pptx   # + PPTX
 ```
 
-Output goes to `<input_dir>/dist/` by default.
+## Viewer controls
 
-## Slide structure
+| Action | Key / Mouse |
+|--------|-------------|
+| Next slide | Left click (on slide area), Right arrow, Down arrow, PgDn, Space |
+| Previous slide | Right click, Left arrow, Up arrow, PgUp, Backspace |
+| First slide | Home |
+| Last slide | End |
+| Toggle fullscreen | `f` |
+| Open presenter view | Presenter button, `p` |
+| Close presenter | `q` |
 
-Slides are separated by `---`. Frontmatter is YAML between `---` markers.
+## Slide directives
 
-```markdown
----
-title: My Presentation
-footer: "Conf 2026"
-size: 16:9
-paginate: true
-logo: ./assets/logo.png
-style: |
-  :root { --accent: #0fd05d; }
----
+```
+@kicker text          # title slide eyebrow
+@subtitle text        # title slide subtitle
+@speaker name=X role=Y # title slide attribution
+@layout name          # apply a slide layout
+@col                  # explicit column break in two-col layout
+@tiny text            # small annotation
+```
 
-@kicker Conference Talk
+## Layouts
 
-# My Title
-
-@subtitle A subtitle here
-
-@speaker name=Jane role=Engineer
-
----
-
-## Agenda
-
-::: card
-### Topic One
-Description here.
-:::
-
-::: card
-### Topic Two
-More description.
-:::
-
-> A blockquote with context.
-
----
-
-## Data
-
-| Column | Value |
+| Layout | Usage |
 |--------|-------|
-| A      | 1     |
+| `@layout two-col` | Heading full-width, content split 50/50. Use `@col` for explicit break. |
+| `@layout image-right` | Heading full-width, text left, image right |
+| `@layout image-left` | Heading full-width, image left, text right |
+| Custom | `@layout <name>` adds CSS class `layout-<name>`, style via frontmatter `style:` block |
+
+## Frontmatter
+
+```yaml
+---
+title: My Talk
+theme: default
+footer: "Conference 2026"
+paginate: true
+size: 16:9          # 16:9 | 4:3 | 16:10
+logo: ./logo.png
+pygments_style: monokai   # any Pygments style name
+style: |
+  .custom { color: red; }
+---
 ```
 
-## Markdown extensions
+`pygments_style` controls syntax highlighting colors for fenced code blocks.
+Any style from [pygments-styles.org](https://pygments-styles.org) is supported.
 
-### Cards
+## Demo
 
-Cards are the primary content container. Each card has a heading and body text.
-
-```markdown
-::: card
-### Header
-Body text. Supports multiple paragraphs.
-:::
+```
+::: grid {cols=2}              # auto-detected as grid-2 layout
+::: card                        # basic card
+::: card{ tag="green" }         # colored left border
+> quote text                    # blockquote, renders as .quote div
+| col1 | col2 |                 # pipe table
+`inline code`                   # inline code
+```language                    # fenced code block with syntax highlighting
 ```
 
-**Attributes** (any `key=value` becomes a `key-value` CSS class):
+## Speaker notes
 
-```markdown
-::: card {tag="green"}
-### Header
-Body
-:::
-```
-→ `<div class="card tag-green">`
-
-**Auto-grouping**: two or more consecutive cards automatically form a grid. Column count matches the number of cards.
-
-```markdown
-::: card
-### Left
-Content.
-:::
-
-::: card
-### Right
-Content.
-:::
-```
-→ 2-column grid. No `::: grid` wrapper needed.
-
-### Grids
-
-Explicit grids for custom column counts or CSS classes.
-
-```markdown
-::: grid {cols=4, class="road-grid"}
-::: card
-### Card 1
-:::
-::: card
-### Card 2
-:::
-:::
-```
-
-**Attributes:**
-
-| Key | Description |
-|-----|-------------|
-| `cols=N` | Column count (default: auto from cards) |
-| `class="name"` | CSS class |
-| Bare words | Shorthand: `::: grid {road-grid}` |
-
-### Directives
-
-Single-line annotations using `@type` syntax.
-
-| Directive | Output |
-|-----------|--------|
-| `@kicker text` | `<div class="kicker">text</div>` |
-| `@subtitle text` | `<p class="subtitle">text</p>` |
-| `@speaker name=Name role=Role` | `<div class="speaker">Name \| Role</div>` |
-| `@tiny text` | `<p class="tiny">text</p>` |
-| `@muted text` | `<p class="muted">text</p>` |
-
-Custom types work generically: `@custom-badge text` → `<p class="custom-badge">text</p>`.
-
-### Tables
-
-Standard GFM pipe tables with markdown-it.
-
-```markdown
-| Header | Header |
-|--------|--------|
-| Cell   | Cell   |
-```
-
-### Blockquotes
-
-```markdown
-> Callout or quoted text.
-Rendered as `<div class="quote">`.
-```
-
-### Speaker notes
-
-HTML comments at the start of a slide become speaker notes (visible in presenter view).
+HTML comments at the top of a slide become speaker notes visible in the presenter view:
 
 ```markdown
 ---
 
 <!--
 These are speaker notes.
-Visible in presenter mode.
+They appear in the presenter view.
 -->
-
-## Slide Title
 ```
 
-## Frontmatter
+## Demo
 
-```yaml
-title: "..."         # document title
-footer: "..."        # slide footer text
-paginate: true       # show page numbers
-size: 16:9           # 16:9 → 1280x720, 4:3 → 1024x768, or "1920x1080"
-logo: ./assets/logo.png  # logo on every slide
-style: |             # raw CSS injected into output (overrides defaults)
-  :root { --accent: #0fd05d; }
+`examples/features_demo.md` is a 10-slide deck exercising every feature:
+title slides, `@layout two-col`, `@layout image-right`, `@layout image-left`,
+grids with tagged cards, tables, fenced code blocks with syntax highlighting,
+blockquotes, speaker notes, and the `@tiny` / `@kicker` / `@speaker` directives.
+
+```bash
+pdm run slidr examples/features_demo.md
 ```
 
-## Styling
+## Architecture decisions
 
-CSS is written in the `style:` frontmatter block. Injected raw into the HTML output.
+### Why Python over Go
 
-**Cascade order**: base.css (layout) → default theme → user `style:` block.
+Go's ecosystem is thin for presentation tooling. Generating PPTX requires a library on par with python-pptx, and Go has nothing comparable. Rendering HTML to PDF needs a real layout engine: weasyprint embeds one in a single Python package; Go would require shelling out to wkhtmltopdf or headless Chrome, both hundreds of megabytes. Markdown parsing has goldmark but its plugin ecosystem is smaller than markdown-it-py. The project iterates heavily on CSS rules, padding math, and layout logic, and Go's compile cycle adds friction to design work where you rebuild after every 2px change.
 
-**Base font**: 18pt on `section`. Internal spacing uses `em` for consistency.
+### Why Python over Rust
 
-```yaml
-style: |
-  :root {
-    --bg: #111;
-    --ink: #eee;
-    --accent: #0fd05d;
-  }
-  section {
-    background: var(--bg);
-    color: var(--ink);
-    padding: 2.78em 3.56em;
-  }
-  .card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid var(--accent);
-  }
-```
+Same ecosystem gap, worse compile times. Rust has no python-pptx equivalent, no weasyprint equivalent. Pygments for syntax highlighting has syntect in Rust but syntect covers fewer languages. Jinja2 templating maps to Tera which is less mature. The Rust port (slidr-rust) was abandoned because the dependency surface was too sparse, and too much would have to be built from scratch. Rust's compile time is measured in seconds where Python's is milliseconds, and slide design is inherently iterative.
 
-## Viewer features
+### Why not Node
 
-- **Arrow keys**: navigate slides
-- **Mouse wheel**: scroll through slides
-- **f**: toggle fullscreen
-- **q**: close presenter window
-- **▶ button**: open presenter view (current slide + next preview + speaker notes)
-- **Bidirectional sync**: navigating in either window updates the other
+Node's dependency footprint is the dealbreaker. A CLI that parses markdown, generates PPTX, renders PDF, and templates HTML pulls in 300MB+ of node_modules for marginal functionality. PDF generation requires Puppeteer/Playwright, which bundles a headless Chromium binary (~300MB). Weasyprint is a single Python package that does the same with a fraction of the weight. PPTX libraries in Node (pptxgenjs) are less feature-complete than python-pptx. Python's stdlib covers path handling, subprocess management, and file I/O without extra packages. The result is a tool you can install and run without downloading half the internet.
 
-## Output formats
+### The Python sweet spot
 
-| Format | Engine | Notes |
-|--------|--------|-------|
-| HTML | Jinja2 | Screen + print CSS, presenter view |
-| PDF | weasyprint | Pure Python, no Chrome dependency |
-| PPTX | python-pptx | Native shapes, theme colors from CSS via tinycss2 |
+- **python-pptx**: mature PPTX generation, slide layouts, text frames, tables
+- **weasyprint**: HTML/CSS to PDF via embedded layout engine, no browser dependency
+- **markdown-it-py**: same parser as the JS ecosystem, GFM support
+- **Pygments**: comprehensive syntax highlighting for code blocks
+- **Jinja2**: mature templating, CSS injection, template includes
+- **Edit-test cycle**: no compile step, instant feedback when tweaking layouts
 
-## Marp migration
-
-- Remove `marp: true` from frontmatter
-- `<div class="grid">` → remove wrapper (cards auto-group)
-- `<div class="card"><h3>...</h3><p>...</p></div>` → `::: card` / `### ...` / body
-- `<div class="quote">text</div>` → `> text`
-- `<div class="kicker">text</div>` → `@kicker text`
-- `<div class="speaker">Name<span>Role</span></div>` → `@speaker name=Name role=Role`
-- `<table>` → markdown pipe table
-- `px` → `em` (divide by 18) in CSS
-- `section::before` logo → `logo:` frontmatter field
-
-## Related projects
-
-- [Marp](https://marp.app) -- Markdown Presentation Ecosystem (Node.js)
-- [Slidev](https://sli.dev) -- Presentation Slides for Developers (Vue/TypeScript)
-
-Both inspired slidr. If slidr doesn't fit your workflow, try them.
+Deployable as a single binary via PyInstaller or Nuitka when needed.
 
 ## License
 
-MIT
+GPL-3.0-or-later. See [LICENSE](LICENSE).
+
+## Related projects
+
+- [Marp](https://marp.app/) - Markdown to slides, JS/Electron, extensive ecosystem
+- [Slidev](https://sli.dev/) - Markdown to slides, Vue/Node, presenter mode, rich theming
+- [reveal.js](https://revealjs.com/) - HTML presentation framework, JS
+- [landslide](https://github.com/adamzap/landslide) - Markdown to slides, Python, dormant
+- [lookatme](https://github.com/d0c-s4vage/lookatme) - Terminal markdown presentations, Python
