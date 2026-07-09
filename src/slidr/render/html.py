@@ -112,21 +112,13 @@ def _render_node(node) -> str | None:
         s += "</ul>"
         return s
     elif isinstance(node, AttrNode):
-        if node.type == "kicker":
-            return f'<div class="kicker">{_escape(node.value)}</div>'
-        elif node.type == "subtitle":
-            return f'<p class="subtitle">{_escape(node.value)}</p>'
-        elif node.type == "speaker":
+        if node.type == "speaker":
             name = node.attrs.get("name", node.value)
             role = node.attrs.get("role", "")
             text = f"{_escape(name)} | <span class=\"role\">{_escape(role)}</span>" if role else _escape(name)
             return f'<div class="speaker">{text}</div>'
-        elif node.type == "tiny":
-            return f'<p class="tiny">{_escape(node.value)}</p>'
-        elif node.type == "muted":
-            return f'<p class="muted">{_escape(node.value)}</p>'
-        else:
-            return f'<div class="{node.type}">{_escape(node.value)}</div>'
+        tag = "div" if node.type in ("kicker", "speaker") else "p"
+        return f'<{tag} class="{node.type}">{_escape(node.value)}</{tag}>'
     return None
 
 

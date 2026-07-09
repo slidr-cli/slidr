@@ -11,6 +11,11 @@ from slidr.parser.ast import (
     Text as ASText, CodeSpan, SoftBreak,
 )
 
+# Sizes and colors -- override per theme as needed
+FONT = {1: 44, 2: 32, 3: 18, -1: 24, 0: 18}
+INK_RGB = (0xEE, 0xF7, 0xF0)
+MUTED_RGB = (0xAE, 0xC0, 0xB3)
+
 
 def render(doc: Document, output_path: Path) -> None:
     dims = doc.meta.dimensions()
@@ -60,7 +65,7 @@ def _render_node(sld, node, left, top, width, sw, sh):
 
 
 def _add_text(sld, inlines: list, left, top, width, level: int):
-    sizes = {1: Pt(44), 2: Pt(32), 3: Pt(18), -1: Pt(24)}
+    sizes = {k: Pt(v) for k, v in FONT.items()}
     bold = level > 0
     size = sizes.get(level, Pt(18))
 
@@ -74,7 +79,7 @@ def _add_text(sld, inlines: list, left, top, width, level: int):
     p.text = text
     p.font.size = size
     p.font.bold = bold
-    p.font.color.rgb = RGBColor(0xEE, 0xF7, 0xF0)
+    p.font.color.rgb = RGBColor(*INK_RGB)
 
     lines = max(1, len(text) // 60 + 1)
     return top + Pt(18 * lines)
@@ -128,13 +133,13 @@ def _add_list(sld, node: ListNode, left, top, width):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.text = f"• {item}"
         p.font.size = Pt(18)
-        p.font.color.rgb = RGBColor(0xEE, 0xF7, 0xF0)
+        p.font.color.rgb = RGBColor(*INK_RGB)
 
     return top + height + Pt(4)
 
 
 def _add_attr(sld, node: AttrNode, left, top, width):
-    sizes = {"kicker": Pt(15), "subtitle": Pt(22), "speaker": Pt(20), "tiny": Pt(13)}
+    sizes = {"kicker": Pt(15), "subtitle": Pt(22), "speaker": Pt(20), "tiny": Pt(13)}  # attr font sizes
     size = sizes.get(node.type, Pt(18))
 
     text = node.value
@@ -149,7 +154,7 @@ def _add_attr(sld, node: AttrNode, left, top, width):
     p = tf.paragraphs[0]
     p.text = text
     p.font.size = size
-    color = RGBColor(0x70, 0xF5, 0xA2) if node.type == "kicker" else RGBColor(0xAE, 0xC0, 0xB3)
+    color = RGBColor(0x70, 0xF5, 0xA2) if node.type == "kicker" else RGBColor(*MUTED_RGB)
     p.font.color.rgb = color
     p.font.bold = node.type == "kicker"
 
