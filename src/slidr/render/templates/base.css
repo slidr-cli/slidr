@@ -6,7 +6,7 @@
 /* ---- layout defaults ---- */
 section {
   font-size: 18pt;
-  padding: 50px 64px;
+  padding: 2.8em 3.6em;
 }
 
 h1, h2, h3, h4, h5, h6 { margin: 0; }
@@ -19,14 +19,14 @@ a { text-decoration: none; }
 
 blockquote {
   border-left: 4px solid;
-  padding-left: 16px;
+  padding-left: 0.9em;
   margin: 0.5em 0;
 }
 
 pre { overflow: auto; }
 code {
-  border-radius: 3px;
-  padding: 0 4px;
+  border-radius: 0.15em;
+  padding: 0 0.2em;
 }
 
 table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
@@ -54,8 +54,8 @@ th { font-weight: 700; }
 footer {
   position: absolute;
   bottom: 1em;
-  left: 64px;
-  right: 64px;
+  left: 3.6em;
+  right: 3.6em;
   font-size: 0.6em;
   text-align: left;
 }
