@@ -1,6 +1,7 @@
 """HTML renderer for slidr."""
 
 from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
 
 from slidr.parser.ast import (
     Document, Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode,
@@ -9,6 +10,7 @@ from slidr.parser.ast import (
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 THEME_DIR = Path(__file__).parent.parent / "themes"
+_env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=False)
 
 
 def default_theme() -> str:
@@ -22,25 +24,15 @@ def base_css() -> str:
 
 
 def render(doc: Document, theme_css: str, logo: str = "") -> str:
-    """Render a Document to complete HTML."""
     dims = doc.meta.dimensions()
-    ratio = dims[0] / dims[1]
 
-    slides_html = []
+    slides = []
     for i, slide in enumerate(doc.slides):
-        num = i + 1
-        layout = slide.layout.value
-        children = "\n".join(_render_node(n) for n in slide.children if _render_node(n))
-        footer = doc.meta.footer
-        footer_html = ""
-        pn = "" if not doc.meta.paginate else f" - {num}" if footer else str(num)
-        if footer or doc.meta.paginate:
-            footer_html = f"<footer>{footer}{pn}</footer>"
-
-        notes_attr = f' data-notes="{slide.notes}"' if slide.notes else ""
-        slides_html.append(
-            f'<section class="slide layout-{layout}"{notes_attr}>\n{children}\n{footer_html}\n</section>'
-        )
+        children = "\n".join(filter(None, (_render_node(n) for n in slide.children)))
+        slides.append({
+            "num": i + 1, "layout": slide.layout.value, "children": children,
+            "notes": slide.notes, "footer": doc.meta.footer or "", "paginate": doc.meta.paginate or False,
+        })
 
     logo_css = ""
     if logo:
@@ -56,14 +48,12 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
   opacity: 0.92;
 }}"""
 
-    shell = (TEMPLATE_DIR / "shell.html").read_text()
-    return shell.format(
-        title=doc.meta.title or "Presentation",
-        ratio=ratio,
-        slide_w=dims[0],
-        slide_h=dims[1],
-        css=base_css().format(slide_w=dims[0], slide_h=dims[1], theme_css=theme_css, logo_css=logo_css),
-        slides="\n".join(slides_html),
+    css = base_css().replace('SLIDE_W', str(dims[0])).replace('SLIDE_H', str(dims[1]))
+    css = css.replace('THEME_CSS', default_theme() + '\n' + theme_css).replace('LOGO_CSS', logo_css)
+    css = css.replace("{theme_css}", default_theme() + "\n" + theme_css).replace("{logo_css}", logo_css)
+
+    return _env.get_template("shell.html").render(
+        title=doc.meta.title or "Presentation", slide_w=dims[0], slide_h=dims[1], css=css, slides=slides,
     )
 
 
