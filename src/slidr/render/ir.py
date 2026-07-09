@@ -106,6 +106,8 @@ def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
         right, left = _split_image_ir(nodes)
     elif layout == "two-col":
         left, right = _split_two_col_ir(nodes)
+    elif layout == "card-compare":
+        left, right = _split_two_col_ir(nodes)
     else:
         return [_convert_node(n, styles) for n in nodes]
 

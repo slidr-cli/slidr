@@ -57,7 +57,7 @@ th { font-weight: 700; }
 .grid > * { min-width: 0; }
 
 .card {
-  border-radius: 0.4em;
+  border-radius: 0.1em;
   padding: 1em;
   overflow-wrap: break-word;
   min-width: 0;
@@ -134,6 +134,15 @@ LOGO_CSS
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.card-compare {
+  grid-template-columns: 1fr auto 1fr !important;
+  align-items: center;
+}
+.card-arrow {
+  font-size: 2em;
+  padding: 0 0.3em;
 }
 
 /* ---- screen mode ---- */

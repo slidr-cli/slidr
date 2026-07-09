@@ -58,5 +58,6 @@ footer { color: var(--color-dimmed); }
 .tag-cyan   { border-color: #67d8ff; background: #e0f7fa; }
 .tag-yellow { border-color: #ffd166; background: #fff9c4; }
 .tag-red    { border-color: #ff7a7a; background: #ffebee; }
+.tag-quote  { border-left: 0.25em solid var(--color-accent); font-style: italic; background: none; }
 .border-green { border-color: #0fd05d; }
 .border-red   { border-color: #ff7a7a; }

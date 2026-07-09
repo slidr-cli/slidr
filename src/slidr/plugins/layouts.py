@@ -2,7 +2,7 @@
 
 from slidr.parser.ast import Paragraph, AttrNode, Image
 
-KNOWN_LAYOUTS = {"image-right", "image-left", "two-col"}
+KNOWN_LAYOUTS = {"image-right", "image-left", "two-col", "card-compare"}
 
 
 def apply_layout(nodes: list, layout: str, render_fn) -> str:
@@ -16,6 +16,8 @@ def apply_layout(nodes: list, layout: str, render_fn) -> str:
         left, right = _split_col_or_image(nodes, flip=True)
     elif layout == "two-col":
         left, right = _split_two_col_nodes(nodes)
+    elif layout == "card-compare":
+        left, right = _split_two_col_nodes(nodes)
     else:
         return "\n".join(filter(None, (render_fn(n) for n in nodes)))
 
@@ -23,10 +25,16 @@ def apply_layout(nodes: list, layout: str, render_fn) -> str:
     right_html = "\n".join(filter(None, (render_fn(n) for n in right)))
     parts = []
     if left_html or right_html:
-        parts.append('<div class="layout-cols">')
-        parts.append('<div class="col-left">\n' + left_html + '\n</div>')
-        if right_html:
+        if layout == "card-compare":
+            parts.append('<div class="layout-cols card-compare">')
+            parts.append('<div class="col-left">\n' + left_html + '\n</div>')
+            parts.append('<div class="card-arrow">\u2192</div>')
             parts.append('<div class="col-right">\n' + right_html + '\n</div>')
+        else:
+            parts.append('<div class="layout-cols">')
+            parts.append('<div class="col-left">\n' + left_html + '\n</div>')
+            if right_html:
+                parts.append('<div class="col-right">\n' + right_html + '\n</div>')
         parts.append('</div>')
     return "\n".join(parts)
 
