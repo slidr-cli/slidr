@@ -34,7 +34,7 @@ def base_css() -> str:
 
 
 def render(doc: Document, theme_css: str, logo: str = "") -> str:
-    from slidr.render.seaborn_runner import set_palette
+    from slidr.render.seaborn import set_palette
 
     global _pygments_style
     dims = doc.meta.dimensions()
@@ -175,7 +175,7 @@ def _pygments_css(style: str = "default") -> str:
 
 
 def _render_seaborn_html(content: str) -> str:
-    from slidr.render.seaborn_runner import render_seaborn_svg
+    from slidr.render.seaborn import render_seaborn_svg
 
     svg = render_seaborn_svg(content)
     if svg:
@@ -194,7 +194,7 @@ def _render_mermaid(content: str) -> str:
 
 
 def _render_seaborn_html(content: str) -> str:
-    from slidr.render.seaborn_runner import render_seaborn_svg
+    from slidr.render.seaborn import render_seaborn_svg
 
     svg = render_seaborn_svg(content)
     if svg:
