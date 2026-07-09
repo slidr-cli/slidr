@@ -115,7 +115,8 @@ def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
             g = nodes[grid_idx]
             left = g.children[0:1]
             right = g.children[1:2]
-            extra = nodes[:grid_idx] + nodes[grid_idx + 1:]
+            # remaining cards go below as extra elements
+            extra = nodes[:grid_idx] + list(g.children[2:]) + nodes[grid_idx + 1:]
         else:
             left, right = _split_two_col_ir(nodes)
     else:
