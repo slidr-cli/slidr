@@ -137,12 +137,12 @@ _TAG_COLORS: dict[str, str] = {
     "yellow": "#fff9c4",
     "orange": "#fff3e0",
     "purple": "#f3e5f5",
-    "": "#f5f5f5",
+    "": "#e3f2fd",
 }
 
 
 def _tag_to_color(tag: str) -> str:
-    return _TAG_COLORS.get(tag, "#f5f5f5")
+    return _TAG_COLORS.get(tag, "#e3f2fd")
 
 
 # ---------------------------------------------------------------------------
