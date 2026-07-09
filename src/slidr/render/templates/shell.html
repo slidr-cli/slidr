@@ -63,7 +63,8 @@ html.presenter #presenter-panel {
 {% for slide in slides %}
 <section class="slide layout-{{ slide.layout }}"{% if slide.notes %} data-notes="{{ slide.notes }}"{% endif %}>
 {{ slide.children }}
-{% if slide.footer or slide.paginate %}<footer>{{ slide.footer }}{% if slide.paginate %}{% if slide.footer %} - {% endif %}{{ slide.num }}{% endif %}</footer>{% endif %}
+{% if slide.footer %}<footer>{{ slide.footer }}</footer>{% endif %}
+{% if slide.paginate %}<span class="slide-num">{{ slide.num }}</span>{% endif %}
 </section>
 {% endfor %}
 

@@ -24,6 +24,7 @@ h3 { font-size: 1.3em; }
 code {
   background: rgba(0, 0, 0, 0.05);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.8em;
 }
 
 pre {
@@ -31,8 +32,9 @@ pre {
   border-radius: 0.3em;
   padding: 0.55em 0.8em;
   margin: 0.5em 0;
+  font-size: 0.75em;
 }
-pre code { background: none; padding: 0; }
+pre code { padding: 0; }
 
 blockquote {
   border-left-color: var(--color-accent);
@@ -58,6 +60,7 @@ a { color: var(--color-accent); }
 .speaker .role { color: var(--color-dimmed); }
 
 footer { color: var(--color-dimmed); }
+.slide-num { color: var(--color-dimmed); }
 
 .subtitle { color: var(--color-dimmed); }
 .tiny { font-size: 0.7em; color: var(--color-dimmed); }

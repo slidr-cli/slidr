@@ -2,7 +2,7 @@
 theme: default
 paginate: true
 size: 16:9
-logo: "./assets/brand/hami-logo.png"
+logo: "../assets/brand/hami-logo.png"
 title: HAMi Demo
 footer: "HAMi · Hardware Affinity Manager for Inference"
 ---
@@ -66,7 +66,7 @@ HAMi intercepts CUDA API calls at the library level to enable fine-grained GPU s
 - Scheduler bins workloads by memory footprint and priority
 - Fractional GPU allocation down to 1% granularity
 
-![Ecosystem Pyramid](./assets/ecosystem/hami-ecosystem-pyramid.png)
+![Ecosystem Pyramid](../assets/ecosystem/hami-ecosystem-pyramid.png)
 
 <!--
 Key point: the library-level interception means zero container modification. Just mount the HAMi lib and set resource limits.
@@ -78,7 +78,7 @@ Key point: the library-level interception means zero container modification. Jus
 
 ## Performance Benchmarks
 
-![CNCF Logo](./assets/cncf-logo.png)
+![CNCF Logo](../assets/brand/cncf-logo.png)
 
 HAMi demonstrates near-linear scaling with concurrent inference workloads across 8× A100 GPUs. The key metric is GPU utilization efficiency -- HAMi achieves 92% average utilization vs. 65% baseline with default Kubernetes scheduling.
 
@@ -97,6 +97,8 @@ HAMi demonstrates near-linear scaling with concurrent inference workloads across
 - **Kubernetes Native**: Helm chart with device plugin, custom scheduler, and CRDs
 - **Multi-Cluster**: Federation via HAMi-gateway with cross-cluster GPU sharing
 - **Air-Gapped**: Offline mode with signed container images and local model registry
+
+
 
 - **Monitoring**: Prometheus metrics for GPU utilization, memory pressure, scheduling latency
 - **Autoscaling**: HPA integration based on GPU queue depth and pending workload count
@@ -122,8 +124,6 @@ The two-col layout auto-splits content after the heading. First half goes left, 
 > HAMi supports all NVIDIA GPUs from T4 to H100, plus upcoming B200 Blackwell architecture
 
 ---
-
-@layout two-col
 
 ## Community & Ecosystem
 
