@@ -96,8 +96,8 @@ def _render_elem(e: Elem) -> str:
     elif e.kind == "quote":
         return f'<div class="quote">{e.content}</div>' if e.content else ""
     elif e.kind == "code":
-        if e.language == "d2":
-            return _render_d2(e.content)
+        if e.language == "mermaid":
+            return _render_mermaid(e.content)
         if e.language == "seaborn":
             return _render_seaborn_html(e.content)
         return _highlight_code(e.content, e.language)
@@ -180,27 +180,28 @@ def _render_seaborn_html(content: str) -> str:
     return f'<pre class="seaborn-fallback"><code>{_escape(content)}</code></pre>'
 
 
-def _render_d2(content: str) -> str:
-    with tempfile.NamedTemporaryFile(suffix='.d2', mode='w', delete=False) as f:
+def _render_mermaid(content: str) -> str:
+    with tempfile.NamedTemporaryFile(suffix='.mmd', mode='w', delete=False) as f:
         f.write(content)
         infile = f.name
     outfile = infile + '.svg'
     try:
         result = subprocess.run(
-            ['d2', '--theme=0', '--pad=0', infile, outfile],
-            capture_output=True, text=True, timeout=10
+            ['mmdc', '-i', infile, '-o', outfile,
+             '-t', 'default', '-b', 'transparent'],
+            capture_output=True, text=True, timeout=30
         )
         if result.returncode == 0 and os.path.exists(outfile):
             with open(outfile) as f:
                 svg = f.read()
-            return f'<div class="d2">\n{svg}\n</div>'
+            return f'<div class="mermaid">\n{svg}\n</div>'
     except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
     finally:
         os.unlink(infile)
         if os.path.exists(outfile):
             os.unlink(outfile)
-    return f'<pre class="d2-fallback"><code>{_escape(content)}</code></pre>'
+    return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
 
 
 def _escape(s: str) -> str:
