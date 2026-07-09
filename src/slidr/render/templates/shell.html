@@ -45,8 +45,8 @@ h2, h3 {{
 }}
 
 .kicker {{ font-family: monospace; font-size: 0.8em; font-weight: 800; }}
-.speaker {{ font-size: 1.05em; font-weight: 750; }}
-.speaker span {{ display: block; font-size: 0.8em; font-weight: 500; }}
+.speaker {{ font-size: 1.05em; font-weight: 750; margin-top: 3em }}
+.speaker .role {{ color: var(--color-dimmed, #999); }}
 
 table {{ border-collapse: collapse; width: 100%; margin: 0.5em 0; }}
 th, td {{ padding: 0.5em 0.65em; text-align: left; vertical-align: top; }}
@@ -91,16 +91,12 @@ footer {{
     justify-content: center;
     padding-top: 10%;
   }}
-  .layout-title .kicker {{
-    margin-bottom: 0.5em;
-  }}
   .layout-title h1 {{
     font-size: 3.5em;
-    margin-bottom: 0.5em;
   }}
   .layout-title .subtitle {{
-    margin-bottom: 1.5em;
-    font-size: 1.5em;
+    margin-bottom: 0.3em;
+    font-size: 1.8em;
   }}
   h2 {{
     padding-top: 4%;
@@ -185,6 +181,7 @@ footer {{
   <button id="slidr-prev" title="Previous (Left arrow)">&larr;</button>
   <span id="slidr-counter">1 / 1</span>
   <button id="slidr-next" title="Next (Right arrow)">&rarr;</button>
+  <button id="slidr-fullscreen" title="Toggle fullscreen (f)">&#9974;</button>
 </div>
 
 <script>
@@ -220,6 +217,15 @@ footer {{
   prevBtn.addEventListener('click', function() {{ show(current - 1); }});
   nextBtn.addEventListener('click', function() {{ show(current + 1); }});
 
+  var fsBtn = document.getElementById('slidr-fullscreen');
+  fsBtn.addEventListener('click', function() {{
+    if (!document.fullscreenElement) {{
+      document.documentElement.requestFullscreen();
+    }} else {{
+      document.exitFullscreen();
+    }}
+  }});
+
   document.addEventListener('keydown', function(e) {{
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {{
       e.preventDefault(); show(current - 1);
@@ -229,6 +235,12 @@ footer {{
       e.preventDefault(); show(0);
     }} else if (e.key === 'End') {{
       e.preventDefault(); show(total - 1);
+    }} else if (e.key === 'f') {{
+      if (!document.fullscreenElement) {{
+        document.documentElement.requestFullscreen();
+      }} else {{
+        document.exitFullscreen();
+      }}
     }}
   }});
 }})();

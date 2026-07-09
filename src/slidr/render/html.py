@@ -28,8 +28,8 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
         children = "\n".join(_render_node(n) for n in slide.children if _render_node(n))
         footer = doc.meta.footer
         footer_html = ""
-        if footer:
-            pn = f" &mdash; {num}" if doc.meta.paginate else ""
+        pn = "" if not doc.meta.paginate else f" - {num}" if footer else str(num)
+        if footer or doc.meta.paginate:
             footer_html = f"<footer>{footer}{pn}</footer>"
 
         notes_attr = f' data-notes="{slide.notes}"' if slide.notes else ""
@@ -119,7 +119,8 @@ def _render_node(node) -> str | None:
         elif node.type == "speaker":
             name = node.attrs.get("name", node.value)
             role = node.attrs.get("role", "")
-            return f'<div class="speaker">{_escape(name)}<span>{_escape(role)}</span></div>'
+            text = f"{_escape(name)} | <span class=\"role\">{_escape(role)}</span>" if role else _escape(name)
+            return f'<div class="speaker">{text}</div>'
         elif node.type == "tiny":
             return f'<p class="tiny">{_escape(node.value)}</p>'
         elif node.type == "muted":

@@ -4,7 +4,7 @@ paginate: true
 size: 16:9
 logo: "./assets/brand/dynamia-logo-zh-white.png"
 title: HAMi test
-footer: "HAMi -06-24"
+# footer: "HAMi -06-24"
 
 ---
 
