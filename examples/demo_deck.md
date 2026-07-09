@@ -24,13 +24,13 @@ Meeting notes
 
 ## Slide 1 
 
-::: card{ tag="green"}
+::: card
 ### HAMi
 
 test
 :::
 
-::: card{ tag="cyan"}
+::: card{ tag="green"}
 ### Why
 
 Test2

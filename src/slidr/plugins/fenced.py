@@ -33,7 +33,7 @@ def extract_fenced(content: str) -> tuple[str, list[Node]]:
             inner_text = "\n".join(inner)
 
             if typ == "card":
-                nodes.append(_parse_card(inner_text))
+                nodes.append(_parse_card(inner_text, rest))
             elif typ == "grid":
                 nodes.append(_parse_grid(inner_text, rest))
 
@@ -47,7 +47,7 @@ def extract_fenced(content: str) -> tuple[str, list[Node]]:
     return "\n".join(result), nodes
 
 
-def _parse_card(text: str) -> Card:
+def _parse_card(text: str, rest: str = "") -> Card:
     header = ""
     body = []
     for line in text.strip().split("\n"):
@@ -56,7 +56,22 @@ def _parse_card(text: str) -> Card:
             header = line[4:]
         elif line:
             body.append(line)
-    return Card(header=header, body=body)
+
+    # Parse attrs from rest (e.g., "card {tag=green}")
+    class_ = ""
+    raw = rest.split("{", 1)[1].rstrip("}") if "{" in rest else ""
+    for attr in raw.split(","):
+        attr = attr.strip()
+        if not attr:
+            continue
+        if "=" in attr:
+            k, v = attr.split("=", 1)
+            k, v = k.strip(), v.strip().strip('"')
+            class_ = (class_ + f" {k}-{v}").strip()
+        else:
+            class_ = (class_ + " " + attr).strip() if class_ else attr
+
+    return Card(header=header, body=body, class_=class_)
 
 
 def _parse_grid(inner_text: str, rest: str) -> Grid:
