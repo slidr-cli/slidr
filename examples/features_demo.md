@@ -192,6 +192,19 @@ This slide shows a code block. The @tiny directive renders small annotation text
 
 ---
 
+## GPU Utilization Trends
+
+```seaborn
+df = pd.DataFrame({
+    "Quarter": ["Q1", "Q1", "Q2", "Q2", "Q3", "Q3"],
+    "Cluster": ["Baseline", "HAMi", "Baseline", "HAMi", "Baseline", "HAMi"],
+    "Utilization": [65, 78, 62, 85, 68, 92],
+})
+sns.barplot(data=df, x="Quarter", y="Utilization", hue="Cluster")
+```
+
+---
+
 @layout two-col
 
 ## Scheduling Flow
@@ -202,25 +215,13 @@ scheduler entirely after initial placement.
 
 @col
 
-```d2
-direction: right
-
-user: User {
-  shape: person
-}
-
-scheduler: HAMi Scheduler {
-  shape: cylinder
-}
-
-gpu_a: GPU Node A
-gpu_b: GPU Node B
-
-user -> scheduler: Submit workload
-scheduler -> gpu_a: Place (70% mem)
-scheduler -> gpu_b: Place (30% mem)
-gpu_a -> user: Inference stream
-gpu_b -> user: Inference stream
+```mermaid
+graph LR
+    User((User)) --> Scheduler[HAMi Scheduler]
+    Scheduler --> GPU_A[GPU Node A]
+    Scheduler --> GPU_B[GPU Node B]
+    GPU_A --> User
+    GPU_B --> User
 ```
 
 ---
