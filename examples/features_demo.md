@@ -174,17 +174,20 @@ The grid system auto-detects 2×2 cards and places them in a responsive grid. Ca
 
 ---
 
-## Quick Start
+## Installation
 
 ```bash
-# Install HAMi via Helm
 helm repo add hami https://project-hami.github.io/charts
 helm install hami hami/hami \
   --set devicePlugin.version=v2.6.0 \
   --set scheduler.enabled=true
+```
 
-# Submit a GPU workload
-kubectl apply -f - <<EOF
+---
+
+## Workload Spec
+
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -197,14 +200,9 @@ spec:
       limits:
         nvidia.com/gpu: 1
         nvidia.com/gpumem: 8000
-EOF
 ```
 
 @tiny HAMi v2.6 supports fractional GPU with memory limits in MiB
-
-<!--
-This slide shows a code block. The @tiny directive renders small annotation text below the code.
--->
 
 ---
 
