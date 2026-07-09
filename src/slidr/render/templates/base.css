@@ -17,10 +17,10 @@ section {
   overflow: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 { margin: 0; overflow-wrap: break-word; }
+h1, h2, h3, h4, h5, h6 { margin: 0; }
 h2 { padding-top: 1%; margin-bottom: 1em; }
-p { margin-bottom: 0.5em; overflow-wrap: break-word; }
-li { margin: 0.2em 0; overflow-wrap: break-word; }
+p { margin-bottom: 0.5em; }
+li { margin: 0.2em 0; }
 
 img { max-width: 100%; height: auto; }
 a { text-decoration: none; }
@@ -54,7 +54,7 @@ th, td { padding: 0.5em 0.65em; text-align: left; vertical-align: top; overflow-
 th { font-weight: 700; }
 
 .grid { display: grid; gap: 1em; margin: 1em 0; }
-.grid > * { min-width: 0; overflow-wrap: break-word; }
+.grid > * { min-width: 0; }
 
 .card {
   border-radius: 0.4em;
