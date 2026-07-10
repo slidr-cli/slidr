@@ -27,6 +27,7 @@ _FONT_SANS = ""
 _FONT_MONO = ""
 _BORDER_RADIUS = ""
 _BORDER_COLOR = "#ddd"
+_TEXT_ALIGN = "left"
 
 
 def set_fonts(sans: str, mono: str) -> None:
@@ -86,6 +87,7 @@ class LayoutContext:
     margin_top: float = 2.0
     gap: float = 0.5
     source_dir: Path | None = None
+    min_height: float = 0.0
 
 
 class GraphicStyleRegistry:
@@ -157,16 +159,38 @@ class TextStyleRegistry:
             document.insert_style(style)
 
 
+_PARA_COUNTER = count(1)
+_PARA_STYLES: dict[StyleKey, str] = {}
+
+
+def _register_paragraph_style(key: StyleKey, gr: GraphicStyleRegistry,
+                               document: Document) -> str:
+    """Register a paragraph-level text style for per-paragraph font differences."""
+    global _PARA_STYLES
+    if key not in _PARA_STYLES:
+        _PARA_STYLES[key] = f"SlidrP_{next(_PARA_COUNTER):03d}"
+        gr.register(key)  # also register as graphic style for the frame fallback
+    return _PARA_STYLES[key]
+
+
+def _override_template_defaults(document: Document, align: str) -> None:
+    """Override ODP template paragraph defaults to match CSS section text-align."""
+    for style in document.get_styles(family="paragraph"):
+        props = style.get_properties()
+        if props and "fo:text-align" in props and props["fo:text-align"] != align:
+            style.set_properties(area="paragraph", text_align=align)
+
+
 def _apply_border_radius(frame: Frame, radius: str) -> None:
     """Set draw:corner-radius directly on the frame element."""
     if radius:
         frame.set_attribute("draw:corner-radius", _em_to_cm(radius))
 
 
-def _apply_card_border(frame: Frame) -> None:
+def _apply_card_border(frame: Frame, color: str = "") -> None:
     """Apply thin continuous border matching CSS --card-border to a frame."""
     frame.set_attribute("draw:stroke", "solid")
-    frame.set_attribute("svg:stroke-color", _BORDER_COLOR)
+    frame.set_attribute("svg:stroke-color", color or _BORDER_COLOR)
     frame.set_attribute("svg:stroke-width", "0.01mm")
 
 
@@ -182,19 +206,24 @@ def _next_table_id() -> int:
     return next(_table_seq)
 
 
-_TAG_COLORS: dict[str, str] = {
-    "green": "#e8f5e9",
-    "red": "#ffebee",
-    "blue": "#e3f2fd",
-    "yellow": "#fff9c4",
-    "orange": "#fff3e0",
-    "purple": "#f3e5f5",
-    "": "#e3f2fd",
-}
+_TAG_COLORS: dict[str, str] = {}
+_TAG_BORDERS: dict[str, str] = {}
+
+
+def set_tag_colors(colors: dict[str, tuple[str, str]]) -> None:
+    global _TAG_COLORS, _TAG_BORDERS
+    _TAG_COLORS = {tag: fill for tag, (fill, _) in colors.items()}
+    _TAG_BORDERS = {tag: border for tag, (_, border) in colors.items()}
+    if "" not in _TAG_COLORS:
+        _TAG_COLORS[""] = _TAG_COLORS.get("blue", "#e3f2fd")
 
 
 def _tag_to_color(tag: str) -> str:
-    return _TAG_COLORS.get(tag, "#e3f2fd")
+    return _TAG_COLORS.get(tag, _TAG_COLORS.get("", "#e3f2fd"))
+
+
+def _tag_border(tag: str) -> str:
+    return _TAG_BORDERS.get(tag, _BORDER_COLOR)
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +235,7 @@ def _style_key_for(elem: Elem) -> StyleKey:
     family = _FONT_MONO if elem.kind == "code" else _FONT_SANS
     weight = "bold" if elem.kind in ("heading", "kicker") else "normal"
     fstyle = "italic" if elem.kind == "quote" else "normal"
-    align = "center" if elem.kind == "subtitle" else "left"
+    align = _TEXT_ALIGN  # set by render() per slide layout
     color = elem.color
     if elem.kind in ("quote", "subtitle", "tiny"):
         color = elem.muted
@@ -301,7 +330,15 @@ def _estimate_text_height(text: str, font_size: int, width_cm: float) -> float:
     width_pt = width_cm / 0.0353
     char_width_pt = font_size * 0.5
     chars_per_line = max(1, int(width_pt / char_width_pt))
-    lines = max(1, (len(text) + chars_per_line - 1) // chars_per_line)
+    # Count explicit newlines first, then wrap each line
+    raw_lines = text.split("\n")
+    total_lines = 0
+    for line in raw_lines:
+        if not line:
+            total_lines += 1
+        else:
+            total_lines += max(1, (len(line) + chars_per_line - 1) // chars_per_line)
+    lines = max(1, total_lines)
     line_height_pt = font_size * 1.4
     return (lines * line_height_pt) * 0.0353
 
@@ -329,8 +366,10 @@ def _estimate_elem_height(elem: Elem, width_cm: float) -> float:
             max_h = max(max_h, _estimate_elem_height(child, col_w))
         return max_h + 0.5
     elif kind == "card":
-        lines = (1 if elem.header else 0) + len(elem.body) + 1
-        return lines * 1.2 + 0.5
+        h = 1.0 if elem.header else 0.0
+        for line in elem.body:
+            h += max(0.5, _estimate_text_height(line, elem.font_size or 18, width_cm)) + 0.2
+        return h + 0.5
     elif kind == "speaker":
         return (2.5 if elem.attrs.get("role") else 1.5) + 0.5
     return 0.5
@@ -426,26 +465,30 @@ def _render_image(elem: Elem, ctx: LayoutContext, gr: GraphicStyleRegistry,
     return [frame]
 
 
-def _render_seaborn_odp(
+def _render_svg_odp(
     elem: Elem, ctx: LayoutContext, odp: Document
 ) -> list[Element]:
-    from slidr.render.seaborn import render_seaborn_svg
+    """Render an SVG or PDF from the IR as an embedded image frame."""
+    import tempfile
 
-    svg = render_seaborn_svg(elem.content)
-    if not svg:
+    if elem.language == "mermaid" and elem.pdf:
+        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+            f.write(elem.pdf)
+            tmp_path = f.name
+        uri = odp.add_file(tmp_path)
+        os.unlink(tmp_path)
+        size_cm = (20.0, 13.0)  # PDF dimensions are approximate
+    elif elem.svg:
+        with tempfile.NamedTemporaryFile(suffix=".svg", mode="w", delete=False) as f:
+            f.write(elem.svg)
+            tmp_path = f.name
+        uri = odp.add_file(tmp_path)
+        os.unlink(tmp_path)
+        size_cm = _svg_dims(elem.svg)
+    else:
         return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
                                      TextStyleRegistry(), odp)
 
-    # Write SVG to temp file for add_file
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix=".svg", mode="w", delete=False) as f:
-        f.write(svg)
-        tmp_path = f.name
-    uri = odp.add_file(tmp_path)
-    os.unlink(tmp_path)
-
-    # Extract dimensions from SVG viewBox
-    size_cm = _svg_dims(svg)
     if size_cm[0] > ctx.width * 0.9:
         scale = (ctx.width * 0.9) / size_cm[0]
         size_cm = (ctx.width * 0.9, size_cm[1] * scale)
@@ -495,46 +538,6 @@ def _svg_dims(svg: str) -> tuple[float, float]:
     return (vb_w * 0.0353, vb_h * 0.0353)  # pt -> cm
 
 
-def _render_mermaid_odp(
-    elem: Elem, ctx: LayoutContext, odp: Document
-) -> list[Element]:
-    try:
-        from mmdc import render as render_mmd
-
-        d = render_mmd(elem.content)
-        svg = d.svg()
-
-        svg = _normalize_svg(svg)
-        with tempfile.NamedTemporaryFile(
-            suffix=".svg", mode="w", delete=False
-        ) as f:
-            f.write(svg)
-            tmp_path = f.name
-        uri = odp.add_file(tmp_path)
-        os.unlink(tmp_path)
-
-        size_cm = _svg_dims(svg)
-        if size_cm[0] > ctx.width * 0.9:
-            scale = (ctx.width * 0.9) / size_cm[0]
-            size_cm = (ctx.width * 0.9, size_cm[1] * scale)
-        height = size_cm[1]
-        frame = Frame.image_frame(
-            image=uri,
-            text="",
-            size=(f"{size_cm[0]:.2f}cm", f"{size_cm[1]:.2f}cm"),
-            position=(
-                f"{ctx.x + (ctx.width - size_cm[0]) / 2:.2f}cm",
-                f"{ctx.y:.2f}cm",
-            ),
-            anchor_type="page",
-        )
-        ctx.y += height + ctx.gap
-        return [frame]
-    except Exception:
-        return _render_fallback_text(elem, ctx, GraphicStyleRegistry(),
-                                     TextStyleRegistry(), odp)
-
-
 def _render_text(
     elem: Elem,
     ctx: LayoutContext,
@@ -543,19 +546,20 @@ def _render_text(
     odp: Document,
 ) -> list[Element]:
     if elem.kind == "code" and elem.language == "seaborn":
-        return _render_seaborn_odp(elem, ctx, odp)
+        return _render_svg_odp(elem, ctx, odp)
     if elem.kind == "code" and elem.language == "mermaid":
-        return _render_mermaid_odp(elem, ctx, odp)
-    if not elem.inlines:
-        return []
+        return _render_svg_odp(elem, ctx, odp)
     if _is_image_elem(elem):
         return _render_image(elem, ctx, gr, tr, odp)
-    if not elem.text.strip():
+    if not elem.inlines and not elem.text.strip():
         return []
     key = _style_key_for(elem)
     gname = gr.register(key)
     height = _estimate_text_height(elem.text, elem.font_size, ctx.width)
-    p = _build_paragraph(elem.inlines, tr)
+    if elem.inlines:
+        p = _build_paragraph(elem.inlines, tr)
+    else:
+        p = Paragraph(elem.text)
     frame = Frame.text_frame(
         p,
         size=(f"{ctx.width:.2f}cm", f"{height:.2f}cm"),
@@ -656,34 +660,32 @@ def _render_table(
     nrows = len(elem.rows) + 1
     ncols = len(elem.headers)
     t = Table(f"table_{_next_table_id()}", width=ncols, height=nrows)
+
+    # Header row styling
     bold_name = tr.register(TextStyleKey(weight="bold"))
     for j, h in enumerate(elem.headers):
-        t.set_value((0, j), h)
-        cell = t.get_cell((0, j))
+        t.set_value((j, 0), h)
+        cell = t.get_cell((j, 0))
         if cell is not None:
             p = cell.get_element("text:p")
             if p is not None:
                 p.clear()
                 p.append(Span(h, style=bold_name))
+
     for i, row in enumerate(elem.rows):
         for j, cell_text in enumerate(row):
-            t.set_value((i + 1, j), cell_text)
-    gname = gr.register(
-        StyleKey(
-            font_size=elem.font_size,
-            color=elem.color,
-            font_weight="normal",
-            font_style="normal",
-            font_family=_FONT_SANS,
-            fill="",
-            text_align="left",
-            padding="0.2cm",
-        )
-    )
-    t.style = gname
+            t.set_value((j, i + 1), cell_text)
+
     height = 0.6 * nrows
+    frame = Frame(
+        name=f"table_frame_{_next_table_id()}",
+        size=(f"{ctx.width:.2f}cm", f"{height:.2f}cm"),
+        position=(f"{ctx.x:.2f}cm", f"{ctx.y:.2f}cm"),
+    )
+    frame.set_attribute("draw:fill", "none")
+    frame.append(t)
     ctx.y += height + ctx.gap
-    return [t]
+    return [frame]
 
 
 def _render_grid(
@@ -693,6 +695,10 @@ def _render_grid(
     tr: TextStyleRegistry,
     odp: Document,
 ) -> list[Element]:
+    # Column containers (col-left, col-right) stack children vertically
+    if elem.layout and elem.layout.startswith("col-"):
+        return _render_column(elem, ctx, gr, tr, odp)
+
     cols = elem.cols or len(elem.children) or 2
     if cols <= 0:
         cols = 1
@@ -705,7 +711,7 @@ def _render_grid(
     start_y = ctx.y
     for i, child in enumerate(elem.children):
         col_x = ctx.x + i * (col_w + ctx.gap)
-        child_ctx = _child_ctx(ctx, x=col_x, y=start_y, width=col_w)
+        child_ctx = _child_ctx(ctx, x=col_x, y=start_y, width=col_w, min_height=row_h)
         # Merge text elements within layout columns so paragraph+list become one frame
         if child.kind == "grid" and child.layout and child.layout.startswith("col-"):
             child = Elem(kind=child.kind, layout=child.layout, cols=child.cols,
@@ -713,6 +719,21 @@ def _render_grid(
         child_frames = _render_elem(child, child_ctx, gr, tr, odp)
         frames.extend(child_frames)
     ctx.y = start_y + row_h + ctx.gap
+    return frames
+
+
+def _render_column(
+    elem: Elem,
+    ctx: LayoutContext,
+    gr: GraphicStyleRegistry,
+    tr: TextStyleRegistry,
+    odp: Document,
+) -> list[Element]:
+    """Stack children vertically within a layout column."""
+    frames: list[Element] = []
+    for child in elem.children:
+        child_frames = _render_elem(child, ctx, gr, tr, odp)
+        frames.extend(child_frames)
     return frames
 
 
@@ -745,8 +766,12 @@ def _render_card(
         paragraphs.append(p)
     for line in elem.body:
         paragraphs.append(Paragraph(line))
-    total_lines = (1 if elem.header else 0) + len(elem.body) + 1
-    height_cm = total_lines * 1.2
+    total_height = 0.0
+    if elem.header:
+        total_height += _estimate_text_height(elem.header, 20, ctx.width) + 0.3
+    for line in elem.body:
+        total_height += max(0.5, _estimate_text_height(line, elem.font_size or 18, ctx.width)) + 0.2
+    height_cm = max(total_height + 0.5, ctx.min_height)
     frame = Frame.text_frame(
         paragraphs,
         size=(f"{ctx.width:.2f}cm", f"{height_cm:.2f}cm"),
@@ -754,7 +779,7 @@ def _render_card(
         style=gname,
     )
     _apply_border_radius(frame, _BORDER_RADIUS)
-    _apply_card_border(frame)
+    _apply_card_border(frame, _tag_border(elem.tag or ""))
     ctx.y += height_cm + ctx.gap
     return [frame]
 
@@ -769,8 +794,16 @@ def _merge_text_elements(elements: list[Elem]) -> list[Elem]:
     result = []
     buf = []
     for e in elements:
-        if e.kind in ("heading", "text", "quote", "code", "kicker", "subtitle", "tiny", "list"):
+        if e.kind in ("heading", "text", "quote", "list"):
             buf.append(e)
+        elif e.kind == "code" and e.language not in ("seaborn", "mermaid"):
+            buf.append(e)
+        elif e.kind in ("kicker", "subtitle", "speaker", "tiny"):
+            # Directives keep their own style, don't merge
+            if buf:
+                result.append(_make_block(buf))
+                buf = []
+            result.append(e)
         else:
             if buf:
                 result.append(_make_block(buf))
@@ -815,11 +848,13 @@ def _render_block(
             total_height += len(child.items) * 1.0 + 0.3
         else:
             key = _style_key_for(child)
-            gr.register(key)
+            # Register as paragraph style (not graphic style) for per-paragraph styling
+            pname = _register_paragraph_style(key, gr, document=odp)
             if child.inlines:
                 p = _build_paragraph(child.inlines, tr)
             else:
                 p = Paragraph(child.text or child.content)
+            p.style = pname
             paragraphs.append(p)
             total_height += _estimate_text_height(child.text, child.font_size, ctx.width) + 0.3
 
@@ -913,16 +948,25 @@ def render(
     source_dir: markdown file's parent directory, for resolving relative image paths.
     """
     from slidr.render.ir import resolve_styles
+    from slidr.render.seaborn import set_palette
+
+    set_palette(doc.meta.seaborn_theme)
     styles = resolve_styles(base_css, theme_css)
+    global _BORDER_RADIUS
+    global _BORDER_COLOR
     set_fonts(
         styles.get("font_body_family", "Segoe UI"),
         styles.get("font_code_family", "SFMono-Regular"),
     )
     set_border_radius(styles.get("border_radius", "0.4em"))
     set_border_color(styles.get("card_border_color", "#ddd"))
+    set_tag_colors(styles.get("tag_colors", {}))
+    _body_align = styles.get("section_text_align", "left")
+    _title_align = styles.get("title_text_align", "left")
     slides = build_ir(doc, base_css, theme_css)
     odp = Document("presentation")
     odp.body.clear()
+    _override_template_defaults(odp, _body_align)
 
     logo_uri = None
     logo_src = doc.meta.logo
@@ -948,8 +992,15 @@ def render(
     )
 
     for i, slide in enumerate(slides):
+        global _TEXT_ALIGN
+        _TEXT_ALIGN = _title_align if slide.layout == "title" else _body_align
         page = DrawPage(f"slide{i + 1}", name=f"Slide {i + 1}")
-        slide_ctx = _child_ctx(ctx, y=margin, x=margin, width=ctx.width)
+        slide_y = margin
+        if slide.layout == "title":
+            # Center title content vertically
+            total_h = sum(_estimate_elem_height(e, ctx.width) for e in slide.elements)
+            slide_y = max(margin, (page_height - total_h) / 2)
+        slide_ctx = _child_ctx(ctx, y=slide_y, x=margin, width=ctx.width)
 
         elements = _merge_text_elements(slide.elements)
         for elem in elements:

@@ -100,9 +100,9 @@ def _render_elem(e: Elem) -> str:
         return f'<div class="quote">{e.content}</div>' if e.content else ""
     elif e.kind == "code":
         if e.language == "mermaid":
-            return _render_mermaid(e.content)
+            return _render_mermaid(e.content, e.svg)
         if e.language == "seaborn":
-            return _render_seaborn_html(e.content)
+            return _render_seaborn_html(e.content, e.svg)
         return _highlight_code(e.content, e.language)
     elif e.kind == "list":
         s = "<ul>\n"
@@ -185,32 +185,17 @@ def _pygments_css(style: str = "default") -> str:
     return f"\n/* ---- pygments ---- */\n{css}\n"
 
 
-def _render_seaborn_html(content: str) -> str:
-    from slidr.render.seaborn import render_seaborn_svg
-
-    svg = render_seaborn_svg(content)
+def _render_seaborn_html(content: str, svg: str = "") -> str:
     if svg:
         return f'<div class="seaborn-plot">\n{svg}\n</div>'
     return f'<pre class="seaborn-fallback"><code>{_escape(content)}</code></pre>'
 
 
-def _render_mermaid(content: str) -> str:
-    try:
-        from mmdc import render as render_mmd
-        d = render_mmd(content)
-        svg = _normalize_viewbox(d.svg())
+def _render_mermaid(content: str, svg: str = "") -> str:
+    if svg:
+        svg = _normalize_viewbox(svg)
         return f'<div class="mermaid">\n{svg}\n</div>'
-    except Exception:
-        return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
-
-
-def _render_seaborn_html(content: str) -> str:
-    from slidr.render.seaborn import render_seaborn_svg
-
-    svg = render_seaborn_svg(content)
-    if svg:
-        return f'<div class="seaborn-plot">\n{svg}\n</div>'
-    return f'<pre class="seaborn-fallback"><code>{_escape(content)}</code></pre>'
+    return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
 
 
 def _normalize_viewbox(svg: str) -> str:

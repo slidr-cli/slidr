@@ -50,6 +50,8 @@ class Elem:
     layout: str = ""
     inlines: list[Any] = field(default_factory=list)
     item_inlines: list[list] = field(default_factory=list)
+    svg: str = ""
+    pdf: bytes = b""
 
 
 @dataclass
@@ -169,6 +171,19 @@ def _find_col(nodes: list) -> int:
     return -1
 
 
+def _normalize_viewbox(svg: str) -> str:
+    """Normalize negative viewBox origin to 0,0, expanding dimensions."""
+    import re
+    m = re.search(r'viewBox="([\d.-]+)\s+([\d.-]+)\s+([\d.]+)\s+([\d.]+)"', svg)
+    if not m:
+        return svg
+    x, y, w, h = float(m.group(1)), float(m.group(2)), float(m.group(3)), float(m.group(4))
+    if x >= 0 and y >= 0:
+        return svg
+    new_w, new_h = w + abs(x), h + abs(y)
+    return svg.replace(m.group(0), f'viewBox="0 0 {new_w:g} {new_h:g}"', 1)
+
+
 def _convert_node(node, styles: dict) -> Elem:
     """Convert a single AST node to an IR element with resolved styles."""
     base = Elem(kind="text", content="",
@@ -178,7 +193,7 @@ def _convert_node(node, styles: dict) -> Elem:
                 muted=styles.get("muted_rgb_hex", "#777"))
 
     if isinstance(node, Heading):
-        fs = {1: styles.get("font_h1", 44), 2: styles.get("font_h2", 32), 3: styles.get("font_h3", 18)}.get(node.level, 18)
+        fs = {1: styles.get("font_h1", 63), 2: styles.get("font_h2", 36), 3: styles.get("font_h3", 18)}.get(node.level, 18)
         return Elem(kind="heading", content=_render_inline_html(node.content),
                     text=_render_inline_text(node.content),
                     inlines=node.content,
@@ -190,8 +205,22 @@ def _convert_node(node, styles: dict) -> Elem:
                     font_size=base.font_size, color=base.color)
     elif isinstance(node, CodeBlock):
         fs = styles.get("font_code", 14)
+        svg = ""
+        pdf = b""
+        if node.language == "seaborn":
+            from slidr.render.seaborn import render_seaborn_svg
+            svg = render_seaborn_svg(node.content) or ""
+        elif node.language == "mermaid":
+            try:
+                from mmdc import render as render_mmd
+                d = render_mmd(node.content)
+                svg = _normalize_viewbox(d.svg())
+                pdf = d.pdf()
+            except Exception:
+                svg = ""
+                pdf = b""
         return Elem(kind="code", content=node.content, text=node.content,
-                    language=node.language, font_size=fs)
+                    language=node.language, font_size=fs, svg=svg, pdf=pdf)
     elif isinstance(node, ListNode):
         items_html = [_render_inline_html(item) for item in node.items]
         items_text = [_render_inline_text(item) for item in node.items]
@@ -213,7 +242,8 @@ def _convert_node(node, styles: dict) -> Elem:
         return Elem(kind="grid", cols=node.cols, class_=node.class_ or "", children=children)
     elif isinstance(node, Card):
         return Elem(kind="card", header=node.header, body=node.body,
-                    tag=node.tag or "", class_=node.class_ or "")
+                    tag=node.tag or "", class_=node.class_ or "",
+                    font_size=base.font_size, color=base.color)
     elif isinstance(node, Arrow):
         content = node.content.strip()
         if not content:
@@ -229,8 +259,10 @@ def _convert_node(node, styles: dict) -> Elem:
                     html = f'<img src="{t.attrs.get("src", "")}" alt="{t.attrs.get("alt", "arrow")}">'
                     break
             if html:
-                return Elem(kind="arrow", content=html)
-        return Elem(kind="arrow", content=content)
+                return Elem(kind="arrow", content=html, text=html, font_size=20,
+                            color=base.muted)
+        return Elem(kind="arrow", content=content, text=content, font_size=20,
+                    color=base.muted)
     elif isinstance(node, Notes):
         return Elem(kind="notes", content=node.content, tag=node.tag or "")
     elif isinstance(node, AttrNode):

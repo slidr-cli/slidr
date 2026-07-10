@@ -126,3 +126,21 @@ def test_css_values_propagate_to_odp_styles():
     styles2 = doc2.get_part("styles").serialize().decode()
     assert 'corner-radius' in styles2
     assert '0.2em' in styles2
+
+
+def test_mermaid_generates_svg_and_pdf_in_ir():
+    """Verify mermaid code blocks produce both SVG (for HTML) and PDF (for ODP)."""
+    from slidr.parser.markdown import parse
+    from slidr.render.html import base_css, default_theme
+    from slidr.render.ir import build_ir
+
+    doc = parse("---\ntitle: test\n---\n\n# Diagram\n\n```mermaid\ngraph LR\n    A --> B\n```\n")
+    slides = build_ir(doc, base_css(), default_theme())
+    code_elems = [e for s in slides for e in s.elements if e.kind == "code"]
+    assert len(code_elems) == 1
+    e = code_elems[0]
+    assert e.language == "mermaid"
+    assert len(e.svg) > 100, "SVG should be non-empty"
+    assert "viewBox" in e.svg
+    assert len(e.pdf) > 100, "PDF should be non-empty"
+    assert e.pdf[:4] == b"%PDF", "PDF should start with PDF magic bytes"
