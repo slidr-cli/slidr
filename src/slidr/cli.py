@@ -9,10 +9,9 @@ import typer
 from slidr.parser.markdown import parse
 from slidr.render.html import render as render_html, default_theme, base_css
 from slidr.render.odp import render as render_odp
-from slidr.render.pptx import render as render_pptx
 from slidr.render.pdf import render as render_pdf
 
-app = typer.Typer(help="Markdown to styled PPTX + PDF", no_args_is_help=True)
+app = typer.Typer(help="Markdown to styled HTML + ODP + PDF", no_args_is_help=True)
 
 
 @app.callback(invoke_without_command=True)
@@ -20,7 +19,6 @@ def main(
     file: Path = typer.Argument(None, help="Markdown file to build"),
     output_dir: Optional[Path] = typer.Option(None, "-o", "--output-dir", help="Output directory (default: <input>/dist/)"),
     pdf: bool = typer.Option(False, "--pdf", help="Generate PDF only"),
-    pptx: bool = typer.Option(False, "--pptx", help="Generate PPTX only"),
     odp: bool = typer.Option(False, "--odp", help="Generate ODP"),
     watch: bool = typer.Option(False, "-w", "--watch", help="Watch file and rebuild on changes"),
     debug: bool = typer.Option(False, "--debug", help="Dump parsed AST per slide"),
@@ -30,12 +28,12 @@ def main(
         raise typer.Exit()
 
     if watch:
-        _watch_and_build(file, output_dir, pdf, pptx, odp, debug)
+        _watch_and_build(file, output_dir, pdf, odp, debug)
     else:
-        _build(file, output_dir, pdf, pptx, odp, debug)
+        _build(file, output_dir, pdf, odp, debug)
 
 
-def _build(file: Path, output_dir: Optional[Path], pdf: bool, pptx: bool,
+def _build(file: Path, output_dir: Optional[Path], pdf: bool,
            odp: bool, debug: bool) -> None:
     content = file.read_text()
     doc = parse(content)
@@ -49,12 +47,6 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool, pptx: bool,
     html_path = out_dir / f"{stem}.html"
     html_path.write_text(html)
     typer.echo(f"Wrote {html_path} ({len(html)} bytes)")
-
-    if pptx:
-        pptx_path = out_dir / f"{stem}.pptx"
-        render_pptx(doc, pptx_path, base_css(), default_theme() + "\n" + (doc.meta.style or ""))
-        typer.echo(f"Wrote {pptx_path} ({pptx_path.stat().st_size} bytes)")
-        return
 
     if odp:
         odp_path = out_dir / f"{stem}.odp"
@@ -78,11 +70,11 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool, pptx: bool,
 
 
 def _watch_and_build(file: Path, output_dir: Optional[Path], pdf: bool,
-                     pptx: bool, odp: bool, debug: bool) -> None:
+                     odp: bool, debug: bool) -> None:
     """Watch a markdown file and rebuild on changes."""
     last_mtime = 0
 
-    _build(file, output_dir, pdf, pptx, odp, debug)
+    _build(file, output_dir, pdf, odp, debug)
     typer.echo(f"Watching {file} for changes (Ctrl+C to stop)")
 
     while True:
@@ -92,17 +84,12 @@ def _watch_and_build(file: Path, output_dir: Optional[Path], pdf: bool,
             if current_mtime != last_mtime:
                 last_mtime = current_mtime
                 typer.echo("---")
-                _build(file, output_dir, pdf, pptx, odp, debug)
+                _build(file, output_dir, pdf, odp, debug)
         except KeyboardInterrupt:
             typer.echo("\nStopped watching.")
             break
         except Exception as e:
             typer.echo(f"Error: {e}")
-
-    if pdf:
-        typer.echo("PDF: not yet implemented")
-    if pptx:
-        typer.echo("PPTX: not yet implemented")
 
 
 def _node_summary(node) -> str:
