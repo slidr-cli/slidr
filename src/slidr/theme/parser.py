@@ -15,37 +15,38 @@ def parse_theme(base_css: str, theme_css: str) -> dict:
     _parse_sheet(theme_css, styles)
 
     return {
-        "ink_rgb": _to_rgb(styles.get("color", styles.get("--ink", "#333"))),
+        "ink_rgb": _to_rgb(styles.get("--ink", styles.get("color", "#333"))),
         "muted_rgb": _to_rgb(styles.get("--muted", "#777")),
-        "accent_rgb": _to_rgb(styles.get("--green2", styles.get("--accent", "#0288d1"))),
-        "bg_color": styles.get("--bg", "#ffffff"),
-        "font_h1": _parse_size(styles.get("h1_font_size", styles.get("font-size", "")), 44),
-        "font_h2": _parse_size(styles.get("h2_font_size", ""), 32),
-        "font_h3": _parse_size(styles.get("h3_font_size", ""), 18),
-        "font_body": _parse_size(styles.get("p_font_size", ""), 18),
-        "font_quote": _parse_size(styles.get("quote_font_size", ""), 24),
-        "font_small": _parse_size(styles.get("small_font_size", ""), 13),
+        "accent_rgb": _to_rgb(styles.get("--accent", "#0288d1")),
         "font_body_family": styles.get("font_body_family", "Segoe UI"),
         "font_code_family": styles.get("font_code_family", "SFMono-Regular"),
+        "section_text_align": styles.get("section_text_align", "left"),
+        "title_text_align": styles.get("title_text_align", "left"),
         "section_padding": _parse_padding(styles.get("section_padding", "")),
-        "card_padding": _parse_padding(styles.get("card_padding", "")),
-        "card_radius": _parse_size(styles.get("card_radius", ""), 8),
-        # Backgrounds
-        "section_bg": _to_rgb(styles.get("section_bg", styles.get("--bg", "#ffffff"))),
-        "card_bg": _to_rgb(styles.get("card_bg", "#f8f8f8")),
-        # Table settings
-        "table_header_bg": _to_rgb(styles.get("table_header_bg", styles.get("--panel", "#f0f0f0"))),
-        "table_header_fg": _to_rgb(styles.get("table_header_fg", "#ffffff")),
-        "table_cell_bg": _to_rgb(styles.get("table_cell_bg", styles.get("--panel", "#ffffff"))),
-        "table_cell_fg": _to_rgb(styles.get("table_cell_fg", styles.get("--ink", "#333"))),
-        "table_border": styles.get("table_border", "1px solid #ddd"),
         "border_radius": styles.get("--radius", "0.4em"),
-        "card_border_width": _parse_border_width(styles.get("--card-border", "1px")),
         "card_border_color": _resolve_color_var(
             _parse_border_color(styles.get("--card-border", "solid #ddd")),
             styles,
         ),
+        "tag_colors": _extract_tag_colors(styles),
     }
+
+
+def _extract_tag_colors(styles: dict) -> dict[str, tuple[str, str]]:
+    """Extract per-tag fill and border colors from CSS .tag-* selectors."""
+    import re
+    result: dict[str, list[str]] = {}
+    for key, val in styles.items():
+        m = re.match(r"tag_(\w+)_(border|background)", key)
+        if m:
+            tag, prop = m.group(1), m.group(2)
+            if tag not in result:
+                result[tag] = ["#e3f2fd", "#ddd"]
+            if prop == "background":
+                result[tag][0] = val
+            else:
+                result[tag][1] = val
+    return {tag: (fill, border) for tag, (fill, border) in result.items()}
 
 
 def _parse_sheet(css: str, styles: dict) -> None:
@@ -77,33 +78,22 @@ def _parse_sheet(css: str, styles: dict) -> None:
             if key:
                 styles[key] = val
 
+            # Tag selectors (.tag-green, .tag-red, etc.)
+            import re
+            tm = re.match(r"\.tag-(\w+)", selector.strip())
+            if tm and name in ("background", "border-color"):
+                tag_key = f"tag_{tm.group(1)}_{'border' if name == 'border-color' else 'background'}"
+                styles[tag_key] = val
+
 
 def _prop_for(name: str, selector: str) -> str | None:
-    """Map a CSS property+selector to a style key."""
+    """Map CSS properties needed by the ODP renderer to style keys."""
     if selector == "section":
-        return {"padding": "section_padding", "background": "section_bg", "font-family": "font_body_family"}.get(name)
-    if selector == "h1" or selector == ".layout-title h1":
-        return {"font-size": "h1_font_size"}.get(name)
-    if selector == "h2":
-        return {"font-size": "h2_font_size"}.get(name)
-    if selector == "h3":
-        return {"font-size": "h3_font_size"}.get(name)
+        return {"padding": "section_padding", "font-family": "font_body_family", "text-align": "section_text_align"}.get(name)
+    if selector == ".layout-title":
+        return {"text-align": "title_text_align"}.get(name)
     if selector == "code":
         return {"font-family": "font_code_family"}.get(name)
-    if selector in ("p", "li", "td", "th"):
-        return {"font-size": "p_font_size"}.get(name)
-    if selector == ".quote":
-        return {"font-size": "quote_font_size"}.get(name)
-    if selector in (".tiny", ".kpi-table th", ".kpi-table td"):
-        return {"font-size": "small_font_size"}.get(name)
-    if selector == ".card":
-        return {"padding": "card_padding", "border-radius": "card_radius", "background": "card_bg"}.get(name)
-    if selector == "section tr":
-        return {"background": "table_cell_bg"}.get(name)
-    if selector == "section th":
-        return {"background": "table_header_bg", "color": "table_header_fg"}.get(name)
-    if selector == "section td":
-        return {"background": "table_cell_bg", "color": "table_cell_fg"}.get(name)
     return None
 
 
