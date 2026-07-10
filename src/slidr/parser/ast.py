@@ -79,6 +79,19 @@ class Card(Node):
 
 
 @dataclass
+class Arrow(Node):
+    """Connector between two cards (arrow icon, label, etc.)."""
+    content: str = ""
+
+
+@dataclass
+class Notes(Node):
+    """Full-width conclusion card below a comparison layout."""
+    content: str = ""
+    tag: Optional[str] = None
+
+
+@dataclass
 class Table(Node):
     headers: list[str] = field(default_factory=list)
     rows: list[list[str]] = field(default_factory=list)

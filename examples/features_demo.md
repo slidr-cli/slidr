@@ -158,11 +158,11 @@ The grid system auto-detects 2×2 cards and places them in a responsive grid. Ca
 
 ---
 
-@layout card-compare
+@layout compare
 
 ## Before & After
 
-::: card{ tag="red" }
+::: card {tag=compare}
 ### Without HAMi
 
 GPU utilization at 65%, idle GPUs
@@ -170,7 +170,11 @@ across the cluster, manual bin-packing
 required for each workload
 :::
 
-::: card{ tag="green" }
+::: arrow
+
+:::
+
+::: card {tag=compare}
 ### With HAMi
 
 GPU utilization at 92%, automatic
@@ -178,8 +182,7 @@ fractional allocation, zero manual
 intervention needed
 :::
 
-
-::: card{ tag="quote" }
+::: notes{ tag="green" }
 > HAMi is the only CNCF project that provides hardware-level GPU sharing without requiring vendor-specific drivers or kernel modifications.
 :::
 

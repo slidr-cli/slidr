@@ -71,6 +71,8 @@ class GraphicStyleRegistry:
             kwargs: dict[str, str] = {}
             if key.fill:
                 kwargs["fill_color"] = key.fill
+            else:
+                kwargs["draw:fill"] = "none"
             style = Style(
                 "graphic",
                 name=name,

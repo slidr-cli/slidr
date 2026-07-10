@@ -125,10 +125,10 @@ def _render_elem(e: Elem) -> str:
     elif e.kind == "grid":
         if e.layout:
             cls = f"{e.layout}"
-            if "card-compare" in cls:
-                left = _render_elem(e.children[0]) if len(e.children) > 0 else ""
-                right = _render_elem(e.children[1]) if len(e.children) > 1 else ""
-                return f'<div class="{cls}">\n{left}\n<div class="card-arrow">\u2192</div>\n{right}\n</div>'
+            if "compare" in cls:
+                # children: col-left, arrow, col-right
+                parts = "\n".join(filter(None, (_render_elem(c) for c in e.children)))
+                return f'<div class="{cls}">\n{parts}\n</div>'
             children = "\n".join(filter(None, (_render_elem(c) for c in e.children)))
             return f'<div class="{cls}">\n{children}\n</div>'
         cols = e.cols or len(e.children) or 2
@@ -151,6 +151,13 @@ def _render_elem(e: Elem) -> str:
             s += f"<p>{_escape(line)}</p>\n"
         s += "</div>"
         return s
+    elif e.kind == "arrow":
+        return f'<div class="card-arrow">{e.content}</div>'
+    elif e.kind == "notes":
+        cls = "notes"
+        if e.tag:
+            cls += f" tag-{e.tag}"
+        return f'<div class="{cls}">{e.content}</div>'
     elif e.kind == "speaker":
         name = e.attrs.get("name", e.content)
         role = e.attrs.get("role", "")
