@@ -1,21 +1,25 @@
 # Slidr
 
-Markdown to styled HTML slides with PDF output. PPTX is in progress.
-[Contributions welcome](CONTRIBUTING.md) for the python-pptx renderer.
+Markdown to styled HTML slides with PDF and ODP output.
 
 ## Install
 
 ```bash
-pdm install
+pdm install          # core + HTML/PDF/ODP
+pdm install -G plot  # + seaborn/matplotlib for inline charts
 ```
 
 ## Usage
 
 ```bash
-pdm run slidr slides.md          # HTML + presenter view
-pdm run slidr slides.md --pdf    # + PDF
-pdm run slidr slides.md --pptx   # + PPTX
+pdm run slidr slides.md              # HTML + presenter view
+pdm run slidr slides.md --odp        # + ODP
+pdm run slidr slides.md --pdf        # + PDF
+pdm run slidr -w slides.md           # watch and rebuild on changes
+pdm run slidr --odp -w slides.md     # watch + ODP
 ```
+
+
 
 ## Viewer controls
 
@@ -32,12 +36,12 @@ pdm run slidr slides.md --pptx   # + PPTX
 ## Slide directives
 
 ```
-@kicker text          # title slide eyebrow
-@subtitle text        # title slide subtitle
+@kicker text           # title slide eyebrow
+@subtitle text         # title slide subtitle
 @speaker name=X role=Y # title slide attribution
-@layout name          # apply a slide layout
-@col                  # explicit column break in two-col layout
-@tiny text            # small annotation
+@layout name           # apply a slide layout
+@col                   # explicit column break in two-col / compare layouts
+@tiny text             # small annotation
 ```
 
 ## Layouts
@@ -47,43 +51,66 @@ pdm run slidr slides.md --pptx   # + PPTX
 | `@layout two-col` | Heading full-width, content split 50/50. Use `@col` for explicit break. |
 | `@layout image-right` | Heading full-width, text left, image right |
 | `@layout image-left` | Heading full-width, image left, text right |
+| `@layout compare` | Two cards side-by-side with an arrow connector, conclusion notes below |
 | Custom | `@layout <name>` adds CSS class `layout-<name>`, style via frontmatter `style:` block |
 
-## Frontmatter
+### Compare layout
 
-```yaml
----
-title: My Talk
-theme: default
-footer: "Conference 2026"
-paginate: true
-size: 16:9          # 16:9 | 4:3 | 16:10
-logo: ./logo.png
-pygments_style: monokai   # any Pygments style name
-style: |
-  .custom { color: red; }
----
+```markdown
+@layout compare
+
+## Before & After
+
+::: card{ tag="red" }
+### Without HAMi
+
+GPU utilization at 65%, manual bin-packing required.
+:::
+
+::: arrow
+
+:::
+
+::: card{ tag="green" }
+### With HAMi
+
+GPU utilization at 92%, zero manual intervention.
+:::
+
+::: notes{ tag="green" }
+> HAMi is the only CNCF project providing hardware-level GPU sharing.
+:::
 ```
 
-`pygments_style` controls syntax highlighting colors for fenced code blocks.
-Any style from [pygments-styles.org](https://pygments-styles.org) is supported.
+The arrow block accepts text or images:
+```
+::: arrow
+⚠
+:::
 
-## Demo
+::: arrow
+![](icons/arrow-right.svg)
+:::
+```
+
+## Fenced blocks
 
 ```
-::: grid {cols=2}              # auto-detected as grid-2 layout
+::: grid {cols=2}              # responsive grid
+::: grid {cols=3}              # 3-column grid
 ::: card                        # basic card
-::: card{ tag="green" }         # colored left border
+::: card{ tag="green" }         # colored left border + background
+::: card{ tag="quote" }         # accent left border, italic, no fill
+::: arrow                       # connector for compare layout
+::: notes{ tag="green" }        # full-width conclusion card
 > quote text                    # blockquote, renders as .quote div
 | col1 | col2 |                 # pipe table
 `inline code`                   # inline code
 ```language                    # fenced code block with syntax highlighting
-```d2                         # D2 diagram, inline SVG at build time
+```mermaid                     # Mermaid diagram, inline SVG
+```seaborn                     # Seaborn chart, inline SVG
+```d2                          # D2 diagram (legacy, replaced by mermaid)
 ```
-
-D2 blocks require `d2` installed. Rendered to inline SVG -- works in PDF
-with no JS dependency. When using `@layout image-right` with a D2 diagram,
-use `@col` for manual split since D2 blocks aren't auto-detected as images.
 
 ## Layout caveats
 
@@ -124,32 +151,32 @@ slides.md
   → build_ir() (resolve theme styles via tinycss2)
   → SlideIR (per-element: font_size, color, accent + rendered HTML)
      ↙              ↘
-  html.py          pptx.py
+  html.py          odp.py
   (_render_elem)   (_render_elem, consumes same IR)
 ```
 
 The IR is the single source of truth between renderers. Each `Elem` carries
 pre-rendered inline HTML (for the browser renderer) plus resolved style
-properties like `font_size`, `color`, `accent`, `muted` (for the PPTX renderer).
+properties like `font_size`, `color`, `accent`, `muted` (for the ODP renderer).
 No duplicate node-walking, no diverging implementations of bold/italic/table logic.
 
 ## Architecture decisions
 
 ### Why Python over Go
 
-Go's ecosystem is thin for presentation tooling. Generating PPTX requires a library on par with python-pptx, and Go has nothing comparable. Rendering HTML to PDF needs a real layout engine: weasyprint embeds one in a single Python package; Go would require shelling out to wkhtmltopdf or headless Chrome, both hundreds of megabytes. Markdown parsing has goldmark but its plugin ecosystem is smaller than markdown-it-py. The project iterates heavily on CSS rules, padding math, and layout logic, and Go's compile cycle adds friction to design work where you rebuild after every 2px change.
+Go's ecosystem is thin for presentation tooling. Generating ODP requires a library like odfdo, and Go has nothing comparable. Rendering HTML to PDF needs a real layout engine: weasyprint embeds one in a single Python package; Go would require shelling out to wkhtmltopdf or headless Chrome, both hundreds of megabytes. Markdown parsing has goldmark but its plugin ecosystem is smaller than markdown-it-py. The project iterates heavily on CSS rules, padding math, and layout logic, and Go's compile cycle adds friction to design work where you rebuild after every 2px change.
 
 ### Why Python over Rust
 
-Same ecosystem gap, worse compile times. Rust has no python-pptx equivalent, no weasyprint equivalent. Pygments for syntax highlighting has syntect in Rust but syntect covers fewer languages. Jinja2 templating maps to Tera which is less mature. The Rust port (slidr-rust) was abandoned because the dependency surface was too sparse, and too much would have to be built from scratch. Rust's compile time is measured in seconds where Python's is milliseconds, and slide design is inherently iterative.
+Same ecosystem gap, worse compile times. Rust has no odfdo equivalent, no weasyprint equivalent. Pygments for syntax highlighting has syntect in Rust but syntect covers fewer languages. Jinja2 templating maps to Tera which is less mature. Rust's compile time is measured in seconds where Python's is milliseconds, and slide design is inherently iterative.
 
 ### Why not Node
 
-Node's dependency footprint is the dealbreaker. A CLI that parses markdown, generates PPTX, renders PDF, and templates HTML pulls in 300MB+ of node_modules for marginal functionality. PDF generation requires Puppeteer/Playwright, which bundles a headless Chromium binary (~300MB). Weasyprint is a single Python package that does the same with a fraction of the weight. PPTX libraries in Node (pptxgenjs) are less feature-complete than python-pptx. Python's stdlib covers path handling, subprocess management, and file I/O without extra packages. The result is a tool you can install and run without downloading half the internet.
+Node's dependency footprint is the dealbreaker. A CLI that parses markdown, generates ODP, renders PDF, and templates HTML pulls in 300MB+ of node_modules for marginal functionality. PDF generation requires Puppeteer/Playwright, which bundles a headless Chromium binary (~300MB). Weasyprint is a single Python package that does the same with a fraction of the weight. ODP libraries in Node are less mature than odfdo. Python's stdlib covers path handling, subprocess management, and file I/O without extra packages. The result is a tool you can install and run without downloading half the internet.
 
 ### The Python sweet spot
 
-- **python-pptx**: mature PPTX generation, slide layouts, text frames, tables
+- **odfdo**: ODP generation via OpenDocument XML
 - **weasyprint**: HTML/CSS to PDF via embedded layout engine, no browser dependency
 - **markdown-it-py**: same parser as the JS ecosystem, GFM support
 - **Pygments**: comprehensive syntax highlighting for code blocks
