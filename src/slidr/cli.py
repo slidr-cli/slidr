@@ -1,5 +1,6 @@
 """slidr CLI entry point."""
 
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -21,12 +22,21 @@ def main(
     pdf: bool = typer.Option(False, "--pdf", help="Generate PDF only"),
     pptx: bool = typer.Option(False, "--pptx", help="Generate PPTX only"),
     odp: bool = typer.Option(False, "--odp", help="Generate ODP"),
+    watch: bool = typer.Option(False, "-w", "--watch", help="Watch file and rebuild on changes"),
     debug: bool = typer.Option(False, "--debug", help="Dump parsed AST per slide"),
 ):
     """Build slides from a markdown file. If no file is given, shows help."""
     if file is None:
         raise typer.Exit()
 
+    if watch:
+        _watch_and_build(file, output_dir, pdf, pptx, odp, debug)
+    else:
+        _build(file, output_dir, pdf, pptx, odp, debug)
+
+
+def _build(file: Path, output_dir: Optional[Path], pdf: bool, pptx: bool,
+           odp: bool, debug: bool) -> None:
     content = file.read_text()
     doc = parse(content)
 
@@ -65,6 +75,29 @@ def main(
             typer.echo(f"  Slide {i+1}: {slide.layout.value} ({len(slide.children)} children)")
             for n in slide.children:
                 typer.echo(f"    {type(n).__name__}: {_node_summary(n)}")
+
+
+def _watch_and_build(file: Path, output_dir: Optional[Path], pdf: bool,
+                     pptx: bool, odp: bool, debug: bool) -> None:
+    """Watch a markdown file and rebuild on changes."""
+    last_mtime = 0
+
+    _build(file, output_dir, pdf, pptx, odp, debug)
+    typer.echo(f"Watching {file} for changes (Ctrl+C to stop)")
+
+    while True:
+        try:
+            time.sleep(1)
+            current_mtime = file.stat().st_mtime
+            if current_mtime != last_mtime:
+                last_mtime = current_mtime
+                typer.echo("---")
+                _build(file, output_dir, pdf, pptx, odp, debug)
+        except KeyboardInterrupt:
+            typer.echo("\nStopped watching.")
+            break
+        except Exception as e:
+            typer.echo(f"Error: {e}")
 
     if pdf:
         typer.echo("PDF: not yet implemented")

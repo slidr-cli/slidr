@@ -35,6 +35,14 @@ code {
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+.note {
+  border-left: 0.25em solid;
+  padding: 0.5em 0.8em;
+  margin: 0.5em 0;
+  font-size: 0.8em;
+  border-radius: 0 0.15em 0.15em 0;
+}
+
 pre {
   overflow: auto;
   max-height: 100%;
@@ -111,31 +119,31 @@ LOGO_CSS
   align-items: start;
   height: 100%;
 }
-.col-left, .col-right {
-  min-width: 0;
-  overflow-wrap: break-word;
-}
+
 .layout-image-right .col-right,
 .layout-image-left .col-left {
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.layout-image-right .col-right img,
-.layout-image-left .col-left img {
+
+.col-right img, .col-left img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
-.layout-two-col .col-left,
-.layout-two-col .col-right {
+
+.col-left, .col-right {
+  height: 100%;
   padding: 0 0.5em;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
-.card-compare {
+.compare {
   grid-template-columns: 1fr auto 1fr !important;
   align-items: center;
   height: 80%;
@@ -144,6 +152,24 @@ LOGO_CSS
 .card-arrow {
   font-size: 2em;
   padding: 0 0.3em;
+}
+.notes {
+  border-radius: 0.4em;
+  padding: 1em;
+  margin-top: 0.5em;
+  font-style: italic;
+}
+.notes.tag-green { background: #e8f5e9; border-left: 0.25em solid #0fd05d; }
+.notes.tag-yellow { background: #fff9c4; border-left: 0.25em solid #ffd166; }
+.notes.tag-red { background: #ffebee; border-left: 0.25em solid #ff7a7a; }
+
+.tag-compare {
+  flex: 1;
+  background: #fafafa;
+  border: 1px solid var(--color-border);
+  margin: 0.1em;
+  height: 100%;
+  min-height: 0;
 }
 
 /* ---- screen mode ---- */

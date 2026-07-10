@@ -1,6 +1,6 @@
 """Fenced block extraction: ::: card, ::: grid → AST nodes."""
 
-from slidr.parser.ast import Card, Grid, Node
+from slidr.parser.ast import Arrow, Card, Grid, Node, Notes
 
 
 def extract_fenced(content: str) -> tuple[str, list[Node]]:
@@ -36,6 +36,10 @@ def extract_fenced(content: str) -> tuple[str, list[Node]]:
                 nodes.append(_parse_card(inner_text, rest))
             elif typ == "grid":
                 nodes.append(_parse_grid(inner_text, rest))
+            elif typ == "arrow":
+                nodes.append(_parse_arrow(inner_text))
+            elif typ == "notes":
+                nodes.append(_parse_notes(inner_text, rest))
 
             result.append(f"\u25caFENCE_{count}")
             count += 1
@@ -95,6 +99,22 @@ def _parse_grid(inner_text: str, rest: str) -> Grid:
     if cols == 0:
         cols = len(children) or 2
     return Grid(cols=cols, class_=class_, children=children)
+
+
+def _parse_arrow(text: str) -> Arrow:
+    return Arrow(content=text.strip() or "\u2192")
+
+
+def _parse_notes(text: str, rest: str) -> Notes:
+    tag = ""
+    raw = rest.split("{", 1)[1].rstrip("}") if "{" in rest else ""
+    for attr in raw.split(","):
+        attr = attr.strip()
+        if "=" in attr:
+            k, v = attr.split("=", 1)
+            if k.strip() == "tag":
+                tag = v.strip().strip('"')
+    return Notes(content=text.strip(), tag=tag or None)
 
 
 def interleave_fences(nodes: list[Node], fence_nodes: list[Node]) -> list[Node]:

@@ -13,7 +13,7 @@ from typing import Any
 from slidr.parser.ast import (
     Document, Slide, Heading, Paragraph, CodeBlock, Grid, Card,
     Table, Quote, ListNode, AttrNode, Text, Strong, Emphasis,
-    Strikethrough, CodeSpan, Image, SoftBreak,
+    Strikethrough, CodeSpan, Image, SoftBreak, Arrow, Notes,
 )
 from slidr.plugins.layouts import KNOWN_LAYOUTS
 from slidr.theme.parser import parse_theme
@@ -101,35 +101,39 @@ def _rgb_to_hex(rgb: tuple) -> str:
 def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
     """Apply layout column wrapping at the IR level."""
     extra = []
+    arrow_elem = None
     if layout == "image-right":
         left, right = _split_image_ir(nodes)
     elif layout == "image-left":
         right, left = _split_image_ir(nodes)
     elif layout == "two-col":
         left, right = _split_two_col_ir(nodes)
-    elif layout == "card-compare":
-        # Only the first Grid (cards) goes into columns; rest is slide body
-        from slidr.parser.ast import Grid
-        grid_idx = next((i for i, n in enumerate(nodes) if isinstance(n, Grid)), None)
-        if grid_idx is not None and len(nodes[grid_idx].children) >= 2:
-            g = nodes[grid_idx]
-            left = g.children[0:1]
-            right = g.children[1:2]
-            # remaining cards go below as extra elements
-            extra = nodes[:grid_idx] + list(g.children[2:]) + nodes[grid_idx + 1:]
+    elif layout == "compare":
+        # Card | Arrow | Card  →  col-left, arrow, col-right
+        # Notes nodes stay as extra below
+        arrow_idx = next((i for i, n in enumerate(nodes) if isinstance(n, Arrow)), None)
+        extra = [n for n in nodes if isinstance(n, Notes)]
+        if arrow_idx is not None and arrow_idx > 0 and arrow_idx < len(nodes) - 1:
+            left = nodes[:arrow_idx]
+            right = nodes[arrow_idx + 1:]
+            right = [n for n in right if not isinstance(n, Notes)]
+            arrow_elem = _convert_node(nodes[arrow_idx], styles)
         else:
             left, right = _split_two_col_ir(nodes)
+            arrow_elem = None
     else:
         return [_convert_node(n, styles) for n in nodes]
 
     children = []
     if left:
         children.append(_col_elem("left", left, styles))
+    if arrow_elem is not None:
+        children.append(arrow_elem)
     if right:
         children.append(_col_elem("right", right, styles))
     cls = "layout-cols"
-    if layout == "card-compare":
-        cls += " card-compare"
+    if layout == "compare":
+        cls += " compare"
     result = [Elem(kind="grid", layout=cls, cols=0, children=children)]
     if extra:
         result.extend(_convert_node(n, styles) for n in extra)
@@ -156,7 +160,6 @@ def _split_two_col_ir(nodes: list) -> tuple[list, list]:
     if col_idx >= 0:
         return nodes[:col_idx], nodes[col_idx + 1:]
     # Unwrap single Grid with 2 children for card-compare
-    from slidr.parser.ast import Grid
     if len(nodes) == 1 and isinstance(nodes[0], Grid) and len(nodes[0].children) == 2:
         return nodes[0].children[0:1], nodes[0].children[1:2]
     mid = (len(nodes) + 1) // 2
@@ -215,6 +218,25 @@ def _convert_node(node, styles: dict) -> Elem:
     elif isinstance(node, Card):
         return Elem(kind="card", header=node.header, body=node.body,
                     tag=node.tag or "", class_=node.class_ or "")
+    elif isinstance(node, Arrow):
+        content = node.content.strip()
+        if not content:
+            content = "\u2192"
+        # Check if content is an image reference
+        if content.startswith("!["):
+            from markdown_it import MarkdownIt
+            md = MarkdownIt()
+            tokens = md.parseInline(content)
+            html = ""
+            for t in tokens:
+                if t.type == "image":
+                    html = f'<img src="{t.attrs.get("src", "")}" alt="{t.attrs.get("alt", "arrow")}">'
+                    break
+            if html:
+                return Elem(kind="arrow", content=html)
+        return Elem(kind="arrow", content=content)
+    elif isinstance(node, Notes):
+        return Elem(kind="notes", content=node.content, tag=node.tag or "")
     elif isinstance(node, AttrNode):
         if node.type == "speaker":
             name = node.attrs.get("name", node.value)

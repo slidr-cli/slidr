@@ -53,6 +53,10 @@ footer { color: var(--color-dimmed); }
 .tiny { font-size: 0.7em; color: var(--color-dimmed); }
 .muted { color: var(--color-dimmed); }
 
+.note-green  { border-left-color: #0fd05d; background: #e8f5e9; }
+.note-yellow { border-left-color: #ffd166; background: #fff9c4; }
+.note-red    { border-left-color: #ff7a7a; background: #ffebee; }
+
 /* ---- tag colors ---- */
 .tag-green  { border-color: #0fd05d; background: #e8f5e9; }
 .tag-cyan   { border-color: #67d8ff; background: #e0f7fa; }
