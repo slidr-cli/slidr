@@ -23,16 +23,48 @@ from slidr.parser.ast import Document as ASTDocument
 from slidr.render.ir import Elem, SlideIR, build_ir
 
 
+_FONT_SANS = ""
+_FONT_MONO = ""
+_BORDER_RADIUS = ""
+_BORDER_COLOR = "#ddd"
+
+
+def set_fonts(sans: str, mono: str) -> None:
+    global _FONT_SANS, _FONT_MONO
+    _FONT_SANS = sans
+    _FONT_MONO = mono
+
+
+def set_border_radius(radius: str) -> None:
+    global _BORDER_RADIUS
+    _BORDER_RADIUS = radius
+
+
+def set_border_color(color: str) -> None:
+    global _BORDER_COLOR
+    _BORDER_COLOR = color
+
+
+def _em_to_cm(value: str) -> str:
+    """Convert CSS em value to cm for ODP. Falls back to input if not em."""
+    if value.endswith("em"):
+        return f"{float(value[:-2]) * 0.35:.3f}cm"
+    return value
+
+
 @dataclass(frozen=True)
 class StyleKey:
-    font_size: int = 18
-    color: str = "#333333"
-    font_weight: str = "normal"
-    font_style: str = "normal"
-    font_family: str = "Liberation Sans"
+    font_size: int = 0
+    color: str = ""
+    font_weight: str = ""
+    font_style: str = ""
+    font_family: str = ""
     fill: str = ""
-    text_align: str = "left"
-    padding: str = "0cm"
+    text_align: str = ""
+    padding: str = ""
+    border_radius: str = ""
+    border_color: str = ""
+    border_width: str = ""
 
 
 @dataclass(frozen=True)
@@ -93,6 +125,10 @@ class GraphicStyleRegistry:
                 weight=key.font_weight,
                 font_style=key.font_style,
             )
+            if key.border_radius:
+                props = style.get_element("style:graphic-properties")
+                if props is not None:
+                    props.set_attribute("draw:corner-radius", key.border_radius)
             document.insert_style(style)
 
 
@@ -121,7 +157,21 @@ class TextStyleRegistry:
             document.insert_style(style)
 
 
+def _apply_border_radius(frame: Frame, radius: str) -> None:
+    """Set draw:corner-radius directly on the frame element."""
+    if radius:
+        frame.set_attribute("draw:corner-radius", _em_to_cm(radius))
+
+
+def _apply_card_border(frame: Frame) -> None:
+    """Apply thin continuous border matching CSS --card-border to a frame."""
+    frame.set_attribute("draw:stroke", "solid")
+    frame.set_attribute("svg:stroke-color", _BORDER_COLOR)
+    frame.set_attribute("svg:stroke-width", "0.01mm")
+
+
 def _child_ctx(parent: LayoutContext, **overrides: Any) -> LayoutContext:
+    return replace(parent, **overrides)
     return replace(parent, **overrides)
 
 
@@ -153,7 +203,7 @@ def _tag_to_color(tag: str) -> str:
 
 
 def _style_key_for(elem: Elem) -> StyleKey:
-    family = "Liberation Mono" if elem.kind == "code" else "Liberation Sans"
+    family = _FONT_MONO if elem.kind == "code" else _FONT_SANS
     weight = "bold" if elem.kind in ("heading", "kicker") else "normal"
     fstyle = "italic" if elem.kind == "quote" else "normal"
     align = "center" if elem.kind == "subtitle" else "left"
@@ -210,7 +260,7 @@ def _build_paragraph(inlines: list, tr: TextStyleRegistry) -> Paragraph:
             p.append(text)
         elif isinstance(node, CodeSpan):
             name = tr.register(
-                TextStyleKey(font_family="Liberation Mono", font_size=14)
+                TextStyleKey(font_family=_FONT_MONO, font_size=14)
             )
             p.append(Span(node.content, style=name))
         elif isinstance(node, Image):
@@ -530,7 +580,7 @@ def _render_speaker(
         color=elem.color,
         font_weight="normal",
         font_style="normal",
-        font_family="Liberation Sans",
+        font_family=_FONT_SANS,
         fill="",
         text_align="left",
         padding="0cm",
@@ -568,7 +618,7 @@ def _render_list(
         color=elem.color,
         font_weight="normal",
         font_style="normal",
-        font_family="Liberation Sans",
+        font_family=_FONT_SANS,
         fill="",
         text_align="left",
         padding="0cm",
@@ -624,7 +674,7 @@ def _render_table(
             color=elem.color,
             font_weight="normal",
             font_style="normal",
-            font_family="Liberation Sans",
+            font_family=_FONT_SANS,
             fill="",
             text_align="left",
             padding="0.2cm",
@@ -679,10 +729,11 @@ def _render_card(
         color="#333333",
         font_weight="normal",
         font_style="normal",
-        font_family="Liberation Sans",
+        font_family=_FONT_SANS,
         fill=fill_color,
         text_align="left",
         padding="0.5cm",
+        border_radius=_BORDER_RADIUS,
     )
     gname = gr.register(key)
     paragraphs: list[Element] = []
@@ -702,6 +753,8 @@ def _render_card(
         position=(f"{ctx.x:.2f}cm", f"{ctx.y:.2f}cm"),
         style=gname,
     )
+    _apply_border_radius(frame, _BORDER_RADIUS)
+    _apply_card_border(frame)
     ctx.y += height_cm + ctx.gap
     return [frame]
 
@@ -787,6 +840,7 @@ def _render_block(
 # ---------------------------------------------------------------------------
 
 _RENDERERS: dict[str, Any] = {
+    "arrow": _render_text,
     "block": _render_block,
     "heading": _render_text,
     "text": _render_text,
@@ -797,6 +851,7 @@ _RENDERERS: dict[str, Any] = {
     "tiny": _render_text,
     "speaker": _render_speaker,
     "list": _render_list,
+    "notes": _render_text,
     "table": _render_table,
     "grid": _render_grid,
     "card": _render_card,
@@ -857,6 +912,14 @@ def render(
 
     source_dir: markdown file's parent directory, for resolving relative image paths.
     """
+    from slidr.render.ir import resolve_styles
+    styles = resolve_styles(base_css, theme_css)
+    set_fonts(
+        styles.get("font_body_family", "Segoe UI"),
+        styles.get("font_code_family", "SFMono-Regular"),
+    )
+    set_border_radius(styles.get("border_radius", "0.4em"))
+    set_border_color(styles.get("card_border_color", "#ddd"))
     slides = build_ir(doc, base_css, theme_css)
     odp = Document("presentation")
     odp.body.clear()

@@ -85,3 +85,44 @@ def test_render_list_produces_odf_list():
 
     items = odf_list.get_elements("text:list-item")
     assert len(items) == 3
+
+
+def test_css_values_propagate_to_odp_styles():
+    """Verify font and border-radius from CSS reach the ODP style registry."""
+    from slidr.render.odp import (
+        GraphicStyleRegistry, StyleKey, set_fonts, set_border_radius,
+        _style_key_for,
+    )
+    from slidr.render.ir import Elem
+
+    set_fonts("My Custom Sans", "My Custom Mono")
+    set_border_radius("0.2em")
+
+    gr = GraphicStyleRegistry()
+    key = _style_key_for(Elem(kind="text", font_size=18, color="#333"))
+    assert key.font_family == "My Custom Sans"
+
+    key2 = _style_key_for(Elem(kind="code", font_size=14, color="#333"))
+    assert key2.font_family == "My Custom Mono"
+
+    # Register both body and mono styles
+    gr.register(key)
+    gr.register(key2)
+    from odfdo import Document
+    doc = Document("presentation")
+    gr.insert_all(doc)
+
+    styles_xml = doc.get_part("styles").serialize().decode()
+    assert "My Custom Sans" in styles_xml
+    assert "My Custom Mono" in styles_xml
+
+    # Card style should have border-radius
+    card_key = StyleKey(font_size=18, color="#333", fill="#e8f5e9",
+                        font_family="My Custom Sans", border_radius="0.2em")
+    gr2 = GraphicStyleRegistry()
+    gr2.register(card_key)
+    doc2 = Document("presentation")
+    gr2.insert_all(doc2)
+    styles2 = doc2.get_part("styles").serialize().decode()
+    assert 'corner-radius' in styles2
+    assert '0.2em' in styles2

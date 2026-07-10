@@ -25,6 +25,8 @@ def parse_theme(base_css: str, theme_css: str) -> dict:
         "font_body": _parse_size(styles.get("p_font_size", ""), 18),
         "font_quote": _parse_size(styles.get("quote_font_size", ""), 24),
         "font_small": _parse_size(styles.get("small_font_size", ""), 13),
+        "font_body_family": styles.get("font_body_family", "Segoe UI"),
+        "font_code_family": styles.get("font_code_family", "SFMono-Regular"),
         "section_padding": _parse_padding(styles.get("section_padding", "")),
         "card_padding": _parse_padding(styles.get("card_padding", "")),
         "card_radius": _parse_size(styles.get("card_radius", ""), 8),
@@ -37,6 +39,12 @@ def parse_theme(base_css: str, theme_css: str) -> dict:
         "table_cell_bg": _to_rgb(styles.get("table_cell_bg", styles.get("--panel", "#ffffff"))),
         "table_cell_fg": _to_rgb(styles.get("table_cell_fg", styles.get("--ink", "#333"))),
         "table_border": styles.get("table_border", "1px solid #ddd"),
+        "border_radius": styles.get("--radius", "0.4em"),
+        "card_border_width": _parse_border_width(styles.get("--card-border", "1px")),
+        "card_border_color": _resolve_color_var(
+            _parse_border_color(styles.get("--card-border", "solid #ddd")),
+            styles,
+        ),
     }
 
 
@@ -63,6 +71,8 @@ def _parse_sheet(css: str, styles: dict) -> None:
                 continue
 
             # Named selectors -> prefixed props
+            if val.startswith("var("):
+                continue
             key = _prop_for(name, selector)
             if key:
                 styles[key] = val
@@ -71,13 +81,15 @@ def _parse_sheet(css: str, styles: dict) -> None:
 def _prop_for(name: str, selector: str) -> str | None:
     """Map a CSS property+selector to a style key."""
     if selector == "section":
-        return {"padding": "section_padding", "background": "section_bg"}.get(name)
+        return {"padding": "section_padding", "background": "section_bg", "font-family": "font_body_family"}.get(name)
     if selector == "h1" or selector == ".layout-title h1":
         return {"font-size": "h1_font_size"}.get(name)
     if selector == "h2":
         return {"font-size": "h2_font_size"}.get(name)
     if selector == "h3":
         return {"font-size": "h3_font_size"}.get(name)
+    if selector == "code":
+        return {"font-family": "font_code_family"}.get(name)
     if selector in ("p", "li", "td", "th"):
         return {"font-size": "p_font_size"}.get(name)
     if selector == ".quote":
@@ -113,7 +125,7 @@ def _to_rgb(value: str) -> tuple[int, int, int]:
 
 def _parse_size(value: str, default: int) -> int:
     """Parse a CSS size value to integer points."""
-    if not value:
+    if not value or value.startswith("var("):
         return default
     value = value.strip().rstrip(";")
     if value.endswith("px"):
@@ -129,7 +141,9 @@ def _parse_padding(value: str) -> tuple[int, int, int, int]:
     """Parse CSS padding into (top, right, bottom, left) in px."""
     if not value:
         return (50, 64, 50, 64)
-    parts = value.split()
+    parts = [p for p in value.split() if not p.startswith("var(")]
+    if not parts:
+        return (50, 64, 50, 64)
     vals = [int(float(p.rstrip("pxem;"))) for p in parts]
     if len(vals) == 1:
         return (vals[0], vals[0], vals[0], vals[0])
@@ -138,3 +152,28 @@ def _parse_padding(value: str) -> tuple[int, int, int, int]:
     if len(vals) == 4:
         return (vals[0], vals[1], vals[2], vals[3])
     return (50, 64, 50, 64)
+
+
+def _parse_border_width(border: str) -> str:
+    """Extract border width from CSS border shorthand (e.g. '1px solid #ddd')."""
+    parts = border.split()
+    return parts[0] if parts else "1px"
+
+
+def _parse_border_color(border: str) -> str:
+    """Extract border color from CSS border shorthand, after the style keyword."""
+    parts = border.split()
+    for i, p in enumerate(parts):
+        if p in ("solid", "dashed", "dotted", "double", "none"):
+            if i + 1 < len(parts):
+                return parts[i + 1]
+    return parts[-1] if parts else "#ddd"
+
+
+def _resolve_color_var(color: str, styles: dict) -> str:
+    """Resolve var(--name) to its value from CSS variables."""
+    import re
+    m = re.match(r"var\((--[\w-]+)\)", color.strip())
+    if m:
+        return styles.get(m.group(1), color)
+    return color

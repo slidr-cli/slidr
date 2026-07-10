@@ -99,7 +99,7 @@ HAMi demonstrates near-linear scaling with concurrent inference workloads across
 - **Multi-Cluster**: Federation via HAMi-gateway with cross-cluster GPU sharing
 - **Air-Gapped**: Offline mode with signed container images and local model registry
 
-
+@col
 
 **Monitoring**: Prometheus metrics for GPU utilization, memory pressure, scheduling latency
 - **Autoscaling**: HPA integration based on GPU queue depth and pending workload count
