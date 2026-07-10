@@ -3,10 +3,20 @@
 /* ---- reset ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ---- variables ---- */
+:root {
+  --radius: 0.4em;
+  --gap: 1em;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --section-padding-v: 2.8em;
+  --section-padding-h: 3.6em;
+  --card-border: 1px solid var(--color-border);
+}
+
 /* ---- layout defaults ---- */
 section {
   font-size: 18pt;
-  padding: 2.8em 3.6em;
+  padding: var(--section-padding-v) var(--section-padding-h);
   display: flex;
   flex-direction: column;
 }
@@ -32,7 +42,7 @@ blockquote {
 }
 
 code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: var(--font-mono);
 }
 
 .note {
@@ -40,13 +50,12 @@ code {
   padding: 0.5em 0.8em;
   margin: 0.5em 0;
   font-size: 0.8em;
-  border-radius: 0 0.15em 0.15em 0;
+  border-radius: 0 var(--radius) var(--radius) 0;
 }
 
 pre {
-  overflow: auto;
-  max-height: 100%;
-  border-radius: 0.3em;
+  overflow: hidden;
+  border-radius: var(--radius);
   padding: 0.55em 0.8em;
   margin: 0.5em 0;
   font-size: 0.75em;
@@ -61,11 +70,11 @@ table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
 th, td { padding: 0.5em 0.65em; text-align: left; vertical-align: top; overflow-wrap: break-word; }
 th { font-weight: 700; }
 
-.grid { display: grid; gap: 1em; margin: 1em 0; }
+.grid { display: grid; gap: var(--gap); margin: var(--gap) 0; }
 .grid > * { min-width: 0; }
 
 .card {
-  border-radius: 0.1em;
+  border-radius: var(--radius);
   padding: 1em;
   overflow-wrap: break-word;
   min-width: 0;
@@ -79,20 +88,20 @@ th { font-weight: 700; }
   padding-left: 1em;
 }
 
-.kicker { font-family: monospace; font-size: 0.8em; font-weight: 800; }
+.kicker { font-family: var(--font-mono); font-size: 0.8em; font-weight: 800; }
 .speaker { font-size: 1.05em; font-weight: 750; margin-top: 3em; }
 
 footer {
   position: absolute;
   bottom: 1em;
-  left: 3.6em;
+  left: var(--section-padding-h);
   font-size: 0.6em;
   text-align: left;
 }
 .slide-num {
   position: absolute;
   bottom: 1em;
-  right: 3.6em;
+  right: var(--section-padding-h);
   font-size: 0.6em;
   text-align: right;
 }
@@ -116,6 +125,7 @@ LOGO_CSS
 .layout-cols {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
   align-items: start;
   height: 100%;
 }
@@ -154,7 +164,7 @@ LOGO_CSS
   padding: 0 0.3em;
 }
 .notes {
-  border-radius: 0.4em;
+  border-radius: var(--radius);
   padding: 1em;
   margin-top: 0.5em;
   font-style: italic;

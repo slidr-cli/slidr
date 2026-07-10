@@ -36,7 +36,7 @@ a { color: var(--color-accent); }
 
 .card {
   background: #e3f2fd;
-  border: 1px solid var(--color-border);
+  border: var(--card-border);
 }
 .card p { font-size: 0.9em; }
 
