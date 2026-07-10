@@ -1,14 +1,14 @@
 # CLAUDE.md — Slidr (Python)
 
-Slidr is a Python CLI that turns markdown into styled HTML + PDF + PPTX. Uses markdown-it-py for parsing, weasyprint for PDF, python-pptx for PPTX, Jinja2 for templates. CSS passthrough -- no CSS parser needed. Theme colors extracted via tinycss2 for PPTX only.
+Slidr is a Python CLI that turns markdown into styled HTML + PDF + ODP. Uses markdown-it-py for parsing, weasyprint for PDF, odfdo for ODP, Jinja2 for templates. CSS passthrough -- no CSS parser needed. Theme colors extracted via tinycss2 for ODP only.
 
 ## Build & test
 
 ```bash
 pdm install                # install deps
 pdm run slidr slides.md    # build HTML
-pdm run slidr slides.md --pdf    # + PDF
-pdm run slidr slides.md --pptx   # + PPTX
+pdm run slidr slides.md --odp     # + ODP
+pdm run slidr slides.md --pdf     # + PDF
 pdm run pytest             # run tests
 ```
 
@@ -105,3 +105,11 @@ user style: block (frontmatter overrides)
 - `presenter.html` has its own inline JS (different from main -- grid layout, sync polling, notes).
 - ALL font sizes use `em` (relative to 18pt base on section). No `px` for text.
 - Spacing uses `em` for consistency. Percentages converted: `10%` of 720px slide height = 72px / 18 = 4em.
+
+## Testing
+
+- Always add tests after implementing new features. Tests are mandatory, not optional.
+- Place tests in `tests/test_<component>.py` where `<component>` matches the module name (e.g. `tests/test_odp.py` for `src/slidr/render/odp.py`, `tests/test_parser.py` for `src/slidr/parser/markdown.py`).
+- If a feature spans multiple components, put tests in the file matching the primary component.
+- Run `pdm run pytest` after writing tests to confirm they pass.
+- Test naming: `test_<function_name>_<scenario>` (e.g. `test_merge_text_elements_separated_by_card`).

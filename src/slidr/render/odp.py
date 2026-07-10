@@ -656,6 +656,10 @@ def _render_grid(
     for i, child in enumerate(elem.children):
         col_x = ctx.x + i * (col_w + ctx.gap)
         child_ctx = _child_ctx(ctx, x=col_x, y=start_y, width=col_w)
+        # Merge text elements within layout columns so paragraph+list become one frame
+        if child.kind == "grid" and child.layout and child.layout.startswith("col-"):
+            child = Elem(kind=child.kind, layout=child.layout, cols=child.cols,
+                         children=_merge_text_elements(child.children))
         child_frames = _render_elem(child, child_ctx, gr, tr, odp)
         frames.extend(child_frames)
     ctx.y = start_y + row_h + ctx.gap
@@ -703,10 +707,87 @@ def _render_card(
 
 
 # ---------------------------------------------------------------------------
+# Block merging (combine consecutive text elements into one frame)
+# ---------------------------------------------------------------------------
+
+
+def _merge_text_elements(elements: list[Elem]) -> list[Elem]:
+    """Merge consecutive text-like elements into block elements for single-frame rendering."""
+    result = []
+    buf = []
+    for e in elements:
+        if e.kind in ("heading", "text", "quote", "code", "kicker", "subtitle", "tiny", "list"):
+            buf.append(e)
+        else:
+            if buf:
+                result.append(_make_block(buf))
+                buf = []
+            result.append(e)
+    if buf:
+        result.append(_make_block(buf))
+    return result
+
+
+def _make_block(elems: list[Elem]) -> Elem:
+    if len(elems) == 1:
+        return elems[0]
+    return Elem(kind="block", children=elems,
+                font_size=elems[0].font_size, color=elems[0].color)
+
+
+def _render_block(
+    elem: Elem,
+    ctx: LayoutContext,
+    gr: GraphicStyleRegistry,
+    tr: TextStyleRegistry,
+    odp: Document,
+) -> list[Element]:
+    """Render a block of text-like elements as paragraphs in a single text frame."""
+    from odfdo import List as OdfList, ListItem
+
+    paragraphs = []
+    total_height = 0.0
+    for child in elem.children:
+        if child.kind == "list":
+            lst = OdfList()
+            for i, item_text in enumerate(child.items):
+                li = ListItem()
+                if i < len(child.item_inlines):
+                    p = _build_paragraph(child.item_inlines[i], tr)
+                else:
+                    p = Paragraph(item_text)
+                li.append(p)
+                lst.append(li)
+            paragraphs.append(lst)
+            total_height += len(child.items) * 1.0 + 0.3
+        else:
+            key = _style_key_for(child)
+            gr.register(key)
+            if child.inlines:
+                p = _build_paragraph(child.inlines, tr)
+            else:
+                p = Paragraph(child.text or child.content)
+            paragraphs.append(p)
+            total_height += _estimate_text_height(child.text, child.font_size, ctx.width) + 0.3
+
+    key = _style_key_for(elem.children[0]) if elem.children else StyleKey()
+    gname = gr.register(key)
+    frame = Frame.text_frame(
+        paragraphs,
+        size=(f"{ctx.width:.2f}cm", f"{total_height:.2f}cm"),
+        position=(f"{ctx.x:.2f}cm", f"{ctx.y:.2f}cm"),
+        style=gname,
+    )
+    ctx.y += total_height + ctx.gap
+    return [frame]
+
+
+# ---------------------------------------------------------------------------
 # Dispatch + entry point
 # ---------------------------------------------------------------------------
 
 _RENDERERS: dict[str, Any] = {
+    "block": _render_block,
     "heading": _render_text,
     "text": _render_text,
     "quote": _render_text,
@@ -733,17 +814,27 @@ def _render_elem(
     return method(elem, ctx, gr, tr, odp)
 
 
-def _make_logo_frame(uri: str, page_w: float, page_h: float) -> Frame:
-    logo_w = 3.0
-    logo_h = 1.3
+def _make_logo_frame(uri: str, page_w: float, page_h: float,
+                    logo_path: str = "") -> Frame:
+    """Create a logo frame with correct aspect ratio from the source image."""
+    target_w = 3.0  # cm, desired logo width
+    target_h = 1.3  # cm, fallback if PIL unavailable
+    if logo_path:
+        try:
+            from PIL import Image
+            with Image.open(logo_path) as im:
+                w_px, h_px = im.size
+            target_h = target_w * (h_px / w_px) if w_px else target_h
+        except Exception:
+            pass
     right_margin = 1.0
     top_margin = 1.0
     frame = Frame.image_frame(
         image=uri,
         text="",
-        size=(f"{logo_w:.2f}cm", f"{logo_h:.2f}cm"),
+        size=(f"{target_w:.2f}cm", f"{target_h:.2f}cm"),
         position=(
-            f"{page_w - logo_w - right_margin:.2f}cm",
+            f"{page_w - target_w - right_margin:.2f}cm",
             f"{top_margin:.2f}cm",
         ),
         anchor_type="page",
@@ -771,9 +862,10 @@ def render(
     odp.body.clear()
 
     logo_uri = None
-    logo_path = doc.meta.logo
-    if logo_path and source_dir:
-        logo_path = str((source_dir / logo_path).resolve())
+    logo_src = doc.meta.logo
+    logo_path = logo_src
+    if logo_src and source_dir:
+        logo_path = str((source_dir / logo_src).resolve())
     if logo_path and os.path.isfile(logo_path):
         logo_uri = odp.add_file(logo_path)
 
@@ -796,13 +888,14 @@ def render(
         page = DrawPage(f"slide{i + 1}", name=f"Slide {i + 1}")
         slide_ctx = _child_ctx(ctx, y=margin, x=margin, width=ctx.width)
 
-        for elem in slide.elements:
+        elements = _merge_text_elements(slide.elements)
+        for elem in elements:
             frames = _render_elem(elem, slide_ctx, gr, tr, odp)
             for f in frames:
                 page.append(f)
 
         if logo_uri:
-            page.append(_make_logo_frame(logo_uri, page_width, page_height))
+            page.append(_make_logo_frame(logo_uri, page_width, page_height, logo_path))
 
         odp.body.append(page)
 
