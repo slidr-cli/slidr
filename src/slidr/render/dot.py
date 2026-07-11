@@ -77,17 +77,17 @@ def _inject_theme_css(svg: str, font_family: str,
 
     css = f"""\
     <style>
-      .node > polygon, .graph polygon {{ fill: {default_fill}; stroke: {default_stroke}; stroke-linejoin: round; }}
-      .node.green > polygon   {{ fill: {green[0]}; stroke: {green[1]}; stroke-linejoin: round; }}
-      .node.red > polygon     {{ fill: {red[0]}; stroke: {red[1]}; stroke-linejoin: round; }}
-      .node.cyan > polygon    {{ fill: {cyan[0]}; stroke: {cyan[1]}; stroke-linejoin: round; }}
-      .node.yellow > polygon  {{ fill: {yellow[0]}; stroke: {yellow[1]}; stroke-linejoin: round; }}
-      .graph title {{ stroke: {default_stroke}; }}
-      .cluster > text {{ fill: {fg}; font-family: {fam}; }}
-      .edge > path, .edge > polygon {{ stroke: {fg}; }}
-      .cluster polygon {{ stroke: none; }}
-      .node text {{ fill: {fg}; font-family: {fam}; }}
-      .edge text {{ fill: {fg}; font-family: {fam}; }}
+      .node > polygon, .graph polygon {{ fill: {default_fill} !important; stroke: {default_stroke} !important; stroke-linejoin: round !important; }}
+      .node.green > polygon   {{ fill: {green[0]} !important; stroke: {green[1]} !important; stroke-linejoin: round !important; }}
+      .node.red > polygon     {{ fill: {red[0]} !important; stroke: {red[1]} !important; stroke-linejoin: round !important; }}
+      .node.cyan > polygon    {{ fill: {cyan[0]} !important; stroke: {cyan[1]} !important; stroke-linejoin: round !important; }}
+      .node.yellow > polygon  {{ fill: {yellow[0]} !important; stroke: {yellow[1]} !important; stroke-linejoin: round !important; }}
+      .graph title {{ stroke: {default_stroke} !important; }}
+      .cluster > text {{ fill: {fg}; font-family: {fam} !important; }}
+      .edge > path, .edge > polygon {{ stroke: {fg} !important; }}
+      .cluster polygon {{ stroke: none !important; }}
+      .node text {{ fill: {fg}; font-family: {fam} !important; }}
+      .edge text {{ fill: {fg}; font-family: {fam} !important; }}
     </style>"""
     if "</svg>" in svg:
         svg = svg.replace("</svg>", f"{css}\n</svg>", 1)
