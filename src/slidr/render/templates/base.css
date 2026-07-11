@@ -145,6 +145,9 @@ LOGO_CSS
 
 .col-left, .col-right {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   padding: 0 0.5em;
   display: flex;
   flex-direction: column;
@@ -231,11 +234,8 @@ LOGO_CSS
     break-before: avoid;
   }
   #slidr-nav { display: none !important; }
-  section {
-    display: block !important;
-  }
   .slide-body {
-    flex: none;
+    flex: 1;
     min-height: auto;
     padding-bottom: 0;
   }
