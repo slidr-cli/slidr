@@ -53,7 +53,7 @@ digraph standard_mode {
         margin=20;
         node [width=2.2];
 
-        app [label="Application" class="default" shape=box style=filled];
+        app [label="Application" shape=box style=filled];
         mem [label="Memory Interception" class="cyan" shape=box style=filled];
         comp [label="Compute Interception" class="cyan" shape=box style=filled];
         gpu [label="Physical GPU" class="green" shape=box style=filled];
