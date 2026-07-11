@@ -45,7 +45,8 @@ code {
 }
 
 .note {
-  border-left: 0.25em solid;
+  border-left: 0.25em solid var(--color-accent);
+  
   padding: 0.5em 0.8em;
   margin: 0.5em 0;
   font-size: 0.8em;
@@ -174,6 +175,10 @@ LOGO_CSS
 .notes.tag-green { background: var(--tag-green-bg); border-left: 0.25em solid var(--tag-green-border); }
 .notes.tag-yellow { background: var(--tag-yellow-bg); border-left: 0.25em solid var(--tag-yellow-border); }
 .notes.tag-red { background: var(--tag-red-bg); border-left: 0.25em solid var(--tag-red-border); }
+
+.note-green  { border-left-color: var(--tag-green-border); background: var(--tag-green-bg); }
+.note-yellow { border-left-color: var(--tag-yellow-border); background: var(--tag-yellow-bg); }
+.note-red    { border-left-color: var(--tag-red-border); background: var(--tag-red-bg); }
 
 .tag-compare {
   flex: 1;
