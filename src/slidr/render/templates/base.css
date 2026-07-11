@@ -171,13 +171,12 @@ LOGO_CSS
   margin-top: 0.5em;
   font-style: italic;
 }
-.notes.tag-green { background: #e8f5e9; border-left: 0.25em solid #0fd05d; }
-.notes.tag-yellow { background: #fff9c4; border-left: 0.25em solid #ffd166; }
-.notes.tag-red { background: #ffebee; border-left: 0.25em solid #ff7a7a; }
+.notes.tag-green { background: var(--tag-green-bg); border-left: 0.25em solid var(--tag-green-border); }
+.notes.tag-yellow { background: var(--tag-yellow-bg); border-left: 0.25em solid var(--tag-yellow-border); }
+.notes.tag-red { background: var(--tag-red-bg); border-left: 0.25em solid var(--tag-red-border); }
 
 .tag-compare {
   flex: 1;
-  background: #fafafa;
   border: 1px solid var(--color-border);
   margin: 0.1em;
   height: 100%;

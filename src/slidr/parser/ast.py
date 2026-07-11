@@ -26,6 +26,7 @@ class Meta:
     logo: str = ""
     pygments_style: str = "default"
     seaborn_theme: str = "muted"
+    theme_variant: str = "light"
 
     def dimensions(self) -> tuple[int, int]:
         raw = str(self.size)
@@ -46,6 +47,7 @@ class Slide:
     layout: str = "content"
     children: list["Node"] = field(default_factory=list)
     notes: str = ""
+    variant: str = ""
 
 
 class Node:
