@@ -81,6 +81,7 @@ avoids the positioning complexity of the native ODP renderer.
 @col                   # explicit column break in two-col / compare layouts
 @tiny text             # small annotation below content
 @variant dark          # switch to dark mode for this slide
+@hidden                # exclude slide from output (alias: @hide)
 ```
 
 ## Layouts

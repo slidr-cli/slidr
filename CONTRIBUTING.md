@@ -2,18 +2,17 @@
 
 ## ODP output
 
-Slidr has two ODP output modes:
+Slidr has two ODP output modes. Neither is complete, but the screenshot
+approach is production-ready.
 
-- **`--odp`**: Programmatic renderer (`src/slidr/render/odp.py`) that builds
-  native ODF elements (text frames, tables, lists, images). Pixel-perfect
-  layout matching HTML is an ongoing effort. The renderer has full structural
-  support but layout positioning is approximate.
+- **`--image-odp` (production-ready)**: Renders each slide to PNG via weasyprint +
+  pdftoppm, embeds in an ODP file. Always pixel-perfect. No native text selection
+  or editing, but perfect for LibreOffice Draw → Impress copy-paste workflow.
 
-- **`--image-odp`**: Screenshot-based renderer that converts each PDF page to
-  PNG and embeds them in an ODP file. Always pixel-perfect but no native text
-  selection. Uses `pdftoppm` from poppler-utils.
+- **`--odp` (work in progress)**: Programmatic renderer that builds native ODF
+  elements. Renders structurally but layout positioning doesn't match HTML yet.
 
-The recommended workflow for editable slides is:
+The recommended workflow for editable slides:
 
 ```bash
 pdm run slidr slides.md --pdf
@@ -22,15 +21,10 @@ pdm run slidr slides.md --pdf
 
 Areas that need help with the programmatic ODP renderer:
 
-- **Layout fidelity**: Frame positions are estimated from content length.
-  Matching HTML/CSS output exactly requires a bounding-box approach (headless
-  browser → `getBoundingClientRect()` → ODP frame positions).
-
-- **Font rendering**: ODP uses system fonts. CSS font stacks need mapping
-  to single font names.
-
-- **Complex layouts**: Nested grids, two-col layouts with images, and the
-  compare layout need more robust positioning.
+- **Layout fidelity**: Frame positions estimated from content length
+- **Headless bounding-box**: Render in Chrome, extract exact positions via JS
+- **Font rendering**: ODP uses system fonts, CSS font stacks need mapping
+- **Complex layouts**: Nested grids, two-col with images, compare layout
 
 ## Obsidian extension
 

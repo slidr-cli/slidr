@@ -40,7 +40,9 @@ def parse(input_text: str) -> Document:
         part = part.strip()
         if not part:
             continue
-        slides.append(_parse_slide(part))
+        slide = _parse_slide(part)
+        if slide is not None:
+            slides.append(slide)
 
     return Document(meta=meta, slides=slides)
 
@@ -68,6 +70,7 @@ def _parse_slide(content: str) -> Slide:
 
     layout = _detect_layout(nodes)
     variant = ""
+    hidden = False
     for n in list(nodes):
         if isinstance(n, AttrNode) and n.type == "layout":
             layout = n.value.strip()
@@ -75,6 +78,12 @@ def _parse_slide(content: str) -> Slide:
         elif isinstance(n, AttrNode) and n.type == "variant":
             variant = n.value.strip()
             nodes.remove(n)
+        elif isinstance(n, AttrNode) and n.type in ("hidden", "hide"):
+            hidden = True
+            nodes.remove(n)
+
+    if hidden:
+        return None
 
     return Slide(layout=layout, children=nodes, notes=notes, variant=variant)
 

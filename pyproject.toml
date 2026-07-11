@@ -13,6 +13,12 @@ license = {text = "GPL-3.0-or-later"}
 [project.scripts]
 slidr = "slidr.cli:app"
 
+[project.optional-dependencies]
+docs = [
+    "sphinx>=9.0.4",
+    "furo>=2025.12.19",
+    "myst-parser>=5.1.0",
+]
 [build-system]
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"

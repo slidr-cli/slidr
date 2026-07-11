@@ -71,3 +71,20 @@ def test_quote():
 def test_slides():
     doc = parse("---\ntheme: t\n---\n\n## slide 1\n\n---\n\n## slide 2")
     assert len(doc.slides) == 2
+
+
+def test_hidden_slide():
+    doc = parse("---\ntheme: t\n---\n\n# First\n\n---\n\n@hidden\n\n# Hidden\n\n---\n\n# Third")
+    assert len(doc.slides) == 2
+    from slidr.parser.ast import Heading
+    headings = []
+    for s in doc.slides:
+        for n in s.children:
+            if isinstance(n, Heading):
+                headings.append(n.content[0].content)
+    assert headings == ["First", "Third"]
+
+
+def test_hide_alias():
+    doc = parse("---\ntheme: t\n---\n\n# First\n\n---\n\n@hide\n\n# Hidden\n\n---\n\n# Third")
+    assert len(doc.slides) == 2

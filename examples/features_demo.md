@@ -9,7 +9,7 @@ footer: "HAMi · Hardware Affinity Manager for Inference"
 pygments_style: ayu-mirage
 ---
 
-@dark
+@variant dark
 @kicker v2.6 · July 2026
 
 # HAMi
@@ -244,6 +244,16 @@ intervention needed
 | Audit logging | - | ✓ |
 | SLA guarantee | - | ✓ |
 | 24/7 support | Community | Dedicated |
+
+---
+
+@hidden
+
+## Architectural Detail
+
+This slide is hidden from output. Use `@hidden` or `@hide` to
+exclude slides from the rendered deck while keeping them in the
+markdown source for reference or future use.
 
 ---
 
