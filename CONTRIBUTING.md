@@ -59,6 +59,6 @@ installed. See `src/slidr/render/dot.py` and `README.md`.
 
 ## mermaid support (done)
 
-` ```mermaid ` fenced blocks render via `mmdc` CLI to SVG (HTML) and PDF (ODP).
-Requires `mermaid-cli` npm package installed. See `src/slidr/render/ir.py`
-mermaid handling and `README.md`.
+` ```mermaid ` fenced blocks render via the `mmdc` Python package to SVG (HTML)
+and PDF (ODP). The `mmdc` package is bundled as a dependency. See
+`src/slidr/render/ir.py` mermaid handling and `README.md`.

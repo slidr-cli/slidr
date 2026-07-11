@@ -164,7 +164,7 @@ graph LR
 ```
 ````
 
-Renders inline SVG in HTML, PDF in ODP. Requires `mmdc` CLI.
+Renders inline SVG in HTML, PDF in ODP. Uses the bundled `mmdc` Python package.
 
 ## Seaborn charts
 
