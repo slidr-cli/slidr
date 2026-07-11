@@ -314,7 +314,6 @@ Node's dependency footprint is the dealbreaker. A CLI that parses markdown, gene
 - **markdown-it-py**: same parser as the JS ecosystem, GFM support
 - **Pygments**: comprehensive syntax highlighting for code blocks
 - **Jinja2**: mature templating, CSS injection, template includes
-- **Edit-test cycle**: no compile step, instant feedback when tweaking layouts
 
 Deployable as a single binary via PyInstaller or Nuitka when needed.
 
