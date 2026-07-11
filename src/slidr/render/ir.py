@@ -60,6 +60,7 @@ class SlideIR:
     layout: str = "content"
     elements: list[Elem] = field(default_factory=list)
     notes: str = ""
+    variant: str = ""
 
 
 def build_ir(doc: Document, base_css: str = "", theme_css: str = "") -> list[SlideIR]:
@@ -83,7 +84,8 @@ def build_ir(doc: Document, base_css: str = "", theme_css: str = "") -> list[Sli
         if heading_elem:
             elements.insert(0, heading_elem)
 
-        slides.append(SlideIR(layout=layout, elements=elements, notes=slide.notes or ""))
+        slides.append(SlideIR(layout=layout, elements=elements, notes=slide.notes or "",
+                             variant=slide.variant or ""))
     return slides
 
 

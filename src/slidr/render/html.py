@@ -49,6 +49,7 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
         slides.append({
             "num": i + 1, "layout": slide.layout, "children": children,
             "notes": slide.notes, "footer": doc.meta.footer or "", "paginate": doc.meta.paginate or False,
+            "variant": slide.variant or doc.meta.theme_variant,
         })
 
     logo_css = ""
@@ -73,7 +74,8 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
     css += _pygments_css(pstyle)
 
     return _env.get_template("shell.html").render(
-        title=doc.meta.title or "Presentation", slide_w=dims[0], slide_h=dims[1], css=css, slides=slides,
+        title=doc.meta.title or "Presentation", slide_w=dims[0], slide_h=dims[1],
+        css=css, slides=slides, variant=doc.meta.theme_variant or "light",
     )
 
 

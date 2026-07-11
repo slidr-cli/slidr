@@ -1,5 +1,6 @@
 ---
 theme: default
+variant: dark # optional, defaults to light
 paginate: true
 size: 16:9
 logo: "assets/brand/hami-logo.png"

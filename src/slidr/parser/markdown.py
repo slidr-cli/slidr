@@ -31,6 +31,7 @@ def parse(input_text: str) -> Document:
         logo=logo_raw,
         pygments_style=raw_meta.pop("pygments_style", "default"),
         seaborn_theme=raw_meta.pop("seaborn_theme", None) or Meta.seaborn_theme,
+        theme_variant=raw_meta.pop("variant", Meta.theme_variant),
     )
 
     body = post.content
@@ -66,13 +67,16 @@ def _parse_slide(content: str) -> Slide:
     nodes = group_cards(nodes)
 
     layout = _detect_layout(nodes)
-    for n in nodes:
+    variant = ""
+    for n in list(nodes):
         if isinstance(n, AttrNode) and n.type == "layout":
             layout = n.value.strip()
             nodes.remove(n)
-            break
+        elif isinstance(n, AttrNode) and n.type == "variant":
+            variant = n.value.strip()
+            nodes.remove(n)
 
-    return Slide(layout=layout, children=nodes, notes=notes)
+    return Slide(layout=layout, children=nodes, notes=notes, variant=variant)
 
 
 def _tokens_to_nodes(tokens: list[Token]) -> list:

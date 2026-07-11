@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="{{ variant }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -64,7 +64,7 @@ html.presenter #presenter-panel {
 </head>
 <body>
 {% for slide in slides %}
-<section class="slide layout-{{ slide.layout }}"{% if slide.notes %} data-notes="{{ slide.notes }}"{% endif %}>
+<section class="slide layout-{{ slide.layout }}"{% if slide.notes %} data-notes="{{ slide.notes }}"{% endif %}{% if slide.variant %} data-variant="{{ slide.variant }}"{% endif %}>
 {{ slide.children }}
 {% if slide.footer %}<footer>{{ slide.footer }}</footer>{% endif %}
 {% if slide.paginate %}<span class="slide-num">{{ slide.num }}</span>{% endif %}
@@ -82,12 +82,12 @@ html.presenter #presenter-panel {
 <div id="presenter-panel">
   <div id="pres-main">
 {% for slide in slides %}
-    <section class="slide layout-{{ slide.layout }}">{{ slide.children }}</section>
+    <section class="slide layout-{{ slide.layout }}"{% if slide.variant %} data-variant="{{ slide.variant }}"{% endif %}>{{ slide.children }}</section>
 {% endfor %}
   </div>
   <div id="pres-next">
 {% for slide in slides %}
-    <section class="slide layout-{{ slide.layout }}">{{ slide.children }}</section>
+    <section class="slide layout-{{ slide.layout }}"{% if slide.variant %} data-variant="{{ slide.variant }}"{% endif %}>{{ slide.children }}</section>
 {% endfor %}
   </div>
   <div id="pres-notes"></div>
