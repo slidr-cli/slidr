@@ -30,7 +30,7 @@ def test_merge_text_elements_separated_by_card():
         make("text", text="After"),
     ])
     assert len(result) == 3
-    assert result[0].kind == "text"  # single text, no wrapper needed
+    assert result[0].kind == "text"
     assert result[1].kind == "card"
     assert result[2].kind == "text"
 
@@ -38,7 +38,7 @@ def test_merge_text_elements_separated_by_card():
 def test_merge_text_elements_single():
     result = _merge_text_elements([make("text", text="Only text")])
     assert len(result) == 1
-    assert result[0].kind == "text"  # single element, no block wrapper
+    assert result[0].kind == "text"
 
 
 def test_merge_text_elements_empty():
@@ -76,13 +76,10 @@ def test_render_list_produces_odf_list():
     assert len(frames) == 1
     frame = frames[0]
     assert frame.tag == "draw:frame"
-
     text_box = frame.get_element("draw:text-box")
     assert text_box is not None
-
     odf_list = text_box.get_element("text:list")
     assert odf_list is not None, "Expected <text:list> in output"
-
     items = odf_list.get_elements("text:list-item")
     assert len(items) == 3
 
@@ -105,18 +102,15 @@ def test_css_values_propagate_to_odp_styles():
     key2 = _style_key_for(Elem(kind="code", font_size=14, color="#333"))
     assert key2.font_family == "My Custom Mono"
 
-    # Register both body and mono styles
     gr.register(key)
     gr.register(key2)
     from odfdo import Document
     doc = Document("presentation")
     gr.insert_all(doc)
-
     styles_xml = doc.get_part("styles").serialize().decode()
     assert "My Custom Sans" in styles_xml
     assert "My Custom Mono" in styles_xml
 
-    # Card style should have border-radius
     card_key = StyleKey(font_size=18, color="#333", fill="#e8f5e9",
                         font_family="My Custom Sans", border_radius="0.2em")
     gr2 = GraphicStyleRegistry()

@@ -549,6 +549,8 @@ def _render_text(
         return _render_svg_odp(elem, ctx, odp)
     if elem.kind == "code" and elem.language == "mermaid":
         return _render_svg_odp(elem, ctx, odp)
+    if elem.kind == "code" and elem.language == "dot":
+        return _render_svg_odp(elem, ctx, odp)
     if _is_image_elem(elem):
         return _render_image(elem, ctx, gr, tr, odp)
     if not elem.inlines and not elem.text.strip():
