@@ -87,6 +87,7 @@ avoids the positioning complexity of the native ODP renderer.
 @speaker name=X role=Y # title slide attribution
 @layout name           # apply a slide layout
 @col                   # explicit column break in two-col / compare layouts
+@row                   # horizontal row within a column (side by side)
 @tiny text             # small annotation below content
 @variant dark          # switch to dark mode for this slide
 @hidden                # exclude slide from output (alias: @hide)

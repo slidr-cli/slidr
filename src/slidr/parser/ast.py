@@ -35,6 +35,12 @@ class Meta:
             return (min(max(int(w), 320), 7680), min(max(int(h), 320), 7680))
         return {"16:9": (1280, 720), "4:3": (1024, 768), "16:10": (1280, 800)}.get(raw, (1280, 720))
 
+    def physical_dims(self) -> tuple[float, float]:
+        """Slide dimensions in mm for ODP/print."""
+        raw = str(self.size)
+        return {"16:9": (280.0, 157.5), "4:3": (280.0, 210.0),
+                "16:10": (280.0, 175.0)}.get(raw, (280.0, 157.5))
+
 
 @dataclass
 class Document:
@@ -91,6 +97,12 @@ class Notes(Node):
     """Full-width conclusion card below a comparison layout."""
     content: str = ""
     tag: Optional[str] = None
+
+
+@dataclass
+class Row(Node):
+    """Horizontal row of elements placed side by side."""
+    children: list[Node] = field(default_factory=list)
 
 
 @dataclass

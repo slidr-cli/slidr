@@ -724,6 +724,28 @@ def _render_grid(
     return frames
 
 
+def _render_row(
+    elem: Elem,
+    ctx: LayoutContext,
+    gr: GraphicStyleRegistry,
+    tr: TextStyleRegistry,
+    odp: Document,
+) -> list[Element]:
+    """Stack children horizontally within a row."""
+    cols = len(elem.children)
+    col_w = (ctx.width - ctx.gap * (cols - 1)) / cols
+    frames: list[Element] = []
+    max_h = 0.0
+    start_y = ctx.y
+    for i, child in enumerate(elem.children):
+        child_ctx = _child_ctx(ctx, x=ctx.x + i * (col_w + ctx.gap), y=start_y, width=col_w)
+        cf = _render_elem(child, child_ctx, gr, tr, odp)
+        frames.extend(cf)
+        max_h = max(max_h, child_ctx.y - start_y)
+    ctx.y = start_y + max_h + ctx.gap
+    return frames
+
+
 def _render_column(
     elem: Elem,
     ctx: LayoutContext,
@@ -888,6 +910,7 @@ _RENDERERS: dict[str, Any] = {
     "tiny": _render_text,
     "speaker": _render_speaker,
     "list": _render_list,
+    "row": _render_row,
     "notes": _render_text,
     "table": _render_table,
     "grid": _render_grid,
@@ -947,7 +970,7 @@ def render(
 ) -> None:
     """Render Document AST to an ODP file.
 
-    source_dir: markdown file's parent directory, for resolving relative image paths.
+    page_width, page_height: in cm. Defaults to 16:9 (28.0 x 15.75).
     """
     from slidr.render.ir import resolve_styles
     from slidr.render.seaborn import set_palette

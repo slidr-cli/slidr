@@ -157,6 +157,10 @@ def _render_elem(e: Elem) -> str:
         return s
     elif e.kind == "arrow":
         return f'<div class="card-arrow">{e.content}</div>'
+    elif e.kind == "row":
+        cols = len(e.children)
+        children = "\n".join(filter(None, (_render_elem(c) for c in e.children)))
+        return f'<div class="row" style="display:grid;grid-template-columns:repeat({cols},1fr);gap:1em">\n{children}\n</div>'
     elif e.kind == "notes":
         cls = "notes"
         if e.tag:

@@ -13,7 +13,7 @@ from typing import Any
 from slidr.parser.ast import (
     Document, Slide, Heading, Paragraph, CodeBlock, Grid, Card,
     Table, Quote, ListNode, AttrNode, Text, Strong, Emphasis,
-    Strikethrough, CodeSpan, Image, SoftBreak, Arrow, Notes,
+    Strikethrough, CodeSpan, Image, SoftBreak, Arrow, Notes, Row,
 )
 from slidr.plugins.layouts import KNOWN_LAYOUTS
 from slidr.theme.parser import parse_theme
@@ -162,8 +162,35 @@ def _split_image_ir(nodes: list) -> tuple[list, list]:
 def _split_two_col_ir(nodes: list) -> tuple[list, list]:
     col_idx = _find_col(nodes)
     if col_idx >= 0:
-        return nodes[:col_idx], nodes[col_idx + 1:]
-    return nodes, []
+        left, right = nodes[:col_idx], nodes[col_idx + 1:]
+    else:
+        left, right = nodes, []
+    # Group @row-separated elements into horizontal rows
+    left = _group_rows_ir(left)
+    right = _group_rows_ir(right)
+    return left, right
+
+
+def _group_rows_ir(nodes: list) -> list:
+    """Group @row-separated elements into horizontal Rows."""
+    from slidr.parser.ast import AttrNode, Row
+    row_indices = [i for i, n in enumerate(nodes)
+                   if isinstance(n, AttrNode) and n.type == "row"]
+    if not row_indices:
+        return list(nodes)
+    # Everything from first element to last (between @row markers) goes in Row
+    result = []
+    start = 0
+    for ri in row_indices:
+        if ri > start:
+            result.extend(nodes[start:ri])
+            start = ri + 1
+    if start < len(nodes):
+        result.extend(nodes[start:])
+    # Wrap if we collected multiple
+    if len(result) > 1:
+        return [Row(children=list(result))]
+    return result
 
 
 def _find_col(nodes: list) -> int:
@@ -270,6 +297,9 @@ def _convert_node(node, styles: dict) -> Elem:
                             color=base.muted)
         return Elem(kind="arrow", content=content, text=content, font_size=20,
                     color=base.muted)
+    elif isinstance(node, Row):
+        children = [_convert_node(c, styles) for c in node.children]
+        return Elem(kind="row", children=children)
     elif isinstance(node, Notes):
         return Elem(kind="notes", content=node.content, tag=node.tag or "")
     elif isinstance(node, AttrNode):
