@@ -23,6 +23,14 @@ messes of `<div>` tags and `style` attributes. Slidr uses directives
 (`@kicker`, `@layout`, `::: card`) that stay clean and semantic. All
 styling lives in CSS themes, completely separate from your content.
 
+Slidr is opinionated. It ships with a specific visual language -- card
+layouts, accent-colored quotes, `▸` bullet markers, a built-in dark
+mode. You can theme it extensively via CSS variables (see THEMING.md),
+but you work within the design system, not against it. If you need
+pixel-level custom layouts per slide, use raw HTML. If you want a
+consistent deck that looks good out of the box with minimal markup,
+Slidr is the right fit.
+
 ## Install
 
 ```bash
