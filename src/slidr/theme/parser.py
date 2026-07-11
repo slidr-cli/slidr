@@ -19,7 +19,8 @@ def parse_theme(base_css: str, theme_css: str) -> dict:
         "muted_rgb": _to_rgb(styles.get("--muted", "#777")),
         "accent_rgb": _to_rgb(styles.get("--accent", "#0288d1")),
         "font_body_family": styles.get("font_body_family", "Segoe UI"),
-        "font_code_family": styles.get("font_code_family", "SFMono-Regular"),
+        "font_code_family": styles.get("font_code_family",
+                                        styles.get("--font-mono", "SFMono-Regular")),
         "section_text_align": styles.get("section_text_align", "left"),
         "title_text_align": styles.get("title_text_align", "left"),
         "section_padding": _parse_padding(styles.get("section_padding", "")),
@@ -36,16 +37,25 @@ def _extract_tag_colors(styles: dict) -> dict[str, tuple[str, str]]:
     """Extract per-tag fill and border colors from CSS .tag-* selectors."""
     import re
     result: dict[str, list[str]] = {}
+
+    # From :root CSS variables
+    for key, val in styles.items():
+        m = re.match(r"--tag-(\w+)-(bg|border)", key)
+        if m:
+            tag, prop = m.group(1), m.group(2)
+            if tag not in result:
+                result[tag] = ["#e3f2fd", "#ddd"]
+            result[tag][0 if prop == "bg" else 1] = _resolve_color_var(val, styles)
+
+    # From .tag-* selectors (fallback)
     for key, val in styles.items():
         m = re.match(r"tag_(\w+)_(border|background)", key)
         if m:
             tag, prop = m.group(1), m.group(2)
             if tag not in result:
                 result[tag] = ["#e3f2fd", "#ddd"]
-            if prop == "background":
-                result[tag][0] = val
-            else:
-                result[tag][1] = val
+            result[tag][0 if prop == "background" else 1] = val
+
     return {tag: (fill, border) for tag, (fill, border) in result.items()}
 
 

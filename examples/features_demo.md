@@ -9,6 +9,7 @@ footer: "HAMi · Hardware Affinity Manager for Inference"
 pygments_style: ayu-mirage
 ---
 
+@dark
 @kicker v2.6 · July 2026
 
 # HAMi
@@ -20,6 +21,47 @@ pygments_style: ayu-mirage
 <!--
 Welcome to the HAMi demo. This deck showcases all slidr features: layouts, grids, cards, tables, quotes, speaker notes, and the new @layout directive.
 -->
+
+---
+
+@layout two-col
+
+## GPU Architecture
+
+Standard mode routes application calls through library-level
+interception for memory and compute. HAMi intercepts CUDA
+API calls transparently -- no container modification required.
+
+- Application calls standard CUDA API
+- HAMi intercepts memory allocation
+- Compute kernels are intercepted
+- GPU sees a single unified workload
+
+@col
+
+```dot
+digraph standard_mode {
+    rankdir=TB;
+    compound=true;
+    newrank=true;
+
+    subgraph cluster_main {
+        label="Standard Mode";
+        penwidth=2;
+        fontsize=18;
+        fontname="sans-serif";
+        margin=20;
+        node [width=2.5];
+
+        app [label="Application" class="tag-default" shape=box style=filled];
+        mem [label="Memory Interception" class="tag-cyan" shape=box style=filled];
+        comp [label="Compute Interception" class="tag-cyan" shape=box style=filled];
+        gpu [label="Physical GPU" class="tag-green" shape=box style=filled];
+
+        app -> mem -> comp -> gpu;
+    }
+}
+```
 
 ---
 
@@ -267,6 +309,7 @@ sns.barplot(data=df, x="Quarter", y="Utilization", hue="Cluster")
 ```
 
 ---
+
 
 @layout two-col
 

@@ -13,10 +13,12 @@
   --tag-cyan-bg: #e0f7fa;
   --tag-yellow-bg: #fff9c4;
   --tag-red-bg: #ffebee;
+  --tag-default-bg: #f5f5f5;
   --tag-green-border: #0fd05d;
   --tag-cyan-border: #67d8ff;
   --tag-yellow-border: #ffd166;
   --tag-red-border: #ff7a7a;
+  --tag-default-border: #ccc;
 }
 
 [data-theme="dark"] {
@@ -32,10 +34,13 @@
   --tag-cyan-bg: #1a2a2e;
   --tag-yellow-bg: #2e2a1a;
   --tag-red-bg: #2e1a1a;
+  --tag-default-bg: #2a2a2a;
+  --tag-default-border: #444;
   --tag-green-border: #2d8a3e;
   --tag-cyan-border: #2d8aaa;
   --tag-yellow-border: #8a7a2d;
   --tag-red-border: #8a2d2d;
+  --tag-default-border: #444;
 }
 
 /* per-slide variant override */
@@ -70,10 +75,13 @@ section[data-variant="dark"] {
   --tag-cyan-bg: #1a2a2e;
   --tag-yellow-bg: #2e2a1a;
   --tag-red-bg: #2e1a1a;
+  --tag-default-bg: #2a2a2a;
+  --tag-default-border: #444;
   --tag-green-border: #2d8a3e;
   --tag-cyan-border: #2d8aaa;
   --tag-yellow-border: #8a7a2d;
   --tag-red-border: #8a2d2d;
+  --tag-default-border: #444;
 }
 
 section {
@@ -88,6 +96,7 @@ h2 { font-size: 1.8em; }
 h3 { font-size: 1.3em; }
 
 li { font-size: 0.9em; padding-left: 0.3em; }
+ul { list-style: "\25B8  "; }
 
 blockquote {
   border-left-color: var(--color-accent);
@@ -106,7 +115,7 @@ a { color: var(--color-accent); }
 }
 .card p { font-size: 0.9em; }
 
-.quote { border-left-color: var(--color-accent); }
+.quote { border-left-color: var(--color-accent); color: var(--color-accent); }
 
 .kicker { color: var(--color-accent); }
 .speaker { color: var(--color-foreground); }
@@ -128,4 +137,5 @@ footer { color: var(--color-dimmed); }
 .tag-cyan   { border-color: var(--tag-cyan-border); background: var(--tag-cyan-bg); }
 .tag-yellow { border-color: var(--tag-yellow-border); background: var(--tag-yellow-bg); }
 .tag-red    { border-color: var(--tag-red-border); background: var(--tag-red-bg); }
+.tag-default   { border-color: var(--tag-default-border); background: var(--tag-default-bg); }
 .tag-quote  { border-left: 0.25em solid var(--color-accent); font-style: italic; background: none; }

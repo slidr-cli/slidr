@@ -221,6 +221,11 @@ def _convert_node(node, styles: dict) -> Elem:
             except Exception:
                 svg = ""
                 pdf = b""
+        elif node.language == "dot":
+            from slidr.render.dot import render_dot_svg
+            fam = styles.get("font_body_family", "")
+            size = styles.get("font_body", 18)
+            svg = render_dot_svg(node.content, font_family=fam, font_size=size) or ""
         return Elem(kind="code", content=node.content, text=node.content,
                     language=node.language, font_size=fs, svg=svg, pdf=pdf)
     elif isinstance(node, ListNode):
