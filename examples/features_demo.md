@@ -1,6 +1,6 @@
 ---
 theme: default
-variant: dark # optional, defaults to light
+variant: light # optional, defaults to light
 paginate: true
 size: 16:9
 logo: "assets/brand/hami-logo.png"
@@ -160,6 +160,7 @@ The grid system auto-detects 2×2 cards and places them in a responsive grid. Ca
 ---
 
 @layout compare
+@variant dark
 
 ## Before & After
 
@@ -225,6 +226,7 @@ resources and the scheduler handles workload placement. Requires Kubernetes
 ---
 
 @layout two-col
+@variant dark
 
 ## Workload Spec
 

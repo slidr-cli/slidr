@@ -129,5 +129,3 @@ footer { color: var(--color-dimmed); }
 .tag-yellow { border-color: var(--tag-yellow-border); background: var(--tag-yellow-bg); }
 .tag-red    { border-color: var(--tag-red-border); background: var(--tag-red-bg); }
 .tag-quote  { border-left: 0.25em solid var(--color-accent); font-style: italic; background: none; }
-.border-green { border-color: #0fd05d; }
-.border-red   { border-color: #ff7a7a; }
