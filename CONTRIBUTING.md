@@ -1,29 +1,36 @@
 # Contributing
 
-## PPTX mode
+## ODP output
 
-The PPTX renderer (`src/slidr/render/pptx.py`) is structurally complete but needs
-work on visual fidelity. What exists: slide creation, heading/paragraph/text/table
-placement, grid layout, basic card rendering, theme color extraction, code block
-and image fallback rendering.
+Slidr has two ODP output modes:
 
-Areas that need help:
+- **`--odp`**: Programmatic renderer (`src/slidr/render/odp.py`) that builds
+  native ODF elements (text frames, tables, lists, images). Pixel-perfect
+  layout matching HTML is an ongoing effort. The renderer has full structural
+  support but layout positioning is approximate.
 
-- **Inline formatting**: bold, italic, strikethrough currently extract plain text.
-  python-pptx requires per-run formatting via `add_run()` with character-level
-  font properties.
+- **`--image-odp`**: Screenshot-based renderer that converts each PDF page to
+  PNG and embeds them in an ODP file. Always pixel-perfect but no native text
+  selection. Uses `pdftoppm` from poppler-utils.
 
-- **Speaker notes**: not yet written to PPTX notes slides.
+The recommended workflow for editable slides is:
 
-- **Image embedding**: markdown images render as placeholder text. python-pptx
-  supports `slide.shapes.add_picture()` for actual image insertion.
+```bash
+pdm run slidr slides.md --pdf
+# Open in LibreOffice Draw → Select All → Copy → Paste into LibreOffice Impress
+```
 
-- **Layout fidelity**: padding, margins, and font sizes are approximated.
-  Matching the HTML/CSS output pixel-for-pixel is the long-term goal.
+Areas that need help with the programmatic ODP renderer:
 
-- **Code block styling**: Pygments-highlighted code blocks render as plain
-  monospace text. python-pptx doesn't support rich text in a single run
-  natively for syntax-colored output, but multi-run text frames can achieve it.
+- **Layout fidelity**: Frame positions are estimated from content length.
+  Matching HTML/CSS output exactly requires a bounding-box approach (headless
+  browser → `getBoundingClientRect()` → ODP frame positions).
+
+- **Font rendering**: ODP uses system fonts. CSS font stacks need mapping
+  to single font names.
+
+- **Complex layouts**: Nested grids, two-col layouts with images, and the
+  compare layout need more robust positioning.
 
 ## Obsidian extension
 
@@ -35,13 +42,23 @@ and TypeScript.
 ## Setup
 
 ```bash
-pdm install
-pdm run slidr slides.md --pptx
+pdm install                # core + HTML/PDF/ODP
+pdm install -G plot        # + seaborn/matplotlib
+pdm run slidr slides.md
 ```
 
-## matplotlib / seaborn support
+## seaborn support (done)
 
-Render ````matplotlib` and ````seaborn` fenced code blocks as embedded images
-at build time. Requires executing Python in a subprocess, capturing the figure
-as base64 PNG, and embedding in the HTML output. Security and dependency
-management are the main design questions.
+` ```seaborn ` fenced blocks execute Python in-process and render as inline SVG.
+Requires `pdm install -G plot`. See `src/slidr/render/seaborn.py` and `README.md`.
+
+## graphviz support (done)
+
+` ```dot ` fenced blocks render via the `dot` CLI to SVG. Requires `graphviz`
+installed. See `src/slidr/render/dot.py` and `README.md`.
+
+## mermaid support (done)
+
+` ```mermaid ` fenced blocks render via `mmdc` CLI to SVG (HTML) and PDF (ODP).
+Requires `mermaid-cli` npm package installed. See `src/slidr/render/ir.py`
+mermaid handling and `README.md`.

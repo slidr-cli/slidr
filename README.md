@@ -127,7 +127,57 @@ The arrow block accepts text or images:
 ```language                    # fenced code block with syntax highlighting
 ```mermaid                     # Mermaid diagram, inline SVG
 ```seaborn                     # Seaborn chart, inline SVG
+```dot                         # Graphviz diagram, inline SVG
 ```
+
+## Graphviz diagrams
+
+Graphviz renders DOT language to SVG via the `dot` CLI. Requires `graphviz`
+installed. Nodes use CSS classes matching slidr tag colors:
+
+````markdown
+```dot
+digraph {
+    node [shape=box]
+    subgraph {
+        app [label="Application" class="green"]
+        db [label="Database" class="cyan"]
+        app -> db
+    }
+}
+```
+````
+
+Available node classes: `green`, `cyan`, `yellow`, `red`. Default nodes
+use `var(--color-card-bg)`. To apply the card background to a cluster,
+use `subgraph cluster_` prefix (e.g., `subgraph cluster_main`). CSS
+cascades from the theme -- dark mode applies automatically. Font inherits
+from the CSS body font.
+
+## Mermaid diagrams
+
+````markdown
+```mermaid
+graph LR
+    User((User)) --> API[API Gateway]
+    API --> DB[(Database)]
+```
+````
+
+Renders inline SVG in HTML, PDF in ODP. Requires `mmdc` CLI.
+
+## Seaborn charts
+
+````markdown
+```seaborn
+tips = sns.load_dataset("tips")
+sns.scatterplot(data=tips, x="total_bill", y="tip", hue="day")
+```
+````
+
+Runs Python in-process, renders inline SVG. Requires `pdm install -G plot`.
+Pre-imported: `sns`, `plt`, `pd`, `np`. Set `seaborn_theme: deep` in
+frontmatter to change palette.
 
 ## Layout caveats
 
@@ -188,7 +238,10 @@ They appear in the presenter view.
 `examples/features_demo.md` is a 15-slide deck exercising every feature:
 title slides, `@layout two-col`, `@layout image-right`, `@layout compare`,
 grids with tagged cards, tables, fenced code blocks, mermaid diagrams,
-seaborn charts, blockquotes, speaker notes, and all directives.
+seaborn charts, graphviz graphs, blockquotes, speaker notes, and all directives.
+
+See also: `examples/mermaid_demo.md`, `examples/seaborn_demo.md`,
+`examples/graphviz_demo.md`.
 
 ## Pipeline
 

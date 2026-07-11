@@ -67,7 +67,7 @@ def _inject_theme_css(svg: str, font_family: str) -> str:
     fam = font_family.split(",")[0].strip().strip('"') if font_family else "sans-serif"
     css = f"""\
     <style>
-      .node.default > polygon, .cluster.default > polygon {{ fill: var(--color-card-bg); stroke: var(--color-border); stroke-linejoin: round; }}
+      .node > polygon, .cluster polygon {{ fill: var(--color-card-bg); stroke: var(--color-border); stroke-linejoin: round; }}
       .node.green > polygon   {{ fill: var(--tag-green-bg); stroke: var(--tag-green-border); stroke-linejoin: round; }}
       .node.red > polygon     {{ fill: var(--tag-red-bg); stroke: var(--tag-red-border); stroke-linejoin: round; }}
       .node.cyan > polygon    {{ fill: var(--tag-cyan-bg); stroke: var(--tag-cyan-border); stroke-linejoin: round; }}
