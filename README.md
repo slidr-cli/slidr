@@ -2,6 +2,27 @@
 
 Markdown to styled HTML slides with PDF and ODP output.
 
+## Why
+
+AI models are great at generating text but terrible at generating editable
+presentations. Asking an LLM to "make a slide deck" gives you a PPTX file
+with locked layouts, broken fonts, and content you can't easily tweak.
+
+Slidr inverts this: AI writes markdown (which it's excellent at), Slidr
+renders it to professionally styled slides. You edit the markdown -- the
+slides update automatically. Designer changes go in CSS, content changes
+go in markdown, never in a `.pptx` file.
+
+The result: AI-driven content generation plus human-editable output.
+Write once in markdown, render to HTML, PDF, and ODP from a single source.
+
+Other markdown-to-slide tools (like Marp) require inline HTML and CSS
+sprinkled throughout the markdown to achieve styled layouts. This breaks
+the separation of content and design -- your slides become uneditable
+messes of `<div>` tags and `style` attributes. Slidr uses directives
+(`@kicker`, `@layout`, `::: card`) that stay clean and semantic. All
+styling lives in CSS themes, completely separate from your content.
+
 ## Install
 
 ```bash

@@ -23,18 +23,19 @@ def main(
     image_odp: bool = typer.Option(False, "--image-odp", help="Generate ODP (PDF screenshots)"),
     watch: bool = typer.Option(False, "-w", "--watch", help="Watch file and rebuild on changes"),
     debug: bool = typer.Option(False, "--debug", help="Dump AST + write debug CSS"),
+    css: Optional[Path] = typer.Option(None, "--css", help="Custom CSS theme file (overrides default)"),
 ):
     if file is None:
         raise typer.Exit()
 
     if watch:
-        _watch(file, output_dir, pdf, odp, image_odp, debug)
+        _watch(file, output_dir, pdf, odp, image_odp, debug, css)
     else:
-        _build(file, output_dir, pdf, odp, image_odp, debug)
+        _build(file, output_dir, pdf, odp, image_odp, debug, css)
 
 
 def _build(file: Path, output_dir: Optional[Path], pdf: bool,
-           odp: bool, image_odp: bool, debug: bool) -> None:
+           odp: bool, image_odp: bool, debug: bool, css_path: Optional[Path]) -> None:
     content = file.read_text()
     doc = parse(content)
     dims = doc.meta.dimensions()
@@ -44,14 +45,19 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
     _symlink_assets(file.parent, out_dir, file)
     stem = file.stem
 
-    html = render_html(doc, default_theme() + "\n" + (doc.meta.style or ""), doc.meta.logo)
+    theme_css = default_theme()
+    if css_path and css_path.is_file():
+        theme_css += "\n" + css_path.read_text()
+    theme_css += "\n" + (doc.meta.style or "")
+
+    html = render_html(doc, theme_css, doc.meta.logo)
     html_path = out_dir / f"{stem}.html"
     html_path.write_text(html)
     typer.echo(f"Wrote {html_path} ({len(html)} bytes)")
 
     if debug:
         css = base_css().replace("SLIDE_W", str(dims[0])).replace("SLIDE_H", str(dims[1]))
-        css = css.replace("THEME_CSS", default_theme() + "\n" + (doc.meta.style or ""))
+        css = css.replace("THEME_CSS", theme_css)
         css = css.replace("LOGO_CSS", "").replace("{theme_css}", "").replace("{logo_css}", "")
         css_path = out_dir / f"{stem}.css"
         css_path.write_text(css)
@@ -59,7 +65,7 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
 
     if odp:
         odp_path = out_dir / f"{stem}.odp"
-        render_odp(doc, odp_path, base_css(), default_theme() + "\n" + (doc.meta.style or ""),
+        render_odp(doc, odp_path, base_css(), theme_css,
                    source_dir=file.parent)
         typer.echo(f"Wrote {odp_path} ({odp_path.stat().st_size} bytes)")
         return
@@ -87,9 +93,9 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
 
 
 def _watch(file: Path, output_dir: Optional[Path], pdf: bool,
-           odp: bool, image_odp: bool, debug: bool) -> None:
+           odp: bool, image_odp: bool, debug: bool, css_path: Optional[Path]) -> None:
     last_mtime = 0
-    _build(file, output_dir, pdf, odp, image_odp, debug)
+    _build(file, output_dir, pdf, odp, image_odp, debug, css_path)
     typer.echo(f"Watching {file} for changes (Ctrl+C to stop)")
 
     while True:
@@ -99,7 +105,7 @@ def _watch(file: Path, output_dir: Optional[Path], pdf: bool,
             if mtime != last_mtime:
                 last_mtime = mtime
                 typer.echo("---")
-                _build(file, output_dir, pdf, odp, image_odp, debug)
+                _build(file, output_dir, pdf, odp, image_odp, debug, css_path)
         except KeyboardInterrupt:
             typer.echo("\nStopped watching.")
             break
