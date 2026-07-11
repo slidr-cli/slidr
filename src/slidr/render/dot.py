@@ -13,7 +13,8 @@ from pathlib import Path
 
 
 def render_dot_svg(content: str, font_family: str = "",
-                   font_size: int = 14) -> str | None:
+                   font_size: int = 14,
+                   tag_colors: dict[str, tuple[str, str]] | None = None) -> str | None:
     """Render DOT code to SVG."""
     try:
         content = _preprocess(content, font_family, font_size)
@@ -27,7 +28,7 @@ def render_dot_svg(content: str, font_family: str = "",
         if result.stdout.strip():
             svg = result.stdout
             svg = _strip_xml_decl(svg)
-            svg = _inject_theme_css(svg, font_family)
+            svg = _inject_theme_css(svg, font_family, tag_colors)
             return svg
         return None
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -54,7 +55,6 @@ def _preprocess(content: str, font_family: str, font_size: int) -> str:
 
 
 def _strip_xml_decl(svg: str) -> str:
-    """Remove <?xml?> and <!DOCTYPE> from SVG for HTML embedding."""
     if svg.startswith("<?xml"):
         svg = svg.split("?>", 1)[-1].lstrip()
     if svg.startswith("<!DOCTYPE"):
@@ -62,22 +62,32 @@ def _strip_xml_decl(svg: str) -> str:
     return svg
 
 
-def _inject_theme_css(svg: str, font_family: str) -> str:
-    """Inject a <style> block targeting .node.<tag> > polygon elements."""
+def _inject_theme_css(svg: str, font_family: str,
+                      tag_colors: dict[str, tuple[str, str]] | None) -> str:
+    """Inject a <style> block with colors from CSS theme."""
     fam = font_family.split(",")[0].strip().strip('"') if font_family else "sans-serif"
+    tags = tag_colors or {}
+    default_fill = tags.get("default", ("#fafafa", "#ddd"))[0]
+    default_stroke = tags.get("default", ("#fafafa", "#ddd"))[1]
+    green = tags.get("green", ("#e8f5e9", "#0fd05d"))
+    red = tags.get("red", ("#ffebee", "#ff7a7a"))
+    cyan = tags.get("cyan", ("#e0f7fa", "#67d8ff"))
+    yellow = tags.get("yellow", ("#fff9c4", "#ffd166"))
+    fg = "#333"
+
     css = f"""\
     <style>
-      .node > polygon, .graph polygon {{ fill: var(--color-card-bg); stroke: var(--color-border); stroke-linejoin: round; }}
-      .node.green > polygon   {{ fill: var(--tag-green-bg); stroke: var(--tag-green-border); stroke-linejoin: round; }}
-      .node.red > polygon     {{ fill: var(--tag-red-bg); stroke: var(--tag-red-border); stroke-linejoin: round; }}
-      .node.cyan > polygon    {{ fill: var(--tag-cyan-bg); stroke: var(--tag-cyan-border); stroke-linejoin: round; }}
-      .node.yellow > polygon  {{ fill: var(--tag-yellow-bg); stroke: var(--tag-yellow-border); stroke-linejoin: round; }}
-      .graph title {{ stroke: var(--color-border); }}
-      .cluster > text {{ fill: var(--color-foreground); font-family: {fam}; }}
-      .edge > path, .edge > polygon {{ stroke: var(--color-foreground); }}
+      .node > polygon, .graph polygon {{ fill: {default_fill}; stroke: {default_stroke}; stroke-linejoin: round; }}
+      .node.green > polygon   {{ fill: {green[0]}; stroke: {green[1]}; stroke-linejoin: round; }}
+      .node.red > polygon     {{ fill: {red[0]}; stroke: {red[1]}; stroke-linejoin: round; }}
+      .node.cyan > polygon    {{ fill: {cyan[0]}; stroke: {cyan[1]}; stroke-linejoin: round; }}
+      .node.yellow > polygon  {{ fill: {yellow[0]}; stroke: {yellow[1]}; stroke-linejoin: round; }}
+      .graph title {{ stroke: {default_stroke}; }}
+      .cluster > text {{ fill: {fg}; font-family: {fam}; }}
+      .edge > path, .edge > polygon {{ stroke: {fg}; }}
       .cluster polygon {{ stroke: none; }}
-      .node text {{ fill: var(--color-foreground); font-family: {fam}; }}
-      .edge text {{ fill: var(--color-foreground); font-family: {fam}; }}
+      .node text {{ fill: {fg}; font-family: {fam}; }}
+      .edge text {{ fill: {fg}; font-family: {fam}; }}
     </style>"""
     if "</svg>" in svg:
         svg = svg.replace("</svg>", f"{css}\n</svg>", 1)
