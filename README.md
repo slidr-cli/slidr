@@ -13,13 +13,30 @@ pdm install -G plot  # + seaborn/matplotlib for inline charts
 
 ```bash
 pdm run slidr slides.md              # HTML + presenter view
-pdm run slidr slides.md --odp        # + ODP
+pdm run slidr slides.md --odp        # + ODP (programmatic)
+pdm run slidr slides.md --image-odp  # + ODP (screenshots from PDF)
 pdm run slidr slides.md --pdf        # + PDF
 pdm run slidr -w slides.md           # watch and rebuild on changes
 pdm run slidr --odp -w slides.md     # watch + ODP
 ```
 
+The `--image-odp` flag renders each slide as a PNG screenshot from the PDF output
+and embeds them in an ODP file. Pixel-perfect, always matches HTML. The `--odp`
+flag uses a programmatic renderer with native ODF text and styling.
 
+### Editing in PowerPoint / LibreOffice Impress
+
+The best workflow for editable slides: build a PDF, open it in LibreOffice Draw,
+select all slides, and paste into LibreOffice Impress (or export to PPTX):
+
+```bash
+pdm run slidr slides.md --pdf
+libreoffice --draw slides.pdf        # Select All → Copy
+libreoffice --impress                # Paste into new presentation
+```
+
+LibreOffice Draw preserves text, layout, and images from the PDF. This
+avoids the positioning complexity of the native ODP renderer.
 
 ## Viewer controls
 
@@ -41,7 +58,8 @@ pdm run slidr --odp -w slides.md     # watch + ODP
 @speaker name=X role=Y # title slide attribution
 @layout name           # apply a slide layout
 @col                   # explicit column break in two-col / compare layouts
-@tiny text             # small annotation
+@tiny text             # small annotation below content
+@variant dark          # switch to dark mode for this slide
 ```
 
 ## Layouts
@@ -109,18 +127,52 @@ The arrow block accepts text or images:
 ```language                    # fenced code block with syntax highlighting
 ```mermaid                     # Mermaid diagram, inline SVG
 ```seaborn                     # Seaborn chart, inline SVG
-```d2                          # D2 diagram (legacy, replaced by mermaid)
 ```
 
 ## Layout caveats
 
-`@col` overrides auto-detection in all three layouts (`two-col`,
-`image-right`, `image-left`). Use it when auto-split puts content in the
-wrong column -- long lists, D2 diagrams, or mixed content types.
+`@col` overrides auto-detection in all layouts. Use it when auto-split
+puts content in the wrong column.
+
+## Dark mode
+
+Set `variant: dark` in frontmatter for all slides, or `@variant dark`
+per slide:
+
+```yaml
+---
+title: My Talk
+variant: dark
+---
+```
+
+```markdown
+@variant dark
+
+## This slide uses the dark theme
+```
+
+Per-slide overrides work as slideshow transitions: `@variant light` switches
+back to light mode on the next slide.
+
+## Theming
+
+Colors, borders, and spacing use CSS custom properties. Override them via
+frontmatter `style:` block or a custom theme file. See [THEMING.md](docs/THEMING.md)
+for the full variable reference.
+
+```yaml
+---
+style: |
+  :root {
+    --color-accent: #e91e63;
+  }
+---
+```
 
 ## Speaker notes
 
-HTML comments at the top of a slide become speaker notes visible in the presenter view:
+Any HTML comment in a slide becomes speaker notes in the presenter view:
 
 ```markdown
 ---
@@ -133,32 +185,30 @@ They appear in the presenter view.
 
 ## Demo
 
-`examples/features_demo.md` is a 10-slide deck exercising every feature:
-title slides, `@layout two-col`, `@layout image-right`, `@layout image-left`,
-grids with tagged cards, tables, fenced code blocks with syntax highlighting,
-blockquotes, speaker notes, and the `@tiny` / `@kicker` / `@speaker` directives.
-
-```bash
-pdm run slidr examples/features_demo.md
-```
+`examples/features_demo.md` is a 15-slide deck exercising every feature:
+title slides, `@layout two-col`, `@layout image-right`, `@layout compare`,
+grids with tagged cards, tables, fenced code blocks, mermaid diagrams,
+seaborn charts, blockquotes, speaker notes, and all directives.
 
 ## Pipeline
 
 ```
 slides.md
   → markdown-it-py (parse)
-  → Document AST (structural: headings, paragraphs, grids, cards, tables)
+  → Document AST (headings, paragraphs, grids, cards, tables)
   → build_ir() (resolve theme styles via tinycss2)
-  → SlideIR (per-element: font_size, color, accent + rendered HTML)
-     ↙              ↘
-  html.py          odp.py
-  (_render_elem)   (_render_elem, consumes same IR)
+  → SlideIR (font_size, color, accent, SVG/PDF, + rendered HTML)
+     ↙              ↘            ↘
+  html.py          odp.py      pdf.py
+  (_render_elem)   (_render_elem)  (weasyprint)
+                                    ↘
+                              image_odp (pdftoppm → PNG → ODP)
 ```
 
 The IR is the single source of truth between renderers. Each `Elem` carries
-pre-rendered inline HTML (for the browser renderer) plus resolved style
-properties like `font_size`, `color`, `accent`, `muted` (for the ODP renderer).
-No duplicate node-walking, no diverging implementations of bold/italic/table logic.
+pre-rendered inline HTML (for the browser) plus resolved style properties
+(font_size, color, accent, muted) for the ODP renderer. Seaborn and mermaid
+SVGs are generated at IR build time and shared across renderers.
 
 ## Architecture decisions
 
