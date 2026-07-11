@@ -200,7 +200,6 @@ intervention needed
 | Audit logging | - | ✓ |
 | SLA guarantee | - | ✓ |
 | 24/7 support | Community | Dedicated |
-| License | Apache 2.0 | Commercial |
 
 ---
 

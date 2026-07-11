@@ -24,13 +24,12 @@ section {
   flex: 1;
   min-height: 0;
   padding-bottom: 1.8em;
-  overflow: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 { margin: 0; }
 h2 { padding-top: 1%; margin-bottom: 1em; }
 p { margin-bottom: 0.5em; }
-li { margin: 0.2em 0; }
+li { margin: 0.4em 0; line-height: 1.5; overflow-wrap: break-word; }
 
 img { max-width: 100%; height: auto; }
 a { text-decoration: none; }
@@ -66,7 +65,7 @@ pre code {
   word-break: break-word;
 }
 
-table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+table { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: 0.85em; }
 th, td { padding: 0.5em 0.65em; text-align: left; vertical-align: top; overflow-wrap: break-word; }
 th { font-weight: 700; }
 
