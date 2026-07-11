@@ -122,10 +122,6 @@ LOGO_CSS
   max-width: 100%;
   height: auto;
 }
-.graphviz-plot .cluster polygon {
-  fill: var(--color-card-bg);
-  stroke: var(--color-border);
-}
 
 /* ---- predefined slide layouts ---- */
 .layout-cols {
