@@ -9,7 +9,7 @@ Slidr turns markdown into slides. Content lives in markdown files. Styling
 lives in CSS. No `.pptx` editing, no inline HTML, no copy-paste hell.
 
 Other tools (Marp, Slidev) mix HTML and CSS into the markdown. This breaks
-separation of concerns -- your slides become `<div>` soup that's hard to
+separation of concerns - your slides become `<div>` soup that's hard to
 change later. Slidr keeps them apart: directives (`@kicker`, `@layout`,
 `::: card`) are semantic; all styling is in theme CSS files.
 
@@ -44,7 +44,7 @@ in progress: master page creation, font-face declarations, precise element
 positioning. Known issues:
 
 - Slide backgrounds use a cloned template master page instead of a fresh
-  `StyleMasterPage` -- works but carries template defaults
+  `StyleMasterPage` - works but carries template defaults
 - Font-face `@font-face` registration fails due to an `odfdo` internal bug
 - Vertical spacing and text alignment drift slightly from HTML
 
@@ -54,6 +54,11 @@ renderer are welcome. See `src/slidr/render/odp.py` and `src/slidr/render/odf/`.
 An Obsidian plugin that renders `.md` slides to HTML in-pane would be great.
 The Python CLI makes distribution tricky; if you've tackled that problem
 before, reach out.
+
+Most of this codebase is AI-generated. I've kept it DRY where I could, but
+there's still duplication - the lucide icon rendering appears in three places
+that should be one, the table cell renderer has its own SVG path, etc. PRs
+that consolidate repeated logic are welcome.
 
 ### Editing in PowerPoint / LibreOffice Impress
 
@@ -166,7 +171,7 @@ The arrow block accepts text or images:
 
 ## Lucide icons
 
-Use `{icon:star}` anywhere inline -- headings, paragraphs, tables, card
+Use `{icon:star}` anywhere inline - headings, paragraphs, tables, card
 headers, card body, arrows, notes. Powered by `python-lucide`.
 
 ```
@@ -181,7 +186,7 @@ Parameters: `stroke`, `fill`, `width`, `height`, `size` (sets both), `cls` (CSS 
 Use `cls=accent-primary`, `cls=accent-secondary`, or `cls=accent-contrast`
 to match theme accent colors instead of hardcoded hex values.
 
-No configuration needed -- `pdm install` includes the dependency.
+No configuration needed - `pdm install` includes the dependency.
 
 ## Graphviz diagrams
 
@@ -204,7 +209,7 @@ digraph {
 Available node classes: `green`, `cyan`, `yellow`, `red`. Default nodes
 use `var(--color-card-bg)`. To apply the card background to a cluster,
 use `subgraph cluster_` prefix (e.g., `subgraph cluster_main`). CSS
-cascades from the theme -- dark mode applies automatically. Font inherits
+cascades from the theme - dark mode applies automatically. Font inherits
 from the CSS body font.
 
 ## Mermaid diagrams
