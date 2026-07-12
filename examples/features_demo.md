@@ -3,7 +3,7 @@ theme: default
 variant: light # optional, defaults to light
 paginate: true
 size: 16:9
-logo: "assets/brand/hami-logo.png"
+# logo: "assets/brand/hami-logo.png"
 title: HAMi Demo
 footer: "HAMi · Hardware Affinity Manager for Inference"
 pygments_style: ayu-mirage
@@ -242,6 +242,7 @@ required for each workload
 
 ::: arrow
 
+{icon:arrow-right stroke=#64d039 size=50}
 :::
 
 ::: card {tag=compare}

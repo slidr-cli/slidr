@@ -249,22 +249,10 @@ def _walk_inline_children(tokens: list) -> list:
 
 
 def _render_lucide_cell(token) -> str:
-    """Render a lucide_icon token as an SVG string, sized for table cells."""
+    """Render a lucide_icon token as SVG for table cells. Delegates to plugin."""
+    from slidr.plugins.lucide import render_icon
     attrs = dict(token.attrs or {})
-    name = attrs.pop("name", "")
-    if not name:
-        return ""
-    try:
-        from lucide import lucide_icon
-        kwargs = dict(attrs)
-        if "height" not in kwargs and "width" not in kwargs:
-            kwargs["height"] = "1em"
-        svg = lucide_icon(name, **kwargs)
-        if "height" not in attrs and "width" not in attrs:
-            svg = svg.replace('<svg', '<svg style="height:1em;width:auto;vertical-align:middle"', 1)
-        return svg
-    except Exception:
-        return ""
+    return render_icon(attrs.pop("name", ""), attrs)
 
 
 def _detect_layout(nodes: list) -> str:

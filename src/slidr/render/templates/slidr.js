@@ -80,6 +80,7 @@ if (isPresenter) {
     if (counter) counter.textContent = (current + 1) + ' / ' + total;
     if (prevBtn) prevBtn.disabled = current === 0;
     if (nextBtn) nextBtn.disabled = current === total - 1;
+    try { localStorage.setItem('slidr-slide-' + document.title, current); } catch(e) {}
   }
 
   var bc = new BroadcastChannel('slidr-' + document.title);
@@ -92,7 +93,9 @@ if (isPresenter) {
     if (e.data.slide !== undefined && e.data.slide !== current) _origShow(e.data.slide);
   };
 
-  show(0);
+  var stored = null;
+  try { stored = parseInt(localStorage.getItem('slidr-slide-' + document.title), 10); } catch(e) {}
+  show(isNaN(stored) ? 0 : Math.min(stored, total - 1));
 
   if (prevBtn) prevBtn.addEventListener('click', function() { show(current - 1); });
   if (nextBtn) nextBtn.addEventListener('click', function() { show(current + 1); });

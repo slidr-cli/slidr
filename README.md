@@ -162,6 +162,22 @@ The arrow block accepts text or images:
 ```dot                         # Graphviz diagram, inline SVG
 ```
 
+## Lucide icons
+
+Use `{icon:star}` anywhere inline -- headings, paragraphs, tables, card
+headers, card body, arrows, notes. Powered by `python-lucide`.
+
+```
+{icon:star}                              # default 1em height
+{icon:heart stroke=#d05a39}              # custom color
+{icon:shield-check stroke=#64d039 size=1.2em}  # explicit size
+{icon:arrow-right stroke=#39b0d0 size=32}      # pixel size
+```
+
+Parameters: `stroke`, `fill`, `width`, `height`, `size` (sets both), `stroke_width`.
+
+No configuration needed -- `pdm install` includes the dependency.
+
 ## Graphviz diagrams
 
 Graphviz renders DOT language to SVG via the `dot` CLI. Requires `graphviz`

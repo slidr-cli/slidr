@@ -103,13 +103,12 @@ def _render_elem(e: Elem) -> str:
     elif e.kind == "table":
         s = "<table>\n<thead>\n<tr>"
         for h in e.headers:
-            s += f"<th>{_escape(h)}</th>"
+            s += f"<th>{_maybe_escape(h)}</th>"
         s += "</tr>\n</thead>\n<tbody>\n"
         for row in e.rows:
             s += "<tr>"
             for cell in row:
-                inner = cell if cell.startswith("<svg") else _escape(cell)
-                s += f"<td>{inner}</td>"
+                s += f"<td>{_maybe_escape(cell)}</td>"
             s += "</tr>\n"
         s += "</tbody>\n</table>"
         return s
@@ -137,10 +136,9 @@ def _render_elem(e: Elem) -> str:
             cls += f" {e.class_}"
         s = f'<div class="{cls}">\n'
         if e.header:
-            inner = e.header if "<svg" in e.header else _escape(e.header)
-            s += f"<h3>{inner}</h3>\n"
+            s += f"<h3>{_maybe_escape(e.header)}</h3>\n"
         for line in e.body:
-            s += f"<p>{_escape(line)}</p>\n"
+            s += f"<p>{_maybe_escape(line)}</p>\n"
         s += "</div>"
         return s
     elif e.kind == "arrow":
@@ -215,5 +213,6 @@ def _escape(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
-def _escape(s: str) -> str:
-    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+def _maybe_escape(s: str) -> str:
+    """Escape HTML unless the string contains raw SVG."""
+    return s if "<svg" in s else _escape(s)

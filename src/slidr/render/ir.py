@@ -372,22 +372,9 @@ def _render_inline_html(nodes: list) -> str:
 
 
 def _render_lucide_inline(name: str, attrs: dict) -> str:
-    """Render a LucideIcon as inline SVG."""
-    if not name:
-        return ""
-    try:
-        from lucide import lucide_icon
-        kwargs = dict(attrs)
-        if "height" not in kwargs and "width" not in kwargs:
-            kwargs["height"] = "1em"
-        svg = lucide_icon(name, **kwargs)
-        if "height" not in attrs and "width" not in attrs:
-            svg = svg.replace(
-                '<svg', '<svg style="height:1em;width:auto;vertical-align:middle"', 1
-            )
-        return svg
-    except Exception:
-        return ""
+    """Render a LucideIcon as inline SVG. Delegates to shared plugin renderer."""
+    from slidr.plugins.lucide import render_icon
+    return render_icon(name, attrs)
 
 
 def _render_inline_text(nodes: list) -> str:

@@ -3,7 +3,17 @@
 import re
 from slidr.parser.ast import Arrow, Card, Grid, Node, Notes
 
-_LUCIDE_HEADER_RE = re.compile(r'\{icon:(\S+)\s*([^}]*)\}')
+_ICON_RE = re.compile(r'\{icon:(\S+)\s*([^}]*)\}')
+
+
+def _expand_icons(text: str) -> str:
+    """Expand {icon:...} markers using the shared lucide plugin renderer."""
+    if not text or "{" not in text:
+        return text
+    from slidr.plugins.lucide import render_icon, _parse_opts
+    def _render(m):
+        return render_icon(m.group(1), _parse_opts(m.group(2)))
+    return _ICON_RE.sub(_render, text)
 
 
 def extract_fenced(content: str) -> tuple[str, list[Node]]:
@@ -54,42 +64,16 @@ def extract_fenced(content: str) -> tuple[str, list[Node]]:
     return "\n".join(result), nodes
 
 
-def _render_card_header(text: str) -> str:
-    """Expand lucide icon syntax in card headers."""
-    def _lucide(m):
-        name, opts = m.group(1), m.group(2) or ""
-        attrs = {}
-        for a in re.finditer(r'(\w+)="([^"]*)"', opts):
-            attrs[a.group(1)] = a.group(2)
-        for a in re.finditer(r'(\w+)=(\S+)', opts):
-            if a.group(1) not in attrs:
-                attrs[a.group(1)] = a.group(2)
-        try:
-            from lucide import lucide_icon
-            kwargs = dict(attrs)
-            if "height" not in kwargs and "width" not in kwargs:
-                kwargs["height"] = "1em"
-            svg = lucide_icon(name, **kwargs)
-            if "height" not in attrs and "width" not in attrs:
-                svg = svg.replace('<svg', '<svg style="height:1em;width:auto;vertical-align:middle"', 1)
-            return svg
-        except Exception:
-            return m.group(0)
-    return _LUCIDE_HEADER_RE.sub(_lucide, text)
-
-
 def _parse_card(text: str, rest: str = "") -> Card:
     header = ""
     body = []
     for line in text.strip().split("\n"):
         line = line.strip()
         if line.startswith("### "):
-            raw_header = line[4:]
-            header = _render_card_header(raw_header)
+            header = _expand_icons(line[4:])
         elif line:
-            body.append(line)
+            body.append(_expand_icons(line))
 
-    # Parse attrs from rest (e.g., "card {tag=green}")
     class_ = ""
     tag = None
     raw = rest.split("{", 1)[1].rstrip("}") if "{" in rest else ""
@@ -133,7 +117,7 @@ def _parse_grid(inner_text: str, rest: str) -> Grid:
 
 
 def _parse_arrow(text: str) -> Arrow:
-    return Arrow(content=text.strip() or "\u2192")
+    return Arrow(content=_expand_icons(text.strip()) or "\u2192")
 
 
 def _parse_notes(text: str, rest: str) -> Notes:
@@ -145,7 +129,7 @@ def _parse_notes(text: str, rest: str) -> Notes:
             k, v = attr.split("=", 1)
             if k.strip() == "tag":
                 tag = v.strip().strip('"')
-    return Notes(content=text.strip(), tag=tag or None)
+    return Notes(content=_expand_icons(text.strip()), tag=tag or None)
 
 
 def interleave_fences(nodes: list[Node], fence_nodes: list[Node]) -> list[Node]:
