@@ -300,7 +300,7 @@ seaborn charts, graphviz graphs, lucide icons, blockquotes, speaker notes,
 and all directives.
 
 See also: `examples/mermaid_demo.md`, `examples/seaborn_demo.md`,
-`examples/graphviz_demo.md`.
+`examples/graphviz_demo.md`, `examples/lucide_demo.md`.
 
 ## Pipeline
 
