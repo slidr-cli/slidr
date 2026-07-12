@@ -55,12 +55,6 @@ Or toggle per-slide:
 Dark mode overrides the same variables:
 
 ```css
-[data-theme="dark"] {
-  --color-background: #1a1a2e;
-  --color-foreground: #e0e0e0;
-  ...
-}
-
 section[data-variant="dark"] {
   --color-background: #1a1a2e;
   ...

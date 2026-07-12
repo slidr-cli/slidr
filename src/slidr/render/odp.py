@@ -198,11 +198,15 @@ def _register_paragraph_style(key: StyleKey, gr: GraphicStyleRegistry,
 
 
 def _override_template_defaults(document: Document, align: str) -> None:
-    """Override ODP template paragraph defaults to match CSS section text-align."""
+    """Override ODP template paragraph defaults to match CSS."""
     for style in document.get_styles(family="paragraph"):
         props = style.get_properties()
         if props and "fo:text-align" in props and props["fo:text-align"] != align:
             style.set_properties(area="paragraph", text_align=align)
+        # Set font-family on template paragraph styles
+        import slidr.render.odf.style as s
+        if s._FONT_SANS:
+            style.set_properties(area="text", font=s._FONT_SANS)
 
 
 def _swap_elem_colors(elements: list[Elem], dark: dict) -> None:
@@ -1050,10 +1054,6 @@ def _init_document(odp: Document, styles: dict, dark_styles: dict,
     set_border_color(styles.get("card_border_color", "#ddd"))
     set_tag_colors(styles.get("tag_colors", {}))
 
-    # Set CSS font as default font-face
-    from slidr.render.odf.style import _FONT_SANS as css_font
-    _add_font_face(odp, css_font)
-
     # Table styles
     global _TABLE_CELL_STYLE
     _, _TABLE_CELL_STYLE = create_table_styles(odp, styles)
@@ -1172,14 +1172,7 @@ def render(
     odp.save(str(output_path), pretty=True)
 
 def _add_font_face(document: Document, font_family: str) -> None:
-    """Add CSS font as font-face declaration without using insert_style."""
-    from odfdo.element import Element
-    sp = document.get_part("styles")
-    decls = sp.get_element("office:font-face-decls")
-    if decls is None:
-        return
-    ff = Element.from_tag("style:font-face")
-    ff.set_attribute("style:name", font_family)
-    ff.set_attribute("svg:font-family", font_family)
-    ff.set_attribute("style:font-pitch", "variable")
-    decls.insert(ff, position=0)
+    """Add CSS font as font-face declaration."""
+    from odfdo import Style
+    style = Style("font-face", font_name=font_family)
+    document.insert_style(style)

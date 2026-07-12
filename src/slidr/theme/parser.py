@@ -12,9 +12,8 @@ def parse_theme(base_css: str, theme_css: str) -> dict:
 
 
 def parse_dark_theme(base_css: str, theme_css: str) -> dict:
-    """Parse dark-mode CSS variables from [data-theme='dark'] blocks."""
+    """Parse dark-mode CSS variables from [data-variant='dark'] blocks."""
     import tinycss2
-    dark_css = ""
     for sheet in [base_css, theme_css]:
         rules = tinycss2.parse_stylesheet(sheet, skip_comments=True, skip_whitespace=True)
         in_dark = False
@@ -22,10 +21,10 @@ def parse_dark_theme(base_css: str, theme_css: str) -> dict:
             if rule.type != "qualified-rule":
                 continue
             selector = tinycss2.serialize(rule.prelude).strip()
-            if selector in ("[data-theme=\"dark\"]", "section[data-variant=\"dark\"]"):
+            if selector in ("[data-variant=\"dark\"]"):
                 in_dark = True
                 continue
-            elif selector.startswith("[data-theme") or selector.startswith("section[data-variant"):
+            elif selector.startswith("section[data-variant"):
                 in_dark = False
                 continue
             if in_dark:
@@ -50,7 +49,7 @@ def _parse_dark_variables(base_css: str, theme_css: str, styles: dict) -> None:
             if rule.type != "qualified-rule":
                 continue
             selector = tinycss2.serialize(rule.prelude).strip()
-            if selector not in ("[data-theme=\"dark\"]", "section[data-variant=\"dark\"]"):
+            if selector not in ("section[data-variant=\"dark\"]"):
                 continue
             decls = tinycss2.parse_declaration_list(rule.content)
             for decl in decls:

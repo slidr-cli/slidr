@@ -21,28 +21,6 @@
   --tag-default-border: #ccc;
 }
 
-[data-theme="dark"] {
-  --color-background: #1a1a2e;
-  --color-background-stripe: #16213e;
-  --color-foreground: #e0e0e0;
-  --color-dimmed: #999;
-  --color-accent: #4fc3f7;
-  --color-accent-bg: rgba(79, 195, 247, 0.15);
-  --color-border: #333;
-  --color-card-bg: #252535;
-  --tag-green-bg: #1a2e1a;
-  --tag-cyan-bg: #1a2a2e;
-  --tag-yellow-bg: #2e2a1a;
-  --tag-red-bg: #2e1a1a;
-  --tag-default-bg: #2a2a2a;
-  --tag-default-border: #444;
-  --tag-green-border: #2d8a3e;
-  --tag-cyan-border: #2d8aaa;
-  --tag-yellow-border: #8a7a2d;
-  --tag-red-border: #8a2d2d;
-  --tag-default-border: #444;
-}
-
 /* per-slide variant override */
 section[data-variant="light"] {
   --color-background: #fff;

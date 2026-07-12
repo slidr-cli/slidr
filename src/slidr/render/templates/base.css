@@ -5,7 +5,7 @@
 
 /* ---- variables ---- */
 :root {
-  --radius: 0.4em;
+  --radius: 0.1em;
   --gap: 1em;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --section-padding-v: 2.8em;
