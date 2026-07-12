@@ -110,7 +110,7 @@ class TextStyleRegistry:
 _FONT_SANS = ""
 _FONT_MONO = ""
 _BORDER_RADIUS = ""
-_BORDER_COLOR = "#ddd"
+_BORDER_COLOR = ""
 _TEXT_ALIGN = "left"
 _FONT_SCALE = 1.0
 
@@ -120,8 +120,8 @@ _TAG_BORDERS: dict[str, str] = {}
 
 def set_fonts(sans: str, mono: str) -> None:
     global _FONT_SANS, _FONT_MONO
-    _FONT_SANS = sans
-    _FONT_MONO = mono
+    _FONT_SANS = sans.split(",")[0].strip().strip('"') if sans else ""
+    _FONT_MONO = mono.split(",")[0].strip().strip('"') if mono else ""
 
 
 def set_border_radius(radius: str) -> None:
@@ -139,11 +139,12 @@ def set_tag_colors(colors: dict[str, tuple[str, str]]) -> None:
     _TAG_COLORS = {tag: fill for tag, (fill, _) in colors.items()}
     _TAG_BORDERS = {tag: border for tag, (_, border) in colors.items()}
     if "" not in _TAG_COLORS:
-        _TAG_COLORS[""] = _TAG_COLORS.get("blue", "#e3f2fd")
+        first = next(iter(_TAG_COLORS.values()), "")
+        _TAG_COLORS[""] = first
 
 
 def tag_fill(tag: str) -> str:
-    return _TAG_COLORS.get(tag, _TAG_COLORS.get("", "#e3f2fd"))
+    return _TAG_COLORS.get(tag, _TAG_COLORS.get("", ""))
 
 
 def tag_border(tag: str) -> str:
@@ -154,7 +155,7 @@ def create_table_styles(document: Document, styles: dict) -> tuple[str, str]:
     """Create ODF table and table-cell styles from CSS theme values."""
     from odfdo.style import create_table_cell_style
 
-    border_color = styles.get("card_border_color", "#ddd")
+    border_color = styles.get("card_border_color", "")
     cell_padding = styles.get("section_padding", "")
     # Default to 0.1cm if no CSS padding found
     padding = "0.1cm"

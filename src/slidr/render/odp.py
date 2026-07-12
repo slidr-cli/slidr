@@ -1050,6 +1050,10 @@ def _init_document(odp: Document, styles: dict, dark_styles: dict,
     set_border_color(styles.get("card_border_color", "#ddd"))
     set_tag_colors(styles.get("tag_colors", {}))
 
+    # Set CSS font as default font-face
+    from slidr.render.odf.style import _FONT_SANS as css_font
+    _add_font_face(odp, css_font)
+
     # Table styles
     global _TABLE_CELL_STYLE
     _, _TABLE_CELL_STYLE = create_table_styles(odp, styles)
@@ -1166,3 +1170,16 @@ def render(
     gr.insert_all(odp)
     tr.insert_all(odp)
     odp.save(str(output_path), pretty=True)
+
+def _add_font_face(document: Document, font_family: str) -> None:
+    """Add CSS font as font-face declaration without using insert_style."""
+    from odfdo.element import Element
+    sp = document.get_part("styles")
+    decls = sp.get_element("office:font-face-decls")
+    if decls is None:
+        return
+    ff = Element.from_tag("style:font-face")
+    ff.set_attribute("style:name", font_family)
+    ff.set_attribute("svg:font-family", font_family)
+    ff.set_attribute("style:font-pitch", "variable")
+    decls.insert(ff, position=0)

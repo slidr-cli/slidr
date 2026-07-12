@@ -28,10 +28,10 @@ class Elem:
     # Resolved style properties (for PPTX, informational for HTML)
     font_size: int = 18
     font_weight: str = "normal"
-    color: str = "#333"
+    color: str = ""
     bg: str = ""
-    accent: str = "#0288d1"
-    muted: str = "#777"
+    accent: str = ""
+    muted: str = ""
     # Structural fields
     level: int = 0
     language: str = ""
@@ -217,9 +217,9 @@ def _convert_node(node, styles: dict) -> Elem:
     """Convert a single AST node to an IR element with resolved styles."""
     base = Elem(kind="text", content="",
                 font_size=styles.get("font_body", 18),
-                color=styles.get("ink_rgb_hex", "#333"),
-                accent=styles.get("accent_rgb_hex", "#0288d1"),
-                muted=styles.get("muted_rgb_hex", "#777"))
+                color=styles.get("ink_rgb_hex", ""),
+                accent=styles.get("accent_rgb_hex", ""),
+                muted=styles.get("muted_rgb_hex", ""))
 
     if isinstance(node, Heading):
         fs = {1: styles.get("font_h1", 63), 2: styles.get("font_h2", 32), 3: styles.get("font_h3", 22)}.get(node.level, 18)

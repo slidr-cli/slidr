@@ -47,7 +47,7 @@ def test_tag_colors():
     })
     assert tag_fill("green") == "#e8f5e9"
     assert tag_border("green") == "#0fd05d"
-    assert tag_fill("unknown") == "#e3f2fd"  # falls back to default blue
+    assert tag_fill("unknown") == "#e8f5e9"  # falls back to first registered color
 
 
 def test_table_styles_created():
@@ -83,3 +83,18 @@ def test_estimate_elem_height_card():
     elem = make_elem("card", header="Test", body=["Line 1", "Line 2"], font_size=18)
     h = estimate_elem_height(elem, 24.0)
     assert h > 1.0
+
+
+def test_first_font_strips_css():
+    from slidr.render.odf.style import _first_font
+    assert _first_font('"Segoe UI", "Helvetica Neue", Arial, sans-serif') == "Segoe UI"
+    assert _first_font("Liberation Mono") == "Liberation Mono"
+    assert _first_font('"SFMono-Regular", Consolas, monospace') == "SFMono-Regular"
+    assert _first_font("") == ""
+
+
+def test_first_font_strips_css():
+    from slidr.render.odf.style import set_fonts
+    import slidr.render.odf.style as S
+    set_fonts('"Segoe UI"', '')
+    assert S._FONT_SANS == "Segoe UI"

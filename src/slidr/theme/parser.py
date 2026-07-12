@@ -77,7 +77,7 @@ def _extract_tag_colors(styles: dict) -> dict[str, tuple[str, str]]:
         if m:
             tag, prop = m.group(1), m.group(2)
             if tag not in result:
-                result[tag] = ["#e3f2fd", "#ddd"]
+                result[tag] = ["", ""]
             result[tag][0 if prop == "bg" else 1] = _resolve_color_var(val, styles)
 
     # From .tag-* selectors (fallback)
@@ -86,7 +86,7 @@ def _extract_tag_colors(styles: dict) -> dict[str, tuple[str, str]]:
         if m:
             tag, prop = m.group(1), m.group(2)
             if tag not in result:
-                result[tag] = ["#e3f2fd", "#ddd"]
+                result[tag] = ["", ""]
             result[tag][0 if prop == "background" else 1] = val
 
     return {tag: (fill, border) for tag, (fill, border) in result.items()}
@@ -218,7 +218,7 @@ def _parse_border_color(border: str) -> str:
         if p in ("solid", "dashed", "dotted", "double", "none"):
             if i + 1 < len(parts):
                 return parts[i + 1]
-    return parts[-1] if parts else "#ddd"
+    return parts[-1] if parts else ""
 
 
 def _resolve_color_var(color: str, styles: dict) -> str:
@@ -232,12 +232,12 @@ def _resolve_color_var(color: str, styles: dict) -> str:
 
 
 def _build_theme_dict(styles: dict) -> dict:
-    ink = _to_rgb(styles.get("--ink", styles.get("color", "#333")))
+    ink = _to_rgb(styles.get("--ink", styles.get("--color-foreground", "")))
     return {
         "ink_rgb": ink,
         "ink_rgb_hex": _rgb_to_hex(ink),
-        "muted_rgb": _to_rgb(styles.get("--muted", "#777")),
-        "accent_rgb": _to_rgb(styles.get("--accent", "#0288d1")),
+        "muted_rgb": _to_rgb(styles.get("--muted", styles.get("--color-dimmed", ""))),
+        "accent_rgb": _to_rgb(styles.get("--accent", styles.get("--color-accent", ""))),
         "font_body_family": styles.get("font_body_family", "Segoe UI"),
         "font_code_family": styles.get("font_code_family",
                                         styles.get("--font-mono", "SFMono-Regular")),
@@ -257,9 +257,10 @@ def _build_theme_dict(styles: dict) -> dict:
         "section_padding": _parse_padding(styles.get("section_padding", "")),
         "border_radius": styles.get("--radius", "0.4em"),
         "card_border_color": _resolve_color_var(
-            _parse_border_color(styles.get("--card-border", "solid #ddd")),
+            _parse_border_color(styles.get("--card-border", "")),
             styles,
         ),
+        "card_bg": styles.get("--color-card-bg", ""),
         "tag_colors": _extract_tag_colors(styles),
     }
 
