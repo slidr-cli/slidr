@@ -7,7 +7,8 @@ from typing import Optional
 import typer
 
 from slidr.parser.markdown import parse
-from slidr.render.html import render as render_html, default_theme, base_css
+from slidr.render.html import render as render_html, default_theme, load_theme, base_css
+from slidr.render.ir import assemble_css
 from slidr.render.odp import render as render_odp
 from slidr.render.pdf import render as render_pdf
 
@@ -45,12 +46,19 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
     _symlink_assets(file.parent, out_dir, file)
     stem = file.stem
 
-    theme_css = default_theme()
+    if doc.meta.theme and doc.meta.theme != "default":
+        theme_css = load_theme(doc.meta.theme)
+    else:
+        theme_css = default_theme()
     if css_path and css_path.is_file():
         theme_css += "\n" + css_path.read_text()
     theme_css += "\n" + (doc.meta.style or "")
 
-    html = render_html(doc, theme_css, doc.meta.logo)
+    # Assemble CSS: base.css (with dims) + theme + logo + pygments
+    css = assemble_css(base_css(), theme_css, dims, doc.meta.logo,
+                       doc.meta.pygments_style or "default")
+
+    html = render_html(doc, theme_css, css, dims, doc.meta.logo)
     html_path = out_dir / f"{stem}.html"
     html_path.write_text(html)
     typer.echo(f"Wrote {html_path} ({len(html)} bytes)")

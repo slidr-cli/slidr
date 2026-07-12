@@ -28,20 +28,25 @@ def default_theme() -> str:
     return p.read_text() if p.exists() else ""
 
 
+def load_theme(name: str) -> str:
+    """Load a named theme CSS file. Falls back to default if not found."""
+    p = THEME_DIR / f"{name}.css"
+    return p.read_text() if p.exists() else default_theme()
+
+
 def base_css() -> str:
     p = TEMPLATE_DIR / "base.css"
     return p.read_text() if p.exists() else ""
 
 
-def render(doc: Document, theme_css: str, logo: str = "") -> str:
+def render(doc: Document, theme_css: str, assembled_css: str, dims: tuple[int, int], logo: str = "") -> str:
     from slidr.render.seaborn import set_palette
 
     global _pygments_style
-    dims = doc.meta.dimensions()
     _pygments_style = doc.meta.pygments_style or "default"
     set_palette(doc.meta.seaborn_theme)
 
-    ir_slides = build_ir(doc, base_css(), default_theme() + "\n" + theme_css)
+    ir_slides = build_ir(doc, base_css(), theme_css)
 
     slides = []
     for i, slide in enumerate(ir_slides):
@@ -52,30 +57,11 @@ def render(doc: Document, theme_css: str, logo: str = "") -> str:
             "variant": slide.variant or doc.meta.theme_variant,
         })
 
-    logo_css = ""
-    if logo:
-        logo_css = f"""section::before {{
-  content: "";
-  position: absolute;
-  top: 4%;
-  right: 5%;
-  width: 14%;
-  height: 0;
-  padding-bottom: 6%;
-  background: url("{logo}") center / contain no-repeat;
-  opacity: 0.92;
-}}"""
-
-    css = base_css().replace('SLIDE_W', str(dims[0])).replace('SLIDE_H', str(dims[1]))
-    css = css.replace('THEME_CSS', default_theme() + '\n' + theme_css).replace('LOGO_CSS', logo_css)
-    css = css.replace("{theme_css}", default_theme() + "\n" + theme_css).replace("{logo_css}", logo_css)
-    pstyle = doc.meta.pygments_style or "default"
-    _pygments_style = pstyle
-    css += _pygments_css(pstyle)
-
     return _env.get_template("shell.html").render(
-        title=doc.meta.title or "Presentation", slide_w=dims[0], slide_h=dims[1],
-        css=css, slides=slides, variant=doc.meta.theme_variant or "light",
+        title=doc.meta.title or "Presentation",
+        slide_w=dims[0], slide_h=dims[1],
+        css=assembled_css, slides=slides,
+        variant=doc.meta.theme_variant or "light",
     )
 
 

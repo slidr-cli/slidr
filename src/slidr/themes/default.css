@@ -22,7 +22,7 @@
 }
 
 /* per-slide variant override */
-section[data-variant="light"] {
+section[data-theme="light"] {
   --color-background: #fff;
   --color-background-stripe: #f5f5f5;
   --color-foreground: #333;
@@ -40,7 +40,7 @@ section[data-variant="light"] {
   --tag-yellow-border: #ffd166;
   --tag-red-border: #ff7a7a;
 }
-section[data-variant="dark"] {
+section[data-theme="dark"] {
   --color-background: #1a1a2e;
   --color-background-stripe: #16213e;
   --color-foreground: #e0e0e0;

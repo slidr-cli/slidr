@@ -98,6 +98,23 @@ def resolve_styles(base_css: str, theme_css: str) -> dict:
     return s
 
 
+def assemble_css(base_css: str, theme_css: str, dims: tuple[int, int],
+                 logo: str = "", pygments_style: str = "default") -> str:
+    """Assemble the final CSS for HTML output: base + theme + logo + pygments."""
+    css = base_css.replace("SLIDE_W", str(dims[0])).replace("SLIDE_H", str(dims[1]))
+    logo_css = ""
+    if logo:
+        logo_css = f"""section::before {{ content:\"\";
+          position:absolute; top:4%; right:5%; width:14%; height:0; padding-bottom:6%;
+          background:url(\"{logo}\") center/contain no-repeat; opacity:0.92; }}"""
+    css = css.replace("LOGO_CSS", logo_css).replace("{logo_css}", "")
+    css = css.replace("THEME_CSS", theme_css).replace("{theme_css}", "")
+    if pygments_style:
+        from slidr.render.html import _pygments_css
+        css += _pygments_css(pygments_style)
+    return css
+
+
 def _rgb_to_hex(rgb: tuple) -> str:
     return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
 
