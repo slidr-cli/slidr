@@ -4,35 +4,68 @@ import tinycss2
 
 
 def parse_theme(base_css: str, theme_css: str) -> dict:
-    """Parse base.css + theme CSS into a flat style map for PPTX rendering.
-
-    Returns dict with keys: ink_rgb, muted_rgb, accent_rgb, bg_color,
-    font_h1, font_h2, font_h3, font_body, font_quote, font_small,
-    section_padding, card_padding, card_radius
-    """
+    """Parse base.css + theme CSS into a flat style map for ODP rendering."""
     styles: dict[str, str] = {}
     _parse_sheet(base_css, styles)
     _parse_sheet(theme_css, styles)
-
-    return {
-        "ink_rgb": _to_rgb(styles.get("--ink", styles.get("color", "#333"))),
-        "muted_rgb": _to_rgb(styles.get("--muted", "#777")),
-        "accent_rgb": _to_rgb(styles.get("--accent", "#0288d1")),
-        "font_body_family": styles.get("font_body_family", "Segoe UI"),
-        "font_code_family": styles.get("font_code_family",
-                                        styles.get("--font-mono", "SFMono-Regular")),
-        "section_text_align": styles.get("section_text_align", "left"),
-        "title_text_align": styles.get("title_text_align", "left"),
-        "section_padding": _parse_padding(styles.get("section_padding", "")),
-        "border_radius": styles.get("--radius", "0.4em"),
-        "card_border_color": _resolve_color_var(
-            _parse_border_color(styles.get("--card-border", "solid #ddd")),
-            styles,
-        ),
-        "tag_colors": _extract_tag_colors(styles),
-    }
+    return _build_theme_dict(styles)
 
 
+def parse_dark_theme(base_css: str, theme_css: str) -> dict:
+    """Parse dark-mode CSS variables from [data-theme='dark'] blocks."""
+    import tinycss2
+    dark_css = ""
+    for sheet in [base_css, theme_css]:
+        rules = tinycss2.parse_stylesheet(sheet, skip_comments=True, skip_whitespace=True)
+        in_dark = False
+        for rule in rules:
+            if rule.type != "qualified-rule":
+                continue
+            selector = tinycss2.serialize(rule.prelude).strip()
+            if selector in ("[data-theme=\"dark\"]", "section[data-variant=\"dark\"]"):
+                in_dark = True
+                continue
+            elif selector.startswith("[data-theme") or selector.startswith("section[data-variant"):
+                in_dark = False
+                continue
+            if in_dark:
+                # Check if this is still inside a dark block or the start of another
+                pass
+        # Simpler: just concatenate all declarations from dark-mode blocks
+    # Simpler approach: extract -- variables from the dark blocks
+    styles: dict[str, str] = {}
+    _parse_sheet(base_css, styles)
+    _parse_sheet(theme_css, styles)
+    # Parse dark-specific CSS to get dark variable values
+    _parse_dark_variables(base_css, theme_css, styles)
+    return _build_theme_dict(styles)
+
+
+def _parse_dark_variables(base_css: str, theme_css: str, styles: dict) -> None:
+    """Extract dark mode CSS variables and override light mode values."""
+    import tinycss2
+    for sheet in [base_css, theme_css]:
+        rules = tinycss2.parse_stylesheet(sheet, skip_comments=True, skip_whitespace=True)
+        for rule in rules:
+            if rule.type != "qualified-rule":
+                continue
+            selector = tinycss2.serialize(rule.prelude).strip()
+            if selector not in ("[data-theme=\"dark\"]", "section[data-variant=\"dark\"]"):
+                continue
+            decls = tinycss2.parse_declaration_list(rule.content)
+            for decl in decls:
+                if decl.type != "declaration":
+                    continue
+                name = decl.name
+                val = tinycss2.serialize(decl.value).strip()
+                if name.startswith("--"):
+                    styles[name] = val
+
+
+
+    _parse_sheet(base_css, styles)
+    _parse_sheet(theme_css, styles)
+    # Also parse the dark mode overrides
 def _extract_tag_colors(styles: dict) -> dict[str, tuple[str, str]]:
     """Extract per-tag fill and border colors from CSS .tag-* selectors."""
     import re
@@ -99,11 +132,29 @@ def _parse_sheet(css: str, styles: dict) -> None:
 def _prop_for(name: str, selector: str) -> str | None:
     """Map CSS properties needed by the ODP renderer to style keys."""
     if selector == "section":
-        return {"padding": "section_padding", "font-family": "font_body_family", "text-align": "section_text_align"}.get(name)
+        return {"padding": "section_padding", "font-family": "font_body_family", "text-align": "section_text_align", "font-size": "font_body_size"}.get(name)
     if selector == ".layout-title":
         return {"text-align": "title_text_align"}.get(name)
+    if selector == "h1":
+        return {"font-size": "font_h1_size"}.get(name)
+    if selector == "h2":
+        return {"font-size": "font_h2_size"}.get(name)
+    if selector == "h3":
+        return {"font-size": "font_h3_size"}.get(name)
     if selector == "code":
-        return {"font-family": "font_code_family"}.get(name)
+        return {"font-family": "font_code_family", "font-size": "font_code_size"}.get(name)
+    if selector == ".quote":
+        return {"font-size": "font_quote_size"}.get(name)
+    if selector in ("p", "li"):
+        return {"font-size": "font_li_size" if selector == "li" else "font_body_size"}.get(name)
+    if selector == ".kicker":
+        return {"font-size": "font_kicker_size"}.get(name)
+    if selector == ".subtitle":
+        return {"font-size": "font_subtitle_size"}.get(name)
+    if selector == ".speaker":
+        return {"font-size": "font_speaker_size"}.get(name)
+    if selector == ".tiny":
+        return {"font-size": "font_tiny_size"}.get(name)
     return None
 
 
@@ -177,3 +228,40 @@ def _resolve_color_var(color: str, styles: dict) -> str:
     if m:
         return styles.get(m.group(1), color)
     return color
+
+
+
+def _build_theme_dict(styles: dict) -> dict:
+    ink = _to_rgb(styles.get("--ink", styles.get("color", "#333")))
+    return {
+        "ink_rgb": ink,
+        "ink_rgb_hex": _rgb_to_hex(ink),
+        "muted_rgb": _to_rgb(styles.get("--muted", "#777")),
+        "accent_rgb": _to_rgb(styles.get("--accent", "#0288d1")),
+        "font_body_family": styles.get("font_body_family", "Segoe UI"),
+        "font_code_family": styles.get("font_code_family",
+                                        styles.get("--font-mono", "SFMono-Regular")),
+        "font_h1": _parse_size(styles.get("font_h1_size", ""), 63),
+        "font_h2": _parse_size(styles.get("font_h2_size", ""), 36),
+        "font_h3": _parse_size(styles.get("font_h3_size", ""), 18),
+        "font_body": _parse_size(styles.get("font_body_size", ""), 18),
+        "font_code": _parse_size(styles.get("font_code_size", ""), 14),
+        "font_quote": _parse_size(styles.get("font_quote_size", ""), 24),
+        "font_kicker": _parse_size(styles.get("font_kicker_size", ""), 14),
+        "font_subtitle": _parse_size(styles.get("font_subtitle_size", ""), 32),
+        "font_speaker": _parse_size(styles.get("font_speaker_size", ""), 18),
+        "font_tiny": _parse_size(styles.get("font_tiny_size", ""), 13),
+        "font_li": _parse_size(styles.get("font_li_size", ""), 16),
+        "section_text_align": styles.get("section_text_align", "left"),
+        "title_text_align": styles.get("title_text_align", "left"),
+        "section_padding": _parse_padding(styles.get("section_padding", "")),
+        "border_radius": styles.get("--radius", "0.4em"),
+        "card_border_color": _resolve_color_var(
+            _parse_border_color(styles.get("--card-border", "solid #ddd")),
+            styles,
+        ),
+        "tag_colors": _extract_tag_colors(styles),
+    }
+
+def _rgb_to_hex(rgb: tuple) -> str:
+    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"

@@ -222,7 +222,7 @@ def _convert_node(node, styles: dict) -> Elem:
                 muted=styles.get("muted_rgb_hex", "#777"))
 
     if isinstance(node, Heading):
-        fs = {1: styles.get("font_h1", 63), 2: styles.get("font_h2", 36), 3: styles.get("font_h3", 18)}.get(node.level, 18)
+        fs = {1: styles.get("font_h1", 63), 2: styles.get("font_h2", 32), 3: styles.get("font_h3", 22)}.get(node.level, 18)
         return Elem(kind="heading", content=_render_inline_html(node.content),
                     text=_render_inline_text(node.content),
                     inlines=node.content,
@@ -268,7 +268,7 @@ def _convert_node(node, styles: dict) -> Elem:
     elif isinstance(node, Table):
         return Elem(kind="table", headers=node.headers, rows=node.rows)
     elif isinstance(node, Quote):
-        fs = styles.get("font_quote", 24)
+        fs = styles.get("font_quote", 18)
         return Elem(kind="quote", content=_render_inline_html(node.content),
                     text=_render_inline_text(node.content),
                     inlines=node.content,

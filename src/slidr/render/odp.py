@@ -27,7 +27,19 @@ _FONT_SANS = ""
 _FONT_MONO = ""
 _BORDER_RADIUS = ""
 _BORDER_COLOR = "#ddd"
+_FONT_SCALE = 1.0
 _TEXT_ALIGN = "left"
+_FONT_H1 = 63
+_FONT_H2 = 36
+_FONT_H3 = 18
+_FONT_BODY = 18
+_FONT_CODE = 14
+_FONT_QUOTE = 24
+_FONT_LIST = 16
+_FONT_KICKER = 14
+_FONT_SUBTITLE = 32
+_FONT_SPEAKER = 18
+_FONT_TINY = 13
 
 
 def set_fonts(sans: str, mono: str) -> None:
@@ -181,6 +193,47 @@ def _override_template_defaults(document: Document, align: str) -> None:
             style.set_properties(area="paragraph", text_align=align)
 
 
+def _swap_elem_colors(elements: list[Elem], dark: dict) -> None:
+    """Swap element colors to dark mode values."""
+    ink = dark.get("ink_rgb_hex", "#e0e0e0")
+    muted = dark.get("muted_rgb_hex", "#999")
+    accent = dark.get("accent_rgb_hex", "#4fc3f7")
+    for e in elements:
+        if e.color and e.color != muted:
+            e.color = ink
+        e.muted = muted
+        e.accent = accent
+        _swap_elem_colors(e.children, dark)
+
+
+def _set_page_dims(document: Document, w_cm: float, h_cm: float) -> None:
+    """Set the page-layout dimensions to the requested size."""
+    layout = document.get_style("page-layout", "PM1")
+    if layout is not None:
+        props = layout.get_element("style:page-layout-properties")
+        if props is not None:
+            props.set_attribute("fo:page-width", f"{w_cm:.2f}cm")
+            props.set_attribute("fo:page-height", f"{h_cm:.2f}cm")
+
+
+def _create_dark_master(document: Document, bg_color: str) -> None:
+    """Clone the default master page with a dark background."""
+    master = document.get_style("master-page", "presentation")
+    if master is None:
+        return
+    dark_master = master.clone
+    dark_master.name = "SlidrDark"
+    dark_master.display_name = "Slidr Dark"
+    # Set background on the master page's draw page
+    draw_page = dark_master.get_element("draw:page")
+    if draw_page is not None:
+        bg = draw_page.get_element("draw:rect") or draw_page.get_element("draw:frame")
+        if bg is not None:
+            bg.set_attribute("draw:fill", "solid")
+            bg.set_attribute("draw:fill-color", bg_color)
+    document.insert_style(dark_master)
+
+
 def _apply_border_radius(frame: Frame, radius: str) -> None:
     """Set draw:corner-radius directly on the frame element."""
     if radius:
@@ -240,7 +293,7 @@ def _style_key_for(elem: Elem) -> StyleKey:
     if elem.kind in ("quote", "subtitle", "tiny"):
         color = elem.muted
     return StyleKey(
-        font_size=elem.font_size,
+        font_size=max(8, int(elem.font_size * _FONT_SCALE)),
         color=color,
         font_weight=weight,
         font_style=fstyle,
@@ -361,10 +414,13 @@ def _estimate_elem_height(elem: Elem, width_cm: float) -> float:
         if cols <= 0:
             cols = 1
         col_w = (width_cm - 0.5 * (cols - 1)) / cols
-        max_h = 0.0
-        for child in elem.children:
-            max_h = max(max_h, _estimate_elem_height(child, col_w))
-        return max_h + 0.5
+        total_h = 0.0
+        for i in range(0, len(elem.children), cols):
+            row_h = 0.0
+            for child in elem.children[i:i + cols]:
+                row_h = max(row_h, _estimate_elem_height(child, col_w))
+            total_h += row_h
+        return total_h + 0.5
     elif kind == "card":
         h = 1.0 if elem.header else 0.0
         for line in elem.body:
@@ -620,7 +676,7 @@ def _render_list(
     from odfdo import List as OdfList, ListItem
 
     key = StyleKey(
-        font_size=elem.font_size,
+        font_size=max(8, int(elem.font_size * _FONT_SCALE)),
         color=elem.color,
         font_weight="normal",
         font_style="normal",
@@ -678,7 +734,7 @@ def _render_table(
         for j, cell_text in enumerate(row):
             t.set_value((j, i + 1), cell_text)
 
-    height = 0.6 * nrows
+    height = 1.0 * nrows  # cm, generous estimate to avoid overlap
     frame = Frame(
         name=f"table_frame_{_next_table_id()}",
         size=(f"{ctx.width:.2f}cm", f"{height:.2f}cm"),
@@ -705,22 +761,29 @@ def _render_grid(
     if cols <= 0:
         cols = 1
     col_w = (ctx.width - ctx.gap * (cols - 1)) / cols
-    cell_est = []
-    for child in elem.children:
-        cell_est.append(_estimate_elem_height(child, col_w))
-    row_h = max(cell_est) if cell_est else 0.0
+
+    # Group children into rows
+    rows = []
+    for i in range(0, len(elem.children), cols):
+        rows.append(elem.children[i:i + cols])
+
     frames: list[Element] = []
     start_y = ctx.y
-    for i, child in enumerate(elem.children):
-        col_x = ctx.x + i * (col_w + ctx.gap)
-        child_ctx = _child_ctx(ctx, x=col_x, y=start_y, width=col_w, min_height=row_h)
-        # Merge text elements within layout columns so paragraph+list become one frame
-        if child.kind == "grid" and child.layout and child.layout.startswith("col-"):
-            child = Elem(kind=child.kind, layout=child.layout, cols=child.cols,
-                         children=_merge_text_elements(child.children))
-        child_frames = _render_elem(child, child_ctx, gr, tr, odp)
-        frames.extend(child_frames)
-    ctx.y = start_y + row_h + ctx.gap
+
+    for row_cells in rows:
+        row_h = 0.0
+        for child in row_cells:
+            row_h = max(row_h, _estimate_elem_height(child, col_w))
+
+        for i, child in enumerate(row_cells):
+            col_x = ctx.x + i * (col_w + ctx.gap)
+            child_ctx = _child_ctx(ctx, x=col_x, y=start_y, width=col_w, min_height=row_h)
+            child_frames = _render_elem(child, child_ctx, gr, tr, odp)
+            frames.extend(child_frames)
+
+        start_y += row_h + ctx.gap
+
+    ctx.y = start_y
     return frames
 
 
@@ -958,6 +1021,44 @@ def _make_logo_frame(uri: str, page_w: float, page_h: float,
     return frame
 
 
+def _init_document(odp: Document, styles: dict, dark_styles: dict,
+                   page_width: float, page_height: float,
+                   px_width: int, px_height: int) -> tuple[str, str]:
+    """Initialize ODP document with styles, dimensions, and masters."""
+    global _BORDER_RADIUS, _BORDER_COLOR, _FONT_SCALE
+    set_fonts(
+        styles.get("font_body_family", "Segoe UI"),
+        styles.get("font_code_family", "SFMono-Regular"),
+    )
+    set_border_radius(styles.get("border_radius", "0.4em"))
+    set_border_color(styles.get("card_border_color", "#ddd"))
+    set_tag_colors(styles.get("tag_colors", {}))
+
+    # Font scale: ODP physical page (cm) vs HTML virtual pixels at 96dpi
+    _FONT_SCALE = (page_width * 10) / (px_width / 96 * 25.4)
+    global _FONT_H1, _FONT_H2, _FONT_H3, _FONT_BODY, _FONT_CODE
+    global _FONT_QUOTE, _FONT_LIST, _FONT_KICKER, _FONT_SUBTITLE, _FONT_SPEAKER, _FONT_TINY
+    _FONT_H1 = max(8, int(63 * _FONT_SCALE))
+    _FONT_H2 = max(8, int(36 * _FONT_SCALE))
+    _FONT_H3 = max(8, int(18 * _FONT_SCALE))
+    _FONT_BODY = max(8, int(18 * _FONT_SCALE))
+    _FONT_CODE = max(8, int(14 * _FONT_SCALE))
+    _FONT_QUOTE = max(8, int(24 * _FONT_SCALE))
+    _FONT_LIST = max(8, int(16 * _FONT_SCALE))
+    _FONT_KICKER = max(8, int(14 * _FONT_SCALE))
+    _FONT_SUBTITLE = max(8, int(32 * _FONT_SCALE))
+    _FONT_SPEAKER = max(8, int(18 * _FONT_SCALE))
+    _FONT_TINY = max(8, int(13 * _FONT_SCALE))
+
+    body_align = styles.get("section_text_align", "left")
+    title_align = styles.get("title_text_align", "left")
+    _override_template_defaults(odp, body_align)
+    _set_page_dims(odp, page_width, page_height)
+    _create_dark_master(odp, dark_styles.get("ink_rgb_hex", "#1a1a2e"))
+
+    return body_align, title_align
+
+
 def render(
     doc: ASTDocument,
     output_path: Path,
@@ -968,30 +1069,22 @@ def render(
     margin: float = 2.0,
     source_dir: Path | None = None,
 ) -> None:
-    """Render Document AST to an ODP file.
-
-    page_width, page_height: in cm. Defaults to 16:9 (28.0 x 15.75).
-    """
+    """Render Document AST to an ODP file."""
     from slidr.render.ir import resolve_styles
     from slidr.render.seaborn import set_palette
+    from slidr.theme.parser import parse_dark_theme
 
     set_palette(doc.meta.seaborn_theme)
     styles = resolve_styles(base_css, theme_css)
-    global _BORDER_RADIUS
-    global _BORDER_COLOR
-    set_fonts(
-        styles.get("font_body_family", "Segoe UI"),
-        styles.get("font_code_family", "SFMono-Regular"),
-    )
-    set_border_radius(styles.get("border_radius", "0.4em"))
-    set_border_color(styles.get("card_border_color", "#ddd"))
-    set_tag_colors(styles.get("tag_colors", {}))
-    _body_align = styles.get("section_text_align", "left")
-    _title_align = styles.get("title_text_align", "left")
+    dark_styles = parse_dark_theme(base_css, theme_css)
+
     slides = build_ir(doc, base_css, theme_css)
     odp = Document("presentation")
     odp.body.clear()
-    _override_template_defaults(odp, _body_align)
+
+    dims = doc.meta.dimensions()
+    _body_align, _title_align = _init_document(odp, styles, dark_styles, page_width, page_height,
+                                                dims[0], dims[1])
 
     logo_uri = None
     logo_src = doc.meta.logo
@@ -1017,9 +1110,21 @@ def render(
     )
 
     for i, slide in enumerate(slides):
-        global _TEXT_ALIGN
+        global _TEXT_ALIGN, _BORDER_COLOR
         _TEXT_ALIGN = _title_align if slide.layout == "title" else _body_align
+
+        if slide.variant == "dark":
+            _BORDER_COLOR = dark_styles.get("card_border_color", "#333")
+            set_tag_colors(dark_styles.get("tag_colors", {}))
+            _swap_elem_colors(slide.elements, dark_styles)
+            bg_color = dark_styles.get("ink_rgb_hex", "#1a1a2e")
+        else:
+            _BORDER_COLOR = styles.get("card_border_color", "#ddd")
+            set_tag_colors(styles.get("tag_colors", {}))
+            bg_color = styles.get("ink_rgb_hex", "#ffffff")
         page = DrawPage(f"slide{i + 1}", name=f"Slide {i + 1}")
+        if slide.variant == "dark":
+            page.master_page = "SlidrDark"
         slide_y = margin
         if slide.layout == "title":
             # Center title content vertically

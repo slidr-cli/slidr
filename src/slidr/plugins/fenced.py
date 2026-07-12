@@ -63,6 +63,7 @@ def _parse_card(text: str, rest: str = "") -> Card:
 
     # Parse attrs from rest (e.g., "card {tag=green}")
     class_ = ""
+    tag = None
     raw = rest.split("{", 1)[1].rstrip("}") if "{" in rest else ""
     for attr in raw.split(","):
         attr = attr.strip()
@@ -71,11 +72,13 @@ def _parse_card(text: str, rest: str = "") -> Card:
         if "=" in attr:
             k, v = attr.split("=", 1)
             k, v = k.strip(), v.strip().strip('"')
+            if k == "tag":
+                tag = v
             class_ = (class_ + f" {k}-{v}").strip()
         else:
             class_ = (class_ + " " + attr).strip() if class_ else attr
 
-    return Card(header=header, body=body, class_=class_)
+    return Card(header=header, body=body, tag=tag, class_=class_)
 
 
 def _parse_grid(inner_text: str, rest: str) -> Grid:
