@@ -241,8 +241,8 @@ def _convert_node(node, styles: dict) -> Elem:
             svg = render_seaborn_svg(node.content) or ""
         elif node.language == "mermaid":
             try:
-                from mmdc import render as render_mmd
-                d = render_mmd(node.content)
+                from mermaidx import Diagram
+                d = Diagram(node.content)
                 svg = _normalize_viewbox(d.svg())
                 pdf = d.pdf()
             except Exception:

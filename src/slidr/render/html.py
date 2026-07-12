@@ -201,7 +201,6 @@ def _render_seaborn_html(content: str, svg: str = "") -> str:
 
 def _render_mermaid(content: str, svg: str = "") -> str:
     if svg:
-        svg = _normalize_viewbox(svg)
         return f'<div class="mermaid">\n{svg}\n</div>'
     return f'<pre class="mermaid-fallback"><code>{_escape(content)}</code></pre>'
 
