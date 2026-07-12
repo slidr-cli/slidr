@@ -321,15 +321,22 @@ SVGs are generated at IR build time and shared across renderers.
 
 ### Why Python over Go
 
-Go's ecosystem is thin for presentation tooling. Generating ODP requires a library like odfdo, and Go has nothing comparable. Rendering HTML to PDF needs a real layout engine: weasyprint embeds one in a single Python package; Go would require shelling out to wkhtmltopdf or headless Chrome, both hundreds of megabytes. Markdown parsing has goldmark but its plugin ecosystem is smaller than markdown-it-py. The project iterates heavily on CSS rules, padding math, and layout logic, and Go's compile cycle adds friction to design work where you rebuild after every 2px change.
+Go has no ODP library. No weasyprint equivalent. Goldmark works but its
+plugin ecosystem is thin, and Go's compile cycle adds friction to design
+work where you rebuild after every 2px change.
 
 ### Why Python over Rust
 
-Same ecosystem gap, worse compile times. Rust has no odfdo equivalent, no weasyprint equivalent. Pygments for syntax highlighting has syntect in Rust but syntect covers fewer languages. Jinja2 templating maps to Tera which is less mature. Rust's compile time is measured in seconds where Python's is milliseconds, and slide design is inherently iterative.
+Rust comes closer than Go: pulldown-cmark handles markdown well, `cssparser`
+does proper CSS parsing. But no odfdo equivalent, no weasyprint. Syntect
+covers fewer languages than Pygments for syntax highlighting.
 
 ### Why not Node
 
-Node's dependency footprint is the dealbreaker. A CLI that parses markdown, generates ODP, renders PDF, and templates HTML pulls in 300MB+ of node_modules for marginal functionality. PDF generation requires Puppeteer/Playwright, which bundles a headless Chromium binary (~300MB). Weasyprint is a single Python package that does the same with a fraction of the weight. ODP libraries in Node are less mature than odfdo. Python's stdlib covers path handling, subprocess management, and file I/O without extra packages. The result is a tool you can install and run without downloading half the internet.
+Node slide tools ship a dev server, a bundler, a hot-reload daemon, and
+usually Electron just to render markdown to `<div>` tags. Every dependency
+adds a maintenance burden and expands the security surface. Python needs
+weasyprint and odfdo. That's the stack.
 
 ### The Python sweet spot
 
