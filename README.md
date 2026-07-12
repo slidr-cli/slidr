@@ -4,32 +4,19 @@ Markdown to styled HTML slides with PDF and ODP output.
 
 ## Why
 
-AI models are great at generating text but terrible at generating editable
-presentations. Asking an LLM to "make a slide deck" gives you a PPTX file
-with locked layouts, broken fonts, and content you can't easily tweak.
+Building a slide deck in PowerPoint is tedious. Writing markdown is fast.
+Slidr turns markdown into slides. Content lives in markdown files. Styling
+lives in CSS. No `.pptx` editing, no inline HTML, no copy-paste hell.
 
-Slidr inverts this: AI writes markdown (which it's excellent at), Slidr
-renders it to professionally styled slides. You edit the markdown -- the
-slides update automatically. Designer changes go in CSS, content changes
-go in markdown, never in a `.pptx` file.
+Other tools (Marp, Slidev) mix HTML and CSS into the markdown. This breaks
+separation of concerns -- your slides become `<div>` soup that's hard to
+change later. Slidr keeps them apart: directives (`@kicker`, `@layout`,
+`::: card`) are semantic; all styling is in theme CSS files.
 
-The result: AI-driven content generation plus human-editable output.
-Write once in markdown, render to HTML, PDF, and ODP from a single source.
-
-Other markdown-to-slide tools (like Marp) require inline HTML and CSS
-sprinkled throughout the markdown to achieve styled layouts. This breaks
-the separation of content and design -- your slides become uneditable
-messes of `<div>` tags and `style` attributes. Slidr uses directives
-(`@kicker`, `@layout`, `::: card`) that stay clean and semantic. All
-styling lives in CSS themes, completely separate from your content.
-
-Slidr is opinionated. It ships with a specific visual language -- card
-layouts, accent-colored quotes, `▸` bullet markers, a built-in dark
-mode. You can theme it extensively via CSS variables (see THEMING.md),
-but you work within the design system, not against it. If you need
-pixel-level custom layouts per slide, use raw HTML. If you want a
-consistent deck that looks good out of the box with minimal markup,
-Slidr is the right fit.
+Slidr is opinionated. It ships with card layouts, accent-colored quotes,
+`▸` bullet markers, dark mode. You theme it via CSS variables. If you want
+pixel-level custom layouts, use raw HTML. If you want a deck that looks
+good out of the box with minimal markup, this is the one.
 
 ## Install
 
@@ -49,9 +36,20 @@ pdm run slidr -w slides.md           # watch and rebuild on changes
 pdm run slidr --odp -w slides.md     # watch + ODP
 ```
 
-The `--image-odp` flag renders each slide as a PNG screenshot from the PDF output
-and embeds them in an ODP file. Pixel-perfect, always matches HTML. The `--odp`
-flag uses a programmatic renderer with native ODF text and styling.
+`--image-odp` is the production-ready ODP path (PDF screenshot → images in ODP).
+Pixel-perfect, always matches HTML output.
+
+`--odp` uses a native ODF renderer (text, shapes, style registries). Currently
+in progress: master page creation, font-face declarations, precise element
+positioning. Known issues:
+
+- Slide backgrounds use a cloned template master page instead of a fresh
+  `StyleMasterPage` -- works but carries template defaults
+- Font-face `@font-face` registration fails due to an `odfdo` internal bug
+- Vertical spacing and text alignment drift slightly from HTML
+
+If you know the ODF spec or `odfdo` internals, contributions to the native ODP
+renderer are welcome. See `src/slidr/render/odp.py` and `src/slidr/render/odf/`.
 
 ### Editing in PowerPoint / LibreOffice Impress
 
