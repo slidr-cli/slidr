@@ -108,7 +108,8 @@ def _render_elem(e: Elem) -> str:
         for row in e.rows:
             s += "<tr>"
             for cell in row:
-                s += f"<td>{_escape(cell)}</td>"
+                inner = cell if cell.startswith("<svg") else _escape(cell)
+                s += f"<td>{inner}</td>"
             s += "</tr>\n"
         s += "</tbody>\n</table>"
         return s
@@ -136,7 +137,8 @@ def _render_elem(e: Elem) -> str:
             cls += f" {e.class_}"
         s = f'<div class="{cls}">\n'
         if e.header:
-            s += f"<h3>{_escape(e.header)}</h3>\n"
+            inner = e.header if "<svg" in e.header else _escape(e.header)
+            s += f"<h3>{inner}</h3>\n"
         for line in e.body:
             s += f"<p>{_escape(line)}</p>\n"
         s += "</div>"
@@ -207,6 +209,10 @@ def _normalize_viewbox(svg: str) -> str:
         return svg
     new_w, new_h = w + abs(x), h + abs(y)
     return svg.replace(m.group(0), f'viewBox="0 0 {new_w:g} {new_h:g}"', 1)
+
+
+def _escape(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 
 def _escape(s: str) -> str:

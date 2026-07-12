@@ -13,7 +13,7 @@ from typing import Any
 from slidr.parser.ast import (
     Document, Slide, Heading, Paragraph, CodeBlock, Grid, Card,
     Table, Quote, ListNode, AttrNode, Text, Strong, Emphasis,
-    Strikethrough, CodeSpan, Image, SoftBreak, Arrow, Notes, Row,
+    Strikethrough, CodeSpan, Image, SoftBreak, LucideIcon, Arrow, Notes, Row,
 )
 from slidr.plugins.layouts import KNOWN_LAYOUTS
 from slidr.theme.parser import parse_theme
@@ -366,7 +366,28 @@ def _render_inline_html(nodes: list) -> str:
             s += f'<img src="{_escape(n.src)}" alt="{_escape(n.alt)}"{title}>'
         elif isinstance(n, SoftBreak):
             s += " "
+        elif isinstance(n, LucideIcon):
+            s += _render_lucide_inline(n.name, n.attrs)
     return s
+
+
+def _render_lucide_inline(name: str, attrs: dict) -> str:
+    """Render a LucideIcon as inline SVG."""
+    if not name:
+        return ""
+    try:
+        from lucide import lucide_icon
+        kwargs = dict(attrs)
+        if "height" not in kwargs and "width" not in kwargs:
+            kwargs["height"] = "1em"
+        svg = lucide_icon(name, **kwargs)
+        if "height" not in attrs and "width" not in attrs:
+            svg = svg.replace(
+                '<svg', '<svg style="height:1em;width:auto;vertical-align:middle"', 1
+            )
+        return svg
+    except Exception:
+        return ""
 
 
 def _render_inline_text(nodes: list) -> str:
@@ -383,4 +404,6 @@ def _render_inline_text(nodes: list) -> str:
             s += f"[{n.alt or 'image'}]"
         elif isinstance(n, SoftBreak):
             s += " "
+        elif isinstance(n, LucideIcon):
+            s += f":{n.name}:"
     return s

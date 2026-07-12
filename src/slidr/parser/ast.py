@@ -174,3 +174,9 @@ class Image(Inline):
 @dataclass
 class SoftBreak(Inline):
     pass
+
+
+@dataclass
+class LucideIcon(Inline):
+    name: str = ""
+    attrs: dict[str, str] = field(default_factory=dict)

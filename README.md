@@ -91,6 +91,7 @@ avoids the positioning complexity of the native ODP renderer.
 @tiny text             # small annotation below content
 @variant dark          # switch to dark mode for this slide
 @hidden                # exclude slide from output (alias: @hide)
+{icon:star}            # inline lucide icon, e.g. {icon:heart stroke=#d05a39}
 ```
 
 ## Layouts
@@ -195,7 +196,7 @@ graph LR
 ```
 ````
 
-Renders inline SVG in HTML, PDF in ODP. Uses the bundled `mmdc` Python package.
+Renders inline SVG in HTML, PDF in ODP. Uses the `mermaidx` Python package.
 
 ## Seaborn charts
 
@@ -266,10 +267,11 @@ They appear in the presenter view.
 
 ## Demo
 
-`examples/features_demo.md` is a 15-slide deck exercising every feature:
+`examples/features_demo.md` is a 17-slide deck exercising every feature:
 title slides, `@layout two-col`, `@layout image-right`, `@layout compare`,
 grids with tagged cards, tables, fenced code blocks, mermaid diagrams,
-seaborn charts, graphviz graphs, blockquotes, speaker notes, and all directives.
+seaborn charts, graphviz graphs, lucide icons, blockquotes, speaker notes,
+and all directives.
 
 See also: `examples/mermaid_demo.md`, `examples/seaborn_demo.md`,
 `examples/graphviz_demo.md`.

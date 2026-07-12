@@ -8,10 +8,11 @@ from markdown_it.token import Token
 from slidr.parser.ast import (
     Document, Meta, Slide,
     Heading, Paragraph, CodeBlock, Grid, Table, Quote, ListNode, AttrNode,
-    Text, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak,
+    Text, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak, LucideIcon,
 )
 from slidr.plugins.fenced import extract_fenced, interleave_fences
 from slidr.plugins.directives import preprocess_directives, extract_attrs, parse_attr_token
+from slidr.plugins.lucide import lucide_plugin
 from slidr.plugins.cards import group_cards
 
 
@@ -61,6 +62,7 @@ def _parse_slide(content: str) -> Slide:
     content, fence_nodes = extract_fenced(content)
 
     md = MarkdownIt("gfm-like", {"breaks": True, "html": True})
+    md.use(lucide_plugin)
     tokens = md.parse(content)
     nodes = _tokens_to_nodes(tokens)
 
@@ -131,7 +133,16 @@ def _tokens_to_nodes(tokens: list[Token]) -> list:
                     i += 1
                     cell = ""
                     while i < len(tokens) and tokens[i].type not in ("th_close", "td_close"):
-                        cell += tokens[i].content
+                        if tokens[i].type == "lucide_icon":
+                            cell += _render_lucide_cell(tokens[i])
+                        elif tokens[i].type == "inline":
+                            for c in tokens[i].children or []:
+                                if c.type == "lucide_icon":
+                                    cell += _render_lucide_cell(c)
+                                else:
+                                    cell += c.content or ""
+                        else:
+                            cell += tokens[i].content
                         i += 1
                     cur.append(cell.strip())
                 elif t.type == "tr_close":
@@ -197,6 +208,10 @@ def _token_inline(token: Token) -> list:
     elif token.type == "image":
         attrs = dict(token.attrs or {})
         return [Image(src=attrs.get("src", ""), alt=token.content or "", title=attrs.get("title", ""))]
+    elif token.type == "lucide_icon" or token.type == "svg":
+        attrs = dict(token.attrs or {})
+        name = attrs.pop("name", "")
+        return [LucideIcon(name=name, attrs=attrs)]
     return []
 
 
@@ -231,6 +246,25 @@ def _walk_inline_children(tokens: list) -> list:
             result.extend(_token_inline(t))
         i += 1
     return result
+
+
+def _render_lucide_cell(token) -> str:
+    """Render a lucide_icon token as an SVG string, sized for table cells."""
+    attrs = dict(token.attrs or {})
+    name = attrs.pop("name", "")
+    if not name:
+        return ""
+    try:
+        from lucide import lucide_icon
+        kwargs = dict(attrs)
+        if "height" not in kwargs and "width" not in kwargs:
+            kwargs["height"] = "1em"
+        svg = lucide_icon(name, **kwargs)
+        if "height" not in attrs and "width" not in attrs:
+            svg = svg.replace('<svg', '<svg style="height:1em;width:auto;vertical-align:middle"', 1)
+        return svg
+    except Exception:
+        return ""
 
 
 def _detect_layout(nodes: list) -> str:

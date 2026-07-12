@@ -391,9 +391,39 @@ Apache 2.0 license, vendor-neutral governance, CNCF-hosted project infrastructur
 
 ---
 
+## Lucide Icons
+
+`{icon:star}` syntax inline in text {icon:zap stroke=#64d039} paragraphs {icon:heart stroke=#d05a39} and tables.
+
+| Icon | Check |
+|------|-------|
+| {icon:check stroke=#64d039} | Pass |
+| {icon:x stroke=#d05a39} | Fail |
+| {icon:triangle-alert stroke=#ffd166} | Warn |
+
+::: grid {cols=3, class="card-grid"}
+::: card {tag=green}
+### {icon:shield-check stroke=#64d039} Security
+
+End-to-end encrypted by default. SOC 2 Type II certified infrastructure.
+:::
+::: card {tag=cyan}
+### {icon:zap stroke=#39b0d0} Performance
+
+Sub-millisecond P99 latency. 99.99% uptime SLA with automatic failover.
+:::
+::: card {tag=yellow}
+### {icon:refresh-cw stroke=#ffd166} Resilience
+
+Multi-region active-active deployment. Zero-downtime rolling updates.
+:::
+:::
+
+---
+
 @kicker Questions
 
-# Thank You
+# {icon:message-circle stroke=#64d039} Thank You
 
 
 @speaker name="Reza Jelveh" role="reza@dynamia.io"

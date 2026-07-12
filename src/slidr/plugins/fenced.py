@@ -1,6 +1,9 @@
 """Fenced block extraction: ::: card, ::: grid → AST nodes."""
 
+import re
 from slidr.parser.ast import Arrow, Card, Grid, Node, Notes
+
+_LUCIDE_HEADER_RE = re.compile(r'\{icon:(\S+)\s*([^}]*)\}')
 
 
 def extract_fenced(content: str) -> tuple[str, list[Node]]:
@@ -51,13 +54,38 @@ def extract_fenced(content: str) -> tuple[str, list[Node]]:
     return "\n".join(result), nodes
 
 
+def _render_card_header(text: str) -> str:
+    """Expand lucide icon syntax in card headers."""
+    def _lucide(m):
+        name, opts = m.group(1), m.group(2) or ""
+        attrs = {}
+        for a in re.finditer(r'(\w+)="([^"]*)"', opts):
+            attrs[a.group(1)] = a.group(2)
+        for a in re.finditer(r'(\w+)=(\S+)', opts):
+            if a.group(1) not in attrs:
+                attrs[a.group(1)] = a.group(2)
+        try:
+            from lucide import lucide_icon
+            kwargs = dict(attrs)
+            if "height" not in kwargs and "width" not in kwargs:
+                kwargs["height"] = "1em"
+            svg = lucide_icon(name, **kwargs)
+            if "height" not in attrs and "width" not in attrs:
+                svg = svg.replace('<svg', '<svg style="height:1em;width:auto;vertical-align:middle"', 1)
+            return svg
+        except Exception:
+            return m.group(0)
+    return _LUCIDE_HEADER_RE.sub(_lucide, text)
+
+
 def _parse_card(text: str, rest: str = "") -> Card:
     header = ""
     body = []
     for line in text.strip().split("\n"):
         line = line.strip()
         if line.startswith("### "):
-            header = line[4:]
+            raw_header = line[4:]
+            header = _render_card_header(raw_header)
         elif line:
             body.append(line)
 
