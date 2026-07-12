@@ -51,6 +51,10 @@ positioning. Known issues:
 If you know the ODF spec or `odfdo` internals, contributions to the native ODP
 renderer are welcome. See `src/slidr/render/odp.py` and `src/slidr/render/odf/`.
 
+An Obsidian plugin that renders `.md` slides to HTML in-pane would be great.
+The Python CLI makes distribution tricky; if you've tackled that problem
+before, reach out.
+
 ### Editing in PowerPoint / LibreOffice Impress
 
 The best workflow for editable slides: build a PDF, open it in LibreOffice Draw,
@@ -137,7 +141,7 @@ The arrow block accepts text or images:
 :::
 
 ::: arrow
-![](icons/arrow-right.svg)
+{icon:arrow-right size=24}
 :::
 ```
 
