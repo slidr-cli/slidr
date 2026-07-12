@@ -169,12 +169,15 @@ headers, card body, arrows, notes. Powered by `python-lucide`.
 
 ```
 {icon:star}                              # default 1em height
-{icon:heart stroke=#d05a39}              # custom color
-{icon:shield-check stroke=#64d039 size=1.2em}  # explicit size
-{icon:arrow-right stroke=#39b0d0 size=32}      # pixel size
+{icon:check cls=accent-primary}          # uses theme accent via CSS class
+{icon:heart cls=accent-secondary size=1.2em}  # class + explicit size
+{icon:arrow-right size=32}               # pixel size
 ```
 
-Parameters: `stroke`, `fill`, `width`, `height`, `size` (sets both), `stroke_width`.
+Parameters: `stroke`, `fill`, `width`, `height`, `size` (sets both), `cls` (CSS classes).
+
+Use `cls=accent-primary`, `cls=accent-secondary`, or `cls=accent-contrast`
+to match theme accent colors instead of hardcoded hex values.
 
 No configuration needed -- `pdm install` includes the dependency.
 

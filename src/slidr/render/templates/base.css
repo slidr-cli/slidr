@@ -11,7 +11,14 @@
   --section-padding-v: 2.8em;
   --section-padding-h: 3.6em;
   --card-border: 1px solid var(--color-border);
+  --color-accent-primary: var(--color-accent);
+  --color-accent-secondary: var(--color-accent);
+  --color-accent-contrast: var(--color-accent);
 }
+
+.accent-primary { color: var(--color-accent-primary); stroke: var(--color-accent-primary); }
+.accent-secondary { color: var(--color-accent-secondary); stroke: var(--color-accent-secondary); }
+.accent-contrast { color: var(--color-accent-contrast); stroke: var(--color-accent-contrast); }
 
 /* ---- layout defaults ---- */
 section {

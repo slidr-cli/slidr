@@ -107,6 +107,7 @@ if (isPresenter) {
   });
 
   document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey || e.metaKey) return;
     if (KEYS_BACK.includes(e.key)) {
       e.preventDefault(); show(current - 1);
     } else if (KEYS_FWD.includes(e.key)) {
@@ -128,10 +129,12 @@ if (isPresenter) {
   document.addEventListener('click', function(e) {
     var t = e.target;
     if (t.closest('button, a, input, textarea, select, #slidr-nav, #presenter-panel')) return;
+    if (window.getSelection().toString()) return;
     show(current + 1);
   });
 
   document.addEventListener('contextmenu', function(e) {
+    if (window.getSelection().toString()) return;
     e.preventDefault();
     show(current - 1);
   });

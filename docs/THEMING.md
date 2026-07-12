@@ -25,6 +25,11 @@ All color values come from `:root` custom properties:
   --color-card-bg: #fafafa;        /* default card background */
   --color-background-stripe: #f5f5f5;  /* alternating table rows */
 
+  /* Accent variants (default to --color-accent, themes can set independently) */
+  --color-accent-primary: var(--color-accent);
+  --color-accent-secondary: var(--color-accent);
+  --color-accent-contrast: var(--color-accent);
+
   /* Tag colors */
   --tag-green-bg: #e8f5e9;         --tag-green-border: #0fd05d;
   --tag-cyan-bg: #e0f7fa;          --tag-cyan-border: #67d8ff;
@@ -33,33 +38,114 @@ All color values come from `:root` custom properties:
 }
 ```
 
+### Accent classes
+
+Three utility classes for referencing accent colors without hardcoded hex values:
+
+```css
+.accent-primary   { color: var(--color-accent-primary);   fill: var(--color-accent-primary);   stroke: var(--color-accent-primary); }
+.accent-secondary { color: var(--color-accent-secondary); fill: var(--color-accent-secondary); stroke: var(--color-accent-secondary); }
+.accent-contrast  { color: var(--color-accent-contrast);  fill: var(--color-accent-contrast);  stroke: var(--color-accent-contrast); }
+```
+
+All three default to `--color-accent`. A theme sets them independently for distinct
+positive/negative/warning colors. The classes set `color`, `fill`, and `stroke`
+so they work for text, filled shapes, and lucide icons:
+
+```markdown
+{icon:check cls=accent-primary}     # success
+{icon:x cls=accent-secondary}       # failure
+{icon:alert cls=accent-contrast}    # warning
+```
+
 ## Dark mode
 
-Set `variant: dark` in frontmatter:
+Dark mode uses CSS variables scoped under `[data-theme="dark"]`. Two triggers:
+
+**Global** (every slide):
 
 ```yaml
 ---
-title: My Talk
 variant: dark
 ---
 ```
 
-Or toggle per-slide:
+This sets `data-theme="dark"` on the `<html>` element. All slides inherit dark
+variables.
+
+**Per-slide** (toggle mid-presentation):
 
 ```markdown
 @variant dark
 
 ## This slide is dark
+
+@variant light
+
+## Back to light
 ```
 
-Dark mode overrides the same variables:
+Sets `data-theme="dark"` on the `<section>` element. Only that slide goes dark.
+The next `@variant light` switches back.
+
+**Theme implementation**:
 
 ```css
-section[data-variant="dark"] {
+[data-theme="dark"] {
   --color-background: #1a1a2e;
+  --color-foreground: #e0e0e0;
+  --color-dimmed: #999;
+  --color-accent: #58a6ff;
+  --color-card-bg: #161b22;
   ...
 }
+
+section[data-theme="dark"] {
+  --color-background: #1a1a2e;
+}
 ```
+
+Use `[data-theme="dark"]` for global overrides (applied to `<html>`).
+Use `section[data-theme="dark"]` for per-slide overrides.
+Both selectors work in the same theme file.
+
+## Logo
+
+The logo renders via `section::before` with `position: absolute` at the top-right
+corner. Two ways to set it:
+
+**Frontmatter** (per-presentation, overrides theme):
+
+```yaml
+---
+logo: assets/my-logo.svg
+---
+```
+
+The `logo:` field generates its own `section::before` rule that appears after the
+theme CSS in the stylesheet, so it naturally overrides any theme default logo.
+
+**Theme** (default logo for all presentations using the theme):
+
+```css
+section::before {
+  content: "";
+  position: absolute;
+  top: 4%;
+  right: 5%;
+  width: 14%;
+  height: 0;
+  padding-bottom: 6%;
+  background: url("brand/logo.svg") center / contain no-repeat;
+  opacity: 0.92;
+}
+[data-theme="dark"] section::before {
+  background-image: url("brand/logo-white.png");
+}
+```
+
+Both use the same selector -- the one appearing last in the stylesheet wins.
+Theme CSS is injected first, then `logo:` CSS, then `style:` CSS.
 
 ## Overriding via frontmatter
 
