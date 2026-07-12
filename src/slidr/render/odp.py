@@ -22,12 +22,24 @@ from odfdo.element import Element
 from slidr.parser.ast import Document as ASTDocument
 from slidr.render.ir import Elem, SlideIR, build_ir
 
+# Import from refactored modules
+from slidr.render.odf.style import (
+    StyleKey, TextStyleKey, GraphicStyleRegistry, TextStyleRegistry,
+    set_fonts, set_border_radius, set_border_color, set_tag_colors,
+    tag_fill, tag_border, _TEXT_ALIGN, _FONT_SANS, _FONT_MONO,
+    _BORDER_RADIUS, _BORDER_COLOR, _FONT_SCALE,
+    create_table_styles,
+)
+from slidr.render.odf.layout import (
+    LayoutContext, child_ctx,
+    estimate_text_height, estimate_elem_height,
+)
 
-_FONT_SANS = ""
-_FONT_MONO = ""
-_BORDER_RADIUS = ""
-_BORDER_COLOR = "#ddd"
-_FONT_SCALE = 1.0
+
+# Keep module globals here for now (used by _style_key_for et al)
+
+_TEXT_ALIGN = _TEXT_ALIGN
+_TABLE_CELL_STYLE = ""  # redirect from style module
 _TEXT_ALIGN = "left"
 _FONT_H1 = 63
 _FONT_H2 = 36
@@ -733,8 +745,12 @@ def _render_table(
     for i, row in enumerate(elem.rows):
         for j, cell_text in enumerate(row):
             t.set_value((j, i + 1), cell_text)
+            if _TABLE_CELL_STYLE:
+                cell = t.get_cell((j, i + 1))
+                if cell is not None:
+                    cell.set_attribute("table:style-name", _TABLE_CELL_STYLE)
 
-    height = 1.0 * nrows  # cm, generous estimate to avoid overlap
+    height = 0.6 * nrows
     frame = Frame(
         name=f"table_frame_{_next_table_id()}",
         size=(f"{ctx.width:.2f}cm", f"{height:.2f}cm"),
@@ -1033,6 +1049,10 @@ def _init_document(odp: Document, styles: dict, dark_styles: dict,
     set_border_radius(styles.get("border_radius", "0.4em"))
     set_border_color(styles.get("card_border_color", "#ddd"))
     set_tag_colors(styles.get("tag_colors", {}))
+
+    # Table styles
+    global _TABLE_CELL_STYLE
+    _, _TABLE_CELL_STYLE = create_table_styles(odp, styles)
 
     # Font scale: ODP physical page (cm) vs HTML virtual pixels at 96dpi
     _FONT_SCALE = (page_width * 10) / (px_width / 96 * 25.4)
