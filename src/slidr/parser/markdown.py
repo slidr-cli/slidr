@@ -21,6 +21,8 @@ def parse(input_text: str) -> Document:
     raw_meta = dict(post.metadata)
     style_raw = raw_meta.pop("style", "") or ""
     logo_raw = raw_meta.pop("logo", "") or ""
+    logo_dark_raw = raw_meta.pop("logo_dark", "") or ""
+    watermark_raw = raw_meta.pop("watermark", "") or ""
 
     meta = Meta(
         theme=raw_meta.pop("theme", ""),
@@ -30,6 +32,8 @@ def parse(input_text: str) -> Document:
         size=raw_meta.pop("size", "16:9"),
         style=style_raw,
         logo=logo_raw,
+        logo_dark=logo_dark_raw,
+        watermark=watermark_raw,
         pygments_style=raw_meta.pop("pygments_style", "default"),
         seaborn_theme=raw_meta.pop("seaborn_theme", None) or Meta.seaborn_theme,
         theme_variant=raw_meta.pop("variant", Meta.theme_variant),

@@ -9,6 +9,9 @@
   --color-accent-bg: rgba(57, 57, 216, 0.12);
   --color-border: #c0c4d6;
   --color-card-bg: #f5f6fa;
+  --bg-image: url("assets/brand/kubecon_japan/background.png");
+  --bg-overlay: rgba(255,255,255,0.94);
+  --watermark: url("assets/brand/kubecon_japan/cncf_logo.svg");
   --tag-green-bg: #e8f5e9;
   --tag-cyan-bg: #e3f0ff;
   --tag-yellow-bg: #fff9e6;
@@ -55,46 +58,20 @@ body {
 }
 
 section {
-  background: var(--color-background);
+  background: linear-gradient(var(--bg-overlay), var(--bg-overlay)), var(--bg-image) left top / cover no-repeat;
   color: var(--color-foreground);
   font-family: Roboto, Arial, "Helvetica Neue", sans-serif;
 }
 
-/* KubeCon slide background (subtle pattern from master) */
-section::before {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: url("assets/brand/kubecon_japan/kubecon_1000000100001D4C00000EA673475CD4.png") left top / cover no-repeat;
-  opacity: 0.06;
-  pointer-events: none;
-  z-index: 0;
-}
-section > * { position: relative; z-index: 1; }
-
-/* CNCF bird logo on content slides */
-section::after {
-  display: block;
-  content: "";
-  position: absolute;
-  bottom: 3%;
-  right: 4%;
-  width: 30%;
-  padding-bottom: 8%;
-  background: url("assets/brand/kubecon_japan/kubecon_10004D93000048E50000200FE53CB849.svg") right bottom / contain no-repeat;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Title slide gets the full KubeCon branding, no CNCF bird */
+/* Title slide hides watermark */
 .layout-title section::after {
   background-image: none;
 }
-.layout-title section::before {
-  opacity: 0.15;
+section::after {
+  opacity: 0.9;
 }
 .layout-title {
-  background: linear-gradient(135deg, #1D1D6B 0%, #3939D8 60%, #0a0a3a 100%);
+  background: linear-gradient(135deg, rgba(29,29,107,0.85) 0%, rgba(57,57,216,0.85) 60%, rgba(10,10,58,0.85) 100%), var(--bg-image) left top / cover no-repeat;
   color: #ffffff;
 }
 .layout-title h1,

@@ -38,6 +38,43 @@ All color values come from `:root` custom properties:
 }
 ```
 
+### Background and watermark
+
+Slide background image and watermark are controlled via variables in `base.css`.
+Themes set them; frontmatter `style:` overrides them.
+
+```css
+:root {
+  --bg-image: none;        /* slide background image */
+  --bg-overlay: transparent; /* color overlay on bg image */
+  --watermark: none;       /* bottom-right brand mark */
+}
+```
+
+The background is applied as:
+```css
+section {
+  background: linear-gradient(var(--bg-overlay), var(--bg-overlay)), var(--bg-image) left top / cover no-repeat;
+}
+```
+
+The watermark uses `section::after` (positioned bottom-right in `base.css`).
+Set `--watermark: url(...)` in a theme or frontmatter to activate it.
+
+### Logo and dark logo
+
+Frontmatter fields for top-right logo with dark mode variant:
+
+```yaml
+---
+logo: assets/logo.svg
+logo_dark: assets/logo-white.png
+---
+```
+
+`logo:` generates `section::before` at top-right. `logo_dark:` changes the
+image when `[data-theme="dark"]` is active.
+
 ### Accent classes
 
 Three utility classes for referencing accent colors without hardcoded hex values:

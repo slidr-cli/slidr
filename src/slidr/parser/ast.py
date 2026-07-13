@@ -24,6 +24,8 @@ class Meta:
     size: str = "16:9"
     style: str = ""
     logo: str = ""
+    logo_dark: str = ""
+    watermark: str = ""
     pygments_style: str = "default"
     seaborn_theme: str = "muted"
     theme_variant: str = "light"

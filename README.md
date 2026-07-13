@@ -18,6 +18,21 @@ Slidr is opinionated. It ships with card layouts, accent-colored quotes,
 pixel-level custom layouts, use raw HTML. If you want a deck that looks
 good out of the box with minimal markup, this is the one.
 
+## Frontmatter
+
+```yaml
+---
+title: My Talk
+theme: dynamia           # theme name (default, dynamia, kubecon_japan)
+variant: dark            # global dark mode
+logo: assets/logo.svg    # top-right logo (replaces theme default)
+logo_dark: assets/logo-white.png  # dark mode variant of logo
+watermark: assets/brand-mark.svg  # bottom-right watermark (conference logo)
+style: |                 # raw CSS override
+  :root { --color-accent: #e91e63; }
+---
+```
+
 ## Install
 
 ```bash
