@@ -72,8 +72,9 @@ logo_dark: assets/logo-white.png
 ---
 ```
 
-`logo:` generates `section::before` at top-right. `logo_dark:` changes the
-image when `[data-theme="dark"]` is active.
+`logo:` sets `--logo` CSS variable. `logo_dark:` sets `--logo-dark`.
+The positioning and sizing live in `base.css` via `section::before`.
+Dark mode and `.layout-title` use `--logo-dark` automatically.
 
 ### Accent classes
 
@@ -108,6 +109,42 @@ so they work for text, filled shapes, and lucide icons:
 Supported fields: `github`, `twitter`, `email`, `linkedin`, `website`.
 Each renders as a lucide icon + link below the name/role.
 Multiple `@speaker` directives stack vertically.
+
+### Theme override pattern
+
+Themes set CSS variables; `base.css` defines structure that references them.
+`kubecon_japan.css` demonstrates the pattern:
+
+```css
+:root {
+  --bg-overlay: rgba(255,255,255,0.94);  /* white wash over bg */
+  --watermark: url(brand/cncf_logo.svg);  /* bottom-right mark */
+  --logo-dark: url(brand/logo-white.png); /* dark-mode logo */
+}
+.layout-title { --logo: var(--logo-dark); }  /* title always dark */
+section::after { opacity: 0.15; }            /* watermark subtlety */
+```
+
+Everything that can vary has a variable. List font size:
+
+```css
+li { font-size: 0.9em; }
+```
+
+Maps to `font_li_size` for ODP. Override in `style:`:
+
+```yaml
+style: |
+  li { font-size: 1em; }
+```
+
+Bullet list marker via `--list-style`. Default is `"\\25B8  "` (▸ triangle).
+Change to standard bullets or custom characters:
+
+```yaml
+style: |
+  :root { --list-style: disc; }
+```
 
 ## Dark mode
 
