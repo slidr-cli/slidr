@@ -51,6 +51,16 @@ pdm run slidr -w slides.md           # watch and rebuild on changes
 pdm run slidr --odp -w slides.md     # watch + ODP
 ```
 
+## Assets
+
+Image paths in markdown are relative to the source file. On build, slidr
+symlinks all directories from the source folder into `dist/`. Files and
+`.md` files are skipped, only directories are linked.
+
+```bash
+pdm run slidr slides.md    # symlinks slides/assets/ → slides/dist/assets/
+```
+
 `--image-odp` is the production-ready ODP path (PDF screenshot → images in ODP).
 Pixel-perfect, always matches HTML output.
 

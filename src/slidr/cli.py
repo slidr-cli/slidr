@@ -43,7 +43,7 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
 
     out_dir = output_dir or file.parent / "dist"
     out_dir.mkdir(parents=True, exist_ok=True)
-    _symlink_assets(file.parent, out_dir, file)
+    _symlink_assets(file.parent, out_dir)
     stem = file.stem
 
     if doc.meta.theme and doc.meta.theme != "default":
@@ -165,9 +165,12 @@ def _node_summary(node) -> str:
     return ""
 
 
-def _symlink_assets(source_dir: Path, dist_dir: Path, input_file: Path) -> None:
+def _symlink_assets(source_dir: Path, dist_dir: Path) -> None:
+    """Symlink all directories from source to dist. Skips files and dist itself."""
     for item in source_dir.iterdir():
-        if item.name == dist_dir.name or item == input_file:
+        if not item.is_dir():
+            continue
+        if item.name == dist_dir.name:
             continue
         dest = dist_dir / item.name
         if not dest.exists():
