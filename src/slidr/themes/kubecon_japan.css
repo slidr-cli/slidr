@@ -84,6 +84,8 @@ section::after {
 .layout-title .subtitle { color: rgba(255,255,255,0.7); }
 .layout-title .speaker { color: rgba(255,255,255,0.8); }
 .layout-title .speaker .role { color: rgba(255,255,255,0.5); }
+.layout-title .speaker-links a { color: rgba(255,255,255,0.75); }
+.layout-title .speaker-links svg { stroke: rgba(255,255,255,0.75); }
 
 h1, h2, h3, h4, h5, h6 {
   color: var(--color-foreground);

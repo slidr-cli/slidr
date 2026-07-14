@@ -289,7 +289,7 @@ def _convert_node(node, styles: dict) -> Elem:
         items_text = [_render_inline_text(item) for item in node.items]
         fs = styles.get("font_li", 16)
         return Elem(kind="list", content=items_html, text=">".join(items_text),
-                    items=items_text,
+                    items=items_html,
                     item_inlines=[list(item) for item in node.items],
                     font_size=fs, color=base.color)
     elif isinstance(node, Table):

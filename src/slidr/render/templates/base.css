@@ -37,6 +37,7 @@ section::after {
 .accent-primary { color: var(--color-accent-primary); stroke: var(--color-accent-primary); }
 .accent-secondary { color: var(--color-accent-secondary); stroke: var(--color-accent-secondary); }
 .accent-contrast { color: var(--color-accent-contrast); stroke: var(--color-accent-contrast); }
+svg.accent-primary, svg.accent-secondary, svg.accent-contrast { fill: none; }
 
 /* ---- layout defaults ---- */
 section {
@@ -120,6 +121,10 @@ th { font-weight: 700; }
 
 .kicker { font-family: var(--font-mono); font-size: 0.8em; font-weight: 800; }
 .speaker { font-size: 1.05em; font-weight: 700; margin-top: 3em; }
+.speaker + .speaker { margin-top: 0.5em; }
+.speaker-links { font-weight: 400; font-size: 0.8em; }
+.speaker-links a { margin-right: 0.6em; }
+.speaker-links svg { height: 0.9em; width: auto; vertical-align: middle; }
 
 footer {
   position: absolute;

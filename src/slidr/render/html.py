@@ -153,9 +153,22 @@ def _render_elem(e: Elem) -> str:
             cls += f" tag-{e.tag}"
         return f'<div class="{cls}">{e.content}</div>'
     elif e.kind == "speaker":
+        from slidr.plugins.lucide import render_icon
         name = e.attrs.get("name", e.content)
         role = e.attrs.get("role", "")
-        text = f"{_escape(name)} | <span class=\"role\">{_escape(role)}</span>" if role else _escape(name)
+        text = f"{_escape(name)}<br><span class=\"role\">{_escape(role)}</span>" if role else _escape(name)
+        links = []
+        contact_icons = {"github": "git-fork", "twitter": "bird", "email": "mail", "linkedin": "linkedin", "website": "globe"}
+        for key in ("github", "twitter", "email", "linkedin", "website"):
+            val = e.attrs.get(key, "")
+            if val:
+                icon = contact_icons.get(key, "link")
+                href = val if "://" in val else f"https://{val}" if key != "email" else f"mailto:{val}"
+                label = val.replace("https://", "").replace("mailto:", "")
+                svg = render_icon(icon, {"cls": "speaker-icon"})
+                links.append(f'<a href="{_escape(href)}" target="_blank">{svg} {_escape(label)}</a>')
+        if links:
+            text += '<br><span class="speaker-links">' + "".join(links) + "</span>"
         return f'<div class="speaker">{text}</div>'
     elif e.kind in ("kicker", "subtitle", "tiny"):
         return f'<p class="{e.kind}">{e.content}</p>'
