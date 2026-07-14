@@ -106,7 +106,7 @@ avoids the positioning complexity of the native ODP renderer.
 ```
 @kicker text           # title slide eyebrow
 @subtitle text         # title slide subtitle
-@speaker name=X role=Y # title slide attribution
+@speaker name=X role=Y<br>       github=Z twitter=Z email=Z # title slide attribution with social links
 @layout name           # apply a slide layout
 @col                   # explicit column break in two-col / compare layouts
 @row                   # horizontal row within a column (side by side)

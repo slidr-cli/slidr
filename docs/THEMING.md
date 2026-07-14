@@ -95,6 +95,20 @@ so they work for text, filled shapes, and lucide icons:
 {icon:alert cls=accent-contrast}    # warning
 ```
 
+### Speaker with social links
+
+`@speaker` renders name, role, and optional contact icons with text labels:
+
+```markdown
+@speaker name="Jane Doe" role="Engineer"
+  github=github.com/jane twitter=@jane email=jane@example.com
+  linkedin=linkedin.com/in/jane website=jane.dev
+```
+
+Supported fields: `github`, `twitter`, `email`, `linkedin`, `website`.
+Each renders as a lucide icon + link below the name/role.
+Multiple `@speaker` directives stack vertically.
+
 ## Dark mode
 
 Dark mode uses CSS variables scoped under `[data-theme="dark"]`. Two triggers:
