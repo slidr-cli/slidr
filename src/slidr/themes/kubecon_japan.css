@@ -12,6 +12,7 @@
   --bg-image: url("assets/brand/kubecon_japan/background.png");
   --bg-overlay: rgba(255,255,255,0.96);
   --watermark: url("assets/brand/kubecon_japan/cncf_logo.svg");
+  --logo-dark: url("assets/brand/dynamia-logo-white.png");
   --tag-green-bg: #e8f5e9;
   --tag-cyan-bg: #e3f0ff;
   --tag-yellow-bg: #fff9e6;
@@ -89,10 +90,7 @@ section::after {
 .layout-title .speaker-links a { color: rgba(255,255,255,0.75); }
 .layout-title .speaker-links svg { stroke: rgba(255,255,255,0.75); }
 
-/* Title slide has dark background, always use light logo */
-.layout-title section::before {
-  background: url("assets/brand/dynamia-logo-white.png") center/contain no-repeat;
-}
+.layout-title { --logo: var(--logo-dark); }
 
 h1, h2, h3, h4, h5, h6 {
   color: var(--color-foreground);

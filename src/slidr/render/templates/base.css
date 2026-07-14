@@ -17,6 +17,27 @@
   --bg-image: none;
   --bg-overlay: transparent;
   --watermark: none;
+  --logo: none;
+  --logo-dark: var(--logo);
+}
+
+
+/* ---- logo (top-right, override via logo: frontmatter) ---- */
+section::before {
+  content: "";
+  position: absolute;
+  top: 4%;
+  right: 5%;
+  width: 14%;
+  height: 0;
+  padding-bottom: 6%;
+  background: var(--logo) center / contain no-repeat;
+  opacity: 0.92;
+  z-index: 1;
+}
+[data-theme="dark"] section::before,
+section[data-theme="dark"]::before {
+  background-image: var(--logo-dark);
 }
 
 

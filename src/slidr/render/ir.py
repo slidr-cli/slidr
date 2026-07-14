@@ -103,20 +103,13 @@ def assemble_css(base_css: str, theme_css: str, dims: tuple[int, int],
                  logo_dark: str = "") -> str:
     """Assemble the final CSS for HTML output: base + theme + logo + pygments."""
     css = base_css.replace("SLIDE_W", str(dims[0])).replace("SLIDE_H", str(dims[1]))
-    logo_css = ""
-    if logo:
-        logo_css = f"""section::before {{ content:\"\";
-          position:absolute; top:4%; right:5%; width:14%; height:0; padding-bottom:6%;
-          background:url(\"{logo}\") center/contain no-repeat; opacity:0.92; z-index:1; }}"""
-    if logo_dark:
-        logo_css += f"""
-          [data-theme="dark"] section::before,
-          section[data-theme="dark"]::before {{
-            background-image: url("{logo_dark}");
-          }}"""
-    css = css.replace("LOGO_CSS", logo_css).replace("{logo_css}", "")
+    css = css.replace("LOGO_CSS", "").replace("{logo_css}", "")
     css = css.replace("THEME_CSS", theme_css).replace("{theme_css}", "")
     css = css.replace("IMG_MAX_H", str(int(dims[1] * 0.70)))
+    if logo:
+        css = css.replace(":root {", f":root {{ --logo: url(\"{logo}\"); ")
+    if logo_dark:
+        css = css.replace(":root {", f":root {{ --logo-dark: url(\"{logo_dark}\"); ")
     if watermark:
         css = css.replace(":root {", f":root {{ --watermark: url(\"{watermark}\"); ")
     if pygments_style:
