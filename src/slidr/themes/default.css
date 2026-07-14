@@ -19,6 +19,7 @@
   --tag-yellow-border: #ffd166;
   --tag-red-border: #ff7a7a;
   --tag-default-border: #ccc;
+  --list-style: "\25B8  ";
 }
 
 /* per-slide variant override */
@@ -74,7 +75,6 @@ h2 { font-size: 1.8em; }
 h3 { font-size: 1.3em; }
 
 li { font-size: 0.9em; padding-left: 0.3em; }
-ul { list-style: "\25B8  "; }
 
 blockquote {
   border-left-color: var(--color-accent);

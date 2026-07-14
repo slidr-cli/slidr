@@ -26,6 +26,7 @@
   --color-accent-primary: #3939D8;
   --color-accent-secondary: #DB1E3D;
   --color-accent-contrast: #1D1D6B;
+  --list-style: "\25B8  ";
 }
 
 body {
@@ -41,6 +42,7 @@ body {
   --color-accent-bg: rgba(91, 91, 240, 0.15);
   --color-border: #1a1a44;
   --color-card-bg: #0d0d3d;
+  --bg-overlay: rgba(6, 6, 45, 0.90);
   --tag-green-bg: #1a2e1a;
   --tag-cyan-bg: #1a2a3a;
   --tag-yellow-bg: #2e2a1a;
@@ -86,6 +88,11 @@ section::after {
 .layout-title .speaker .role { color: rgba(255,255,255,0.5); }
 .layout-title .speaker-links a { color: rgba(255,255,255,0.75); }
 .layout-title .speaker-links svg { stroke: rgba(255,255,255,0.75); }
+
+/* Title slide has dark background, always use light logo */
+.layout-title section::before {
+  background: url("assets/brand/dynamia-logo-white.png") center/contain no-repeat;
+}
 
 h1, h2, h3, h4, h5, h6 {
   color: var(--color-foreground);

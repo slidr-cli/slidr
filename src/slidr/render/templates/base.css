@@ -57,6 +57,7 @@ h2 { padding-top: 1%; margin-bottom: 1em; }
 p { margin-bottom: 0.5em; }
 ul { margin: 0 14pt; }
 li { margin: 0.4em 0; line-height: 1.5; overflow-wrap: break-word; }
+ul { list-style: var(--list-style); }
 ul li::marker { color: var(--color-accent); font-weight: bold; }
 
 img { max-width: 100%; height: auto; }
@@ -120,7 +121,7 @@ th { font-weight: 700; }
 }
 
 .kicker { font-family: var(--font-mono); font-size: 0.8em; font-weight: 800; }
-.speaker { font-size: 1.05em; font-weight: 700; margin-top: 2.2em; }
+.speaker { font-size: 1.05em; font-weight: 700; margin-top: 1.8em; }
 .speaker + .speaker { margin-top: 0.3em; }
 .speaker-links { font-weight: 400; font-size: 0.8em; }
 .speaker-links a { margin-right: 0.6em; }
