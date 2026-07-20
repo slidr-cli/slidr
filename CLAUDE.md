@@ -106,6 +106,33 @@ user style: block (frontmatter overrides)
 - ALL font sizes use `em` (relative to 18pt base on section). No `px` for text.
 - Spacing uses `em` for consistency. Percentages converted: `10%` of 720px slide height = 72px / 18 = 4em.
 
+## Fenced blocks
+
+Slidr supports multiple fenced block types for diagrams and visualizations:
+
+| Language | Renderer | Description |
+|----------|----------|-------------|
+| `dot` | Graphviz `dot` | Directed graphs, record shapes, HTML-like labels |
+| `mermaid` | Mermaid CLI | Flowcharts, sequence diagrams, Gantt charts |
+| `seaborn` | matplotlib/seaborn | Statistical charts, bar plots, gauge charts |
+
+Grid and card syntax uses `:::` fences (pre-processed, not markdown-it):
+
+```
+::: grid {cols=2, class="top-grid"}
+::: card {tag="green"}
+### Card Title
+Card content with **markdown**
+:::
+::: card {tag="red"}
+### Another Card
+More content
+:::
+:::
+```
+
+All fenced blocks support markdown inside via `_expand_markdown` which uses `markdown-it.renderInline` with `breaks: False`. Lucide icons work inside fenced content: `{icon:check cls=accent-primary}`.
+
 ## Testing
 
 - Always add tests after implementing new features. Tests are mandatory, not optional.
