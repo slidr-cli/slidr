@@ -286,6 +286,8 @@ These are in `base.css` and control spacing:
   --section-padding-v: 2.8em; /* vertical slide padding */
   --section-padding-h: 3.6em; /* horizontal slide padding */
   --card-border: 1px solid var(--color-border);
+  --title-h1-size: 3.5em;     /* title slide h1 font size */
+  --title-subtitle-size: 1.8em; /* title slide subtitle font size */
 }
 ```
 
