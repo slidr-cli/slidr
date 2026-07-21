@@ -92,6 +92,22 @@ def _parse_card(text: str, rest: str = "") -> Card:
                 i += 1
             children.append(CodeBlock(content="\n".join(inner), language=lang))
             i += 1  # skip closing ```
+        elif line.startswith(":::") and not line.startswith("::::"):
+            depth = 1
+            inner = []
+            j = i + 1
+            while j < len(lines) and depth > 0:
+                lt = lines[j].strip()
+                if lt.startswith(":::") and not lt.startswith("::::") and lt != ":::":
+                    depth += 1
+                elif lt == ":::":
+                    depth -= 1
+                if depth > 0:
+                    inner.append(lines[j])
+                j += 1
+            _, nested = extract_fenced("\n".join(inner))
+            children.extend(nested)
+            i = j
         elif line.startswith("### "):
             header = _expand_markdown(line[4:])
         elif line.startswith("- "):

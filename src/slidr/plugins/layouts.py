@@ -2,7 +2,7 @@
 
 from slidr.parser.ast import Paragraph, AttrNode, Image
 
-KNOWN_LAYOUTS = {"image-right", "image-left", "two-col", "compare"}
+KNOWN_LAYOUTS = {"image-right", "image-left", "two-col", "compare", "ecosystem"}
 
 
 def apply_layout(nodes: list, layout: str, render_fn) -> str:

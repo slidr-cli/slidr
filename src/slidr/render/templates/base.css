@@ -289,6 +289,29 @@ LOGO_CSS
   min-height: 0;
 }
 
+/* ---- ecosystem layout ---- */
+.layout-ecosystem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+.layout-ecosystem > .row {
+  display: flex;
+  gap: var(--gap);
+}
+.layout-ecosystem h3 { font-size: 0.7em; margin-bottom: 0.15em; }
+.layout-ecosystem h3::after { display: none; }
+.layout-ecosystem .card { padding: 0.4em 0.6em; }
+.layout-ecosystem .card p { margin: 0; }
+.layout-ecosystem .card img {
+  height: 0.85em;
+  width: auto;
+  display: inline-block;
+  margin: 0.05em 0.15em;
+  vertical-align: middle;
+}
+.layout-ecosystem .metric h3 { font-size: 1.5em; margin-bottom: 0.15em; }
+
 /* ---- screen mode ---- */
 @media screen {
   html, body {
