@@ -229,5 +229,5 @@ def _escape(s: str) -> str:
 
 
 def _maybe_escape(s: str) -> str:
-    """Escape HTML unless the string contains raw SVG."""
-    return s if "<svg" in s else _escape(s)
+    """Escape HTML unless the string already contains HTML tags."""
+    return s if "<" in s and ">" in s else _escape(s)
