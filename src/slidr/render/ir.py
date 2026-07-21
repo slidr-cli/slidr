@@ -151,13 +151,6 @@ def _apply_layout_ir(nodes: list, layout: str, styles: dict) -> list[Elem]:
         else:
             left, right = _split_two_col_ir(nodes)
             arrow_elem = None
-    elif layout == "ecosystem":
-        rows = _split_ecosystem_rows(nodes)
-        grid_children = []
-        for row_nodes in rows:
-            converted = [_convert_node(n, styles) for n in row_nodes]
-            grid_children.append(Elem(kind="row", children=converted))
-        return [Elem(kind="grid", layout="layout-ecosystem", cols=0, children=grid_children)]
     else:
         return [_convert_node(n, styles) for n in nodes]
 
@@ -202,24 +195,6 @@ def _split_two_col_ir(nodes: list) -> tuple[list, list]:
     left = _group_rows_ir(left)
     right = _group_rows_ir(right)
     return left, right
-
-
-def _split_ecosystem_rows(nodes: list) -> list[list]:
-    """Split nodes by @row markers into row groups (ecosystem layout)."""
-    from slidr.parser.ast import AttrNode
-    row_indices = [i for i, n in enumerate(nodes)
-                   if isinstance(n, AttrNode) and n.type == "row"]
-    if not row_indices:
-        return [nodes]
-    rows = []
-    start = 0
-    for ri in row_indices:
-        if ri > start:
-            rows.append(list(nodes[start:ri]))
-        start = ri + 1
-    if start < len(nodes):
-        rows.append(list(nodes[start:]))
-    return rows
 
 
 def _group_rows_ir(nodes: list) -> list:
