@@ -305,7 +305,8 @@ LOGO_CSS
 .layout-ecosystem .card p { margin: 0; }
 .layout-ecosystem .card img {
   height: 0.85em;
-  width: auto;
+  width: 2em;
+  object-fit: contain;
   display: inline-block;
   margin: 0.05em 0.15em;
   vertical-align: middle;
