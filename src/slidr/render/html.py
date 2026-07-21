@@ -138,7 +138,11 @@ def _render_elem(e: Elem) -> str:
         if e.header:
             s += f"<h3>{_maybe_escape(e.header)}</h3>\n"
         for line in e.body:
-            s += f"<p>{_maybe_escape(line)}</p>\n"
+            line = _maybe_escape(line)
+            if line.startswith("<ul") or line.startswith("<ol"):
+                s += line + "\n"
+            else:
+                s += f"<p>{line}</p>\n"
         for child in e.children:
             s += _render_elem(child) + "\n"
         s += "</div>"

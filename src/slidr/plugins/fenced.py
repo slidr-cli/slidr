@@ -94,6 +94,14 @@ def _parse_card(text: str, rest: str = "") -> Card:
             i += 1  # skip closing ```
         elif line.startswith("### "):
             header = _expand_markdown(line[4:])
+        elif line.startswith("- "):
+            items = []
+            while i < len(lines) and lines[i].strip().startswith("- "):
+                li = lines[i].strip()[2:]
+                items.append(f"<li>{_expand_markdown(li)}</li>")
+                i += 1
+            body.append(f"<ul>{''.join(items)}</ul>")
+            continue
         elif line:
             rendered = _expand_markdown(line)
             if rendered.strip():

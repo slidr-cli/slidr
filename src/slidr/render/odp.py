@@ -256,6 +256,12 @@ def _apply_border_radius(frame: Frame, radius: str) -> None:
         frame.set_attribute("draw:corner-radius", _em_to_cm(radius))
 
 
+def _strip_html(text: str) -> str:
+    """Strip HTML tags, returning plain text for ODP rendering."""
+    import re
+    return re.sub(r"<[^>]+>", "", text)
+
+
 def _apply_card_border(frame: Frame, color: str = "") -> None:
     """Apply thin continuous border matching CSS --card-border to a frame."""
     frame.set_attribute("draw:stroke", "solid")
@@ -440,7 +446,9 @@ def _estimate_elem_height(elem: Elem, width_cm: float) -> float:
     elif kind == "card":
         h = 1.0 if elem.header else 0.0
         for line in elem.body:
-            h += max(0.5, _estimate_text_height(line, elem.font_size or 18, width_cm)) + 0.2
+            h += max(0.5, _estimate_text_height(_strip_html(line), elem.font_size or 18, width_cm)) + 0.2
+        for child in elem.children:
+            h += _estimate_elem_height(child) + 0.2
         return h + 0.5
     elif kind == "speaker":
         return (2.5 if elem.attrs.get("role") else 1.5) + 0.5
@@ -868,16 +876,16 @@ def _render_card(
     if elem.header:
         p = Paragraph()
         p.append(
-            Span(elem.header, style=tr.register(TextStyleKey(weight="bold")))
+            Span(_strip_html(elem.header), style=tr.register(TextStyleKey(weight="bold")))
         )
         paragraphs.append(p)
     for line in elem.body:
-        paragraphs.append(Paragraph(line))
+        paragraphs.append(Paragraph(_strip_html(line)))
     total_height = 0.0
     if elem.header:
-        total_height += _estimate_text_height(elem.header, 20, ctx.width) + 0.3
+        total_height += _estimate_text_height(_strip_html(elem.header), 20, ctx.width) + 0.3
     for line in elem.body:
-        total_height += max(0.5, _estimate_text_height(line, elem.font_size or 18, ctx.width)) + 0.2
+        total_height += max(0.5, _estimate_text_height(_strip_html(line), elem.font_size or 18, ctx.width)) + 0.2
     height_cm = max(total_height + 0.5, ctx.min_height)
     frame = Frame.text_frame(
         paragraphs,
@@ -888,7 +896,15 @@ def _render_card(
     _apply_border_radius(frame, _BORDER_RADIUS)
     _apply_card_border(frame, _tag_border(elem.tag or ""))
     ctx.y += height_cm + ctx.gap
-    return [frame]
+    result = [frame]
+    for child in elem.children:
+        child_ctx = LayoutContext(
+            x=ctx.x + 0.3, y=ctx.y, width=ctx.width - 0.6,
+            gap=ctx.gap, min_height=0.3,
+        )
+        result.extend(_render_elem(child, child_ctx, gr, tr, odp))
+        ctx.y = child_ctx.y
+    return result
 
 
 # ---------------------------------------------------------------------------
