@@ -28,6 +28,7 @@
   --color-accent-secondary: #DB1E3D;
   --color-accent-contrast: #1D1D6B;
   --list-style: "\25B8  ";
+  --title-h1-size: 2.5em;
 }
 
 body {
