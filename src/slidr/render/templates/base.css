@@ -316,8 +316,8 @@ LOGO_CSS
   justify-content: center;
   padding-top: 10%;
 }
-.layout-title h1 { font-size: 3.5em; }
-.layout-title .subtitle { margin-bottom: 0.3em; font-size: 1.8em; }
+.layout-title h1 { font-size: var(--title-h1-size, 3.5em); }
+.layout-title .subtitle { margin-bottom: 0.3em; font-size: var(--title-subtitle-size, 1.8em); }
 
 /* ---- print mode ---- */
 @media print {

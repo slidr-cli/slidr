@@ -29,6 +29,8 @@
   --color-accent-contrast: #1a0000;
   --list-style: "\25B8  ";
   --card-border: 2px solid #F1C560;
+  --title-h1-size: 2.5em;
+  --title-subtitle-size: 1.2em;
 }
 
 body {
