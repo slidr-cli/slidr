@@ -134,6 +134,7 @@ avoids the positioning complexity of the native ODP renderer.
 | `@layout image-right` | Heading full-width, text left, image right |
 | `@layout image-left` | Heading full-width, image left, text right |
 | `@layout compare` | Two cards side-by-side with an arrow connector, conclusion notes below |
+| `@layout metrics-N` | 2-4 metric cards, auto-detected from `::: card {metric}` blocks |
 | Custom | `@layout <name>` adds CSS class `layout-<name>`, style via frontmatter `style:` block |
 
 ### Compare layout
@@ -164,6 +165,35 @@ GPU utilization at 92%, zero manual intervention.
 :::
 ```
 
+### Metrics layout
+
+Key metrics display 2-4 cards with a large number and supporting label. Auto-detected from consecutive `::: card {metric}` blocks. No explicit `@layout` needed.
+
+```markdown
+## Key Metrics
+
+::: card {metric}
+10x
+Operational cost improvement
+:::
+
+::: card {metric}
+50%
+GPU utilization
+:::
+
+::: card {metric}
+10x
+Density improvement
+:::
+```
+
+Each `::: card {metric}` block: first line is the big number, following lines are the label.
+Styled with accent-colored large text (`2.8em`, bold) and dimmed label text.
+Grid auto-centers vertically in the slide body.
+
+### Compare layout
+
 The arrow block accepts text or images:
 ```
 ::: arrow
@@ -183,6 +213,7 @@ The arrow block accepts text or images:
 ::: card                        # basic card
 ::: card{ tag="green" }         # colored left border + background
 ::: card{ tag="quote" }         # accent left border, italic, no fill
+::: card {metric}                      # big number + label card (first line = value, rest = label)
 ::: arrow                       # connector for compare layout
 ::: notes{ tag="green" }        # full-width conclusion card
 > quote text                    # blockquote, renders as .quote div
@@ -193,6 +224,10 @@ The arrow block accepts text or images:
 ```seaborn                     # Seaborn chart, inline SVG
 ```dot                         # Graphviz diagram, inline SVG
 ```
+
+Card/grid `{...}` attributes: bare words are CSS classes (`{metric}` → `.card.metric`),
+`k=v` pairs produce `k-v` classes (`{tag=green}` → `.card.tag-green`). Grid
+also accepts `cols=N` and `class=name` literally.
 
 ## Lucide icons
 
@@ -259,8 +294,11 @@ sns.scatterplot(data=tips, x="total_bill", y="tip", hue="day")
 ````
 
 Runs Python in-process, renders inline SVG. Requires `pdm install -G plot`.
-Pre-imported: `sns`, `plt`, `pd`, `np`. Set `seaborn_theme: deep` in
-frontmatter to change palette.
+Pre-imported: `sns`, `plt`, `pd`, `np`. Set `seaborn_theme: kcd_vietnam` in frontmatter to apply a full slidr
+brand style (matching the slide theme) including axes colors, grid, and
+a brand-color pastel palette. Falls back to seaborn palette names (`pastel`
+is the default, also `deep`, `muted`, `colorblind`, etc.) if no slidr
+style module matches the name.
 
 ## Layout caveats
 

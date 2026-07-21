@@ -40,7 +40,12 @@ src/slidr/
 │       ├── slidr.js      # Shared JS: navigation, fullscreen, presenter, wheel, keyboard
 │       └── presenter.html # Presenter view template
 └── themes/
-    └── default.css       # Built-in light theme (CSS variables, card, quote, table, tag colors)
+    ├── default.css       # Built-in light theme (CSS variables, card, quote, table, tag colors)
+    ├── kcd_vietnam.css   # KCD Vietnam theme
+    └── kubecon_japan.css # KubeCon Japan theme
+├── seaborn_styles/
+│   ├── kcd_vietnam.py    # matplotlib rcParams matching the KCD Vietnam CSS theme
+│   └── kubecon_japan.py  # matplotlib rcParams matching the KubeCon Japan CSS theme
 ```
 
 ## Parser pipeline
@@ -58,7 +63,7 @@ slides.md
       6. interleave_fences (replace ◊FENCE_N markers with actual nodes)
       7. extract_attrs (<!--attr:type:value--> → AttrNode)
       8. group_cards (consecutive Card → Grid auto-wrap)
-      9. detect_layout (h1+kicker+speaker→Title, Grid cols→Grid2/3/4, else Content)
+      9. detect_layout (h1+kicker+speaker→Title, Grid with metrics→metrics-N, Grid cols→Grid2/3/4, else Content)
 ```
 
 ## Node types
@@ -68,7 +73,7 @@ slides.md
 | `Heading` | `# Title` / `## Section` | `<h1>` / `<h2>` |
 | `Paragraph` | plain text | `<p>` |
 | `Grid` | `::: grid {cols=N, class="X"}` | `<div class="grid X" style="grid-template-columns: repeat(N, 1fr)">` |
-| `Card` | `::: card {tag="green"}` | `<div class="card tag-green"><h3>...</h3><p>...</p></div>` |
+| `Card` | `::: card {tag="green"}` / `::: card {metric}` | `<div class="card tag-green"><h3>...</h3><p>...</p></div>` — metric sets `class_="metric"`, first line → header |
 | `Table` | pipe tables | `<table><thead><tbody>` |
 | `Quote` | `> text` | `<div class="quote">` |
 | `ListNode` | `- item` | `<ul><li>` |
@@ -116,7 +121,7 @@ Slidr supports multiple fenced block types for diagrams and visualizations:
 | `mermaid` | Mermaid CLI | Flowcharts, sequence diagrams, Gantt charts |
 | `seaborn` | matplotlib/seaborn | Statistical charts, bar plots, gauge charts |
 
-Grid and card syntax uses `:::` fences (pre-processed, not markdown-it):
+Grid, card, and metric syntax uses `:::` fences (pre-processed, not markdown-it):
 
 ```
 ::: grid {cols=2, class="top-grid"}
@@ -131,7 +136,23 @@ More content
 :::
 ```
 
+Card/grid `{...}` attributes: bare words → CSS classes (`{metric}` → `.card.metric`),
+`k=v` → `k-v` classes (`{tag=green}` → `.card.tag-green`). Grid: `cols=N`,
+`class=name` used literally.
+
+`::: card {metric}`: first line → h3 value, rest → p label. No `###` needed.
+Consecutive metric cards auto-group, layout → `metrics-N`.
+
 All fenced blocks support markdown inside via `_expand_markdown` which uses `markdown-it.renderInline` with `breaks: False`. Lucide icons work inside fenced content: `{icon:check cls=accent-primary}`.
+
+## Seaborn styles
+
+The `seaborn_theme` frontmatter field accepts either a seaborn palette name
+(`pastel` default, `deep`, `muted`, etc.) or a slidr style name matching a
+module in `slidr.seaborn_styles.<name>`. Style modules export a `STYLE` dict
+of matplotlib rcParams. When a slidr style is loaded, `sns.set_theme()` is
+called with `style="darkgrid"` and the pastel palette as baseline, then
+brand-color rcParams are overlaid. The default palette is `pastel`.
 
 ## Testing
 

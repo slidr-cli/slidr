@@ -88,3 +88,48 @@ def test_hidden_slide():
 def test_hide_alias():
     doc = parse("---\ntheme: t\n---\n\n# First\n\n---\n\n@hide\n\n# Hidden\n\n---\n\n# Third")
     assert len(doc.slides) == 2
+
+
+def test_metric_parses_as_card():
+    doc = parse("---\ntheme: t\n---\n\n::: card {metric}\n10x\nOperational cost improvement\n:::")
+    slide = doc.slides[0]
+    cards = [n for n in slide.children if isinstance(n, Card)]
+    assert len(cards) == 1
+    assert cards[0].header == "10x"
+    assert cards[0].body == ["Operational cost improvement"]
+    assert "metric" in (cards[0].class_ or "")
+
+
+def test_metric_auto_groups_into_grid():
+    doc = parse("---\ntheme: t\n---\n\n::: card {metric}\n10x\nSpeed\n:::\n\n::: card {metric}\n50%\nUtilization\n:::")
+    slide = doc.slides[0]
+    grids = [n for n in slide.children if isinstance(n, Grid)]
+    assert len(grids) == 1
+    assert grids[0].cols == 2
+    assert all("metric" in (c.class_ or "") for c in grids[0].children)
+
+
+def test_metrics_layout_detected():
+    doc = parse("---\ntheme: t\n---\n\n## Key Metrics\n\n::: card {metric}\n10x\nSpeed\n:::\n\n::: card {metric}\n50%\nUtilization\n:::\n\n::: card {metric}\n10x\nDensity\n:::")
+    slide = doc.slides[0]
+    assert slide.layout == "metrics-3"
+
+
+def test_metrics_with_explicit_grid():
+    doc = parse("---\ntheme: t\n---\n\n::: grid {cols=2}\n::: card {metric}\n10x\nSpeed\n:::\n\n::: card {metric}\n50%\nUtil\n:::\n:::")
+    slide = doc.slides[0]
+    assert slide.layout == "metrics-2"
+
+
+def test_metrics_two_cards():
+    doc = parse("---\ntheme: t\n---\n\n::: card {metric}\nA\nB\n:::\n\n::: card {metric}\nC\nD\n:::")
+    slide = doc.slides[0]
+    assert slide.layout == "metrics-2"
+
+
+def test_metric_single_line():
+    doc = parse("---\ntheme: t\n---\n\n::: card {metric}\n99%\n:::")
+    slide = doc.slides[0]
+    card = [n for n in slide.children if isinstance(n, Card)][0]
+    assert card.header == "99%"
+    assert card.body == []

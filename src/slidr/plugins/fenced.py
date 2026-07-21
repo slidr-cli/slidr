@@ -1,4 +1,8 @@
-"""Fenced block extraction: ::: card, ::: grid → AST nodes."""
+"""Fenced block extraction: ::: card, ::: grid → AST nodes.
+
+Card/grid ``{...}`` attributes: bare words → CSS classes, ``k=v`` → ``k-v`` classes.
+Grid: ``cols=N`` and ``class=name`` used literally.
+"""
 
 import re
 from slidr.parser.ast import Arrow, Card, Grid, Node, Notes
@@ -86,9 +90,14 @@ def _parse_card(text: str, rest: str = "") -> Card:
             k, v = k.strip(), v.strip().strip('"')
             if k == "tag":
                 tag = v
-            class_ = (class_ + f" {k}-{v}").strip()
+            else:
+                class_ = (class_ + f" {k}-{v}").strip()
         else:
             class_ = (class_ + " " + attr).strip() if class_ else attr
+
+    # ponytail: metric cards: first non-empty line is the value, rest is the label
+    if "metric" in class_ and not header and body:
+        header = body.pop(0)
 
     return Card(header=header, body=body, tag=tag, class_=class_)
 

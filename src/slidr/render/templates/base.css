@@ -136,6 +136,36 @@ th { font-weight: 700; }
 .card p { margin-bottom: 0.5em; }
 .card p:last-child { margin-bottom: 0; }
 
+/* ---- metric cards (::: card {metric}) ---- */
+.card.metric {
+  text-align: center;
+  padding: 0.5em 0.2em;
+}
+.card.metric h3 {
+  font-size: 2.8em;
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 0.15em;
+  color: var(--color-accent-primary);
+}
+.card.metric h3::after { display: none; }
+.card.metric p {
+  font-size: 0.82em;
+  color: var(--color-dimmed);
+  line-height: 1.3;
+  margin: 0;
+}
+/* metrics-N layout: center grid vertically in slide body */
+[class*="layout-metrics"] .slide-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+[class*="layout-metrics"] .slide-body .grid {
+  width: 100%;
+  margin: 0;
+}
+
 .quote {
   border-left: 0.25em solid;
   padding-left: 1em;

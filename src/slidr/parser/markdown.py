@@ -7,7 +7,7 @@ from markdown_it.token import Token
 
 from slidr.parser.ast import (
     Document, Meta, Slide,
-    Heading, Paragraph, CodeBlock, Grid, Table, Quote, ListNode, AttrNode,
+    Heading, Paragraph, CodeBlock, Card, Grid, Table, Quote, ListNode, AttrNode,
     Text, Strong, Emphasis, Strikethrough, CodeSpan, Image, SoftBreak, LucideIcon,
 )
 from slidr.plugins.fenced import extract_fenced, interleave_fences
@@ -267,5 +267,9 @@ def _detect_layout(nodes: list) -> str:
         return "title"
     for n in nodes:
         if isinstance(n, Grid):
+            if n.children and all(
+                isinstance(c, Card) and "metric" in (c.class_ or "") for c in n.children
+            ):
+                return f"metrics-{n.cols}" if n.cols else "metrics-2"
             return f"grid-{n.cols}" if n.cols else "grid-2"
     return "content"

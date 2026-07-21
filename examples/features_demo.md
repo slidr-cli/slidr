@@ -369,6 +369,30 @@ graph LR
 
 ---
 
+## Key Metrics
+
+::: card {metric}
+10x
+Operational cost improvement
+:::
+
+::: card {metric}
+50%
+GPU utilization improvement
+:::
+
+::: card {metric}
+10x
+Workload density per GPU
+:::
+
+::: card {metric}
+92%
+Average GPU utilization
+:::
+
+---
+
 ## Key Takeaways
 
 ::: grid {cols=3}
