@@ -298,17 +298,22 @@ LOGO_CSS
 .layout-ecosystem h3 { font-size: 0.7em; margin-bottom: 0.1em; }
 .layout-ecosystem h3::after { display: none; }
 .layout-ecosystem .card { padding: 0.3em 0.5em; }
-.layout-ecosystem .card p { margin-bottom: 0.1em; }
-.layout-ecosystem .card p:last-child { margin-bottom: 0; }
+.layout-ecosystem .card p { margin: 0; }
+.layout-ecosystem .card p:has(img) {
+  display: contents;
+}
 .layout-ecosystem .card img {
   height: 1em;
-  width: 2.2em;
+  width: 3em;
   object-fit: contain;
   display: inline-block;
   margin: 0.05em 0.12em;
   vertical-align: middle;
 }
 .layout-ecosystem .grid { margin: 0; gap: 0.4em; }
+.layout-ecosystem .card.metric h3 {
+  font-size: 1.5em;
+}
 
 /* ---- screen mode ---- */
 @media screen {
