@@ -23,16 +23,19 @@ src/slidr/
 │   ├── ast.py            # Node types (Heading, Paragraph, Grid, Card, Table, Quote, ListNode, AttrNode, Inline)
 │   └── markdown.py       # Main parser: frontmatter → slide split → directives → fenced extraction → markdown-it → token walk
 ├── plugins/
-│   ├── fenced.py         # ::: card / ::: grid extraction (pre-process, not markdown-it plugin)
+│   ├── fenced.py         # ::: card / ::: grid extraction (pre-process, not markdown-it plugin). Cards support nested fences, code blocks, lists
 │   ├── directives.py     # @kicker / @speaker / @subtitle → HTML comment markers → post-process to AttrNode
-│   └── cards.py          # Auto-group consecutive Card nodes into Grid
+│   ├── cards.py          # Auto-group consecutive Card nodes into Grid
+│   └── layouts.py        # KNOWN_LAYOUTS registry + legacy apply_layout (HTML path)
 ├── theme/
 │   ├── parser.py         # tinycss2: parse base.css + theme CSS → PPTX style dict (colors, fonts, padding)
 │   └── loader.py         # Raw CSS passthrough + variable extraction (legacy)
 ├── render/
-│   ├── html.py           # Jinja2: Document → HTML. render() + render_presenter()
+│   ├── ir.py             # AST → SlideIR intermediate representation. build_ir(), _convert_node(), _apply_layout_ir()
+│   ├── html.py           # Jinja2: SlideIR → HTML. _render_slide() extracts h2 + subtitle before slide-body
 │   ├── pdf.py            # weasyprint: HTML file → PDF
-│   ├── pptx.py           # python-pptx: Document → PPTX. Colors/fonts from theme parser
+│   ├── odf/              # ODF shared styles + layout engine
+│   ├── odp.py            # odfdo: SlideIR → ODP. Card children rendered below text frame
 │   └── templates/
 │       ├── shell.html    # Main HTML template (Jinja2)
 │       ├── presenter.html # Presenter view (grid: main slide | next preview / notes)
@@ -90,6 +93,9 @@ slides.md
 - **Bidirectional presenter sync.** `window.slidrCurrent` is an `Object.defineProperty` setter that calls `show()`. The presenter polls `window.opener.slidrCurrent` every 300ms. Clicking the presenter's main slide advances both windows.
 - **Print CSS in base.css.** `@media print` resets absolute positioning from screen mode. `@page { size: Wpx Hpx; margin: 0 }` sets page dimensions for weasyprint. `page-break-before: always` on sections.
 - **Screen scaling via CSS transform.** `body > section` renders at native pixel size (e.g., 1280x720px), then scales to fit viewport via `transform: translate(-50%, -50%) scale(var(--s))` where `--s` is computed by JavaScript.
+- **Subtitle extraction.** `build_ir` extracts `@subtitle` AttrNode immediately after the h2 heading and places it outside layout columns. `_render_slide` in html.py does the same for HTML-only path. This keeps subtitles tight to the heading via `h2 + .subtitle { margin-top: 0 }`.
+- **Title font size configurable.** `--title-h1-size` (default `3.5em`) and `--title-subtitle-size` (default `1.8em`) are CSS variables in base.css. Themes override them in `:root`.
+- **Plot deps as optional-dependencies.** `seaborn` and `pillow` are in `[project.optional-dependencies] plot` for workspace inheritance. The `plot` dependency-group exists for CI. Both declared so `slidr[plot]` resolves via PEP 621 and `pdm install -G plot` works in CI.
 
 ## Template cascade
 
@@ -141,7 +147,28 @@ Card/grid `{...}` attributes: bare words → CSS classes (`{metric}` → `.card.
 `::: card {metric}`: first line → h3 value, rest → p label. No `###` needed.
 Consecutive metric cards auto-group, layout → `metrics-N`.
 
-All fenced blocks support markdown inside via `_expand_markdown` which uses `markdown-it.renderInline` with `breaks: False`. Lucide icons work inside fenced content: `{icon:check cls=accent-primary}`.
+All fenced blocks support markdown inside via `_expand_markdown` which uses `markdown_it.renderInline` with `breaks: False`. Lucide icons work inside fenced content: `{icon:check cls=accent-primary}`.
+
+Cards can contain nested content -- fenced code blocks, `::: grid`/`::: card`, lists, and images. Nested fences are recursively extracted via `extract_fenced` and stored in `Card.children` as AST nodes. Body text lines go through `_expand_markdown` (icons via `_expand_icons` → `renderInline`). List items (`- text`) inside cards produce `<ul>` HTML in the card body.
+
+## Slide layouts
+
+Built-in layouts set via `@layout <name>` on a slide:
+
+| Layout | Behavior |
+|--------|----------|
+| `image-right` | Text left, image right. Splits at first image or `@col` marker |
+| `image-left` | Image left, text right |
+| `two-col` | Two text columns split at `@col` |
+| `compare` | Card | arrow | card, with optional `::: notes` footer |
+| `ecosystem` | Compact stacked content with small h3 labels, inline logo flow. Uses `p:has(img) { display: contents }` for natural image wrapping |
+
+Layout-ecosystem specifics:
+- h3 labels: small (`0.7em`), no `::after` underline
+- Cards: reduced padding (`0.3em 0.5em`)
+- Logo images: uniform `0.8em × 0.8em` with `object-fit: contain`
+- `<p>` tags containing only images dissolve via `display: contents`, letting images flow inline and wrap naturally
+- Grids inside rows: zero margin, tight gap
 
 ## Seaborn styles
 

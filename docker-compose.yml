@@ -1,0 +1,13 @@
+services:
+  slidr:
+    build: .
+    working_dir: /app
+    environment:
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - .:/app
+      - pdm-data:/root/.local/share/pdm
+    stop_grace_period: 1s
+
+volumes:
+  pdm-data:

@@ -291,6 +291,51 @@ These are in `base.css` and control spacing:
 }
 ```
 
+## Slide layouts
+
+Predefined layouts activated via `@layout <name>` at the top of a slide:
+
+| Layout | Description |
+|--------|-------------|
+| `image-right` | Text in left column, image in right column |
+| `image-left` | Image in left column, text in right column |
+| `two-col` | Two equal text columns, split at `@col` |
+| `compare` | Card → arrow → card, with optional `::: notes` footer |
+| `ecosystem` | Compact stacked content for logo grids, partner slides |
+
+### Ecosystem layout
+
+Designed for partner/ecosystem slides with logo grids and metrics:
+
+```markdown
+@layout ecosystem
+
+## Ecosystem
+
+### Open Source, CNCF Backed
+
+::: grid {cols=2}
+::: card {metric}
+3.1k
+Github Stars
+:::
+...
+:::
+
+### Ecosystem & Device Support
+
+::: card
+![NVIDIA](ecosystem/devices/nvidia.png) ...
+:::
+```
+
+Styling applied automatically:
+- `h3` labels: `0.7em`, no underline -- acts as row label above cards
+- Cards: `0.3em 0.5em` compact padding
+- Card `<p>` with only images: `display: contents` so images flow inline and wrap naturally
+- Logo images: uniform `0.8em × 0.8em`, `object-fit: contain`
+- Natural content stacking -- no IR row splitting needed
+
 ## What the ODP renderer reads from CSS
 
 The ODP renderer extracts these via tinycss2:
