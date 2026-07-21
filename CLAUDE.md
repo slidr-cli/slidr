@@ -154,6 +154,20 @@ of matplotlib rcParams. When a slidr style is loaded, `sns.set_theme()` is
 called with `style="darkgrid"` and the pastel palette as baseline, then
 brand-color rcParams are overlaid. The default palette is `pastel`.
 
+### Custom chart authoring
+
+For charts beyond seaborn's high-level API, use matplotlib directly. Access
+theme colors through rcParams (no hex codes):
+
+- `plt.rcParams["axes.facecolor"]` — card background
+- `plt.rcParams["text.color"]` — foreground text
+- `plt.rcParams["xtick.color"]` — dimmed text
+- `"C0"` … `"C5"` — theme palette (pastel brand colors)
+
+For slide-matching figure background: `ax.set_facecolor("none")` +
+`fig.patch.set_facecolor(plt.rcParams["axes.facecolor"])`. Standard named
+colors (`firebrick`, `forestgreen`) are fine for semantic meaning.
+
 ## Testing
 
 - Always add tests after implementing new features. Tests are mandatory, not optional.

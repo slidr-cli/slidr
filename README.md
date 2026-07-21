@@ -294,11 +294,35 @@ sns.scatterplot(data=tips, x="total_bill", y="tip", hue="day")
 ````
 
 Runs Python in-process, renders inline SVG. Requires `pdm install -G plot`.
-Pre-imported: `sns`, `plt`, `pd`, `np`. Set `seaborn_theme: kcd_vietnam` in frontmatter to apply a full slidr
-brand style (matching the slide theme) including axes colors, grid, and
-a brand-color pastel palette. Falls back to seaborn palette names (`pastel`
-is the default, also `deep`, `muted`, `colorblind`, etc.) if no slidr
-style module matches the name.
+Pre-imported: `sns`, `plt`, `pd`, `np`. Set `seaborn_theme: kcd_vietnam` in
+frontmatter to apply a full slidr brand style. Falls back to seaborn palette
+names (`pastel` is the default, also `deep`, `muted`, `colorblind`, etc.).
+
+### Custom charts with matplotlib
+
+For charts beyond seaborn's high-level API, drop into matplotlib directly.
+Theme colors are available through rcParams -- no hex codes needed:
+
+| rcParam | Maps to |
+|---------|---------|
+| `plt.rcParams["axes.facecolor"]` | Card background |
+| `plt.rcParams["text.color"]` | Foreground text |
+| `plt.rcParams["xtick.color"]` | Dimmed/muted text |
+| `"C0"` … `"C5"` | Theme palette (pastel brand colors) |
+
+For a slide-style figure background with a clear plot area:
+
+```python
+fig, ax = plt.subplots()
+ax.set_facecolor("none")
+fig.patch.set_facecolor(plt.rcParams["axes.facecolor"])
+```
+
+Standard named colors (`firebrick`, `steelblue`, `forestgreen`) are fine for
+semantic meaning -- they're not hex literals and work across themes.
+
+See `examples/seaborn_demo.md` for the memory oversubscription chart
+(horizontal stacked bars, limit markers, annotations).
 
 ## Layout caveats
 
