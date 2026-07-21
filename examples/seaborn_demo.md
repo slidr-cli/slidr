@@ -53,27 +53,32 @@ ax.barh(0, 7, left=8, color="C2", height=0.65)
 ax.plot([10, 10], [-0.38, 0.38], color=fg, linewidth=1.5, linestyle="--")
 ax.plot([15, 15], [-0.38, 0.38], color=fg, linewidth=1.5, linestyle="--")
 
-ax.set_yticks([1, 0])
-ax.set_yticklabels(["Without HAMi", "With HAMi:\nElastic Scaling"], fontsize=11)
 ax.set_xlim(0, 15.2)
-ax.set_xlabel("GB", fontsize=10)
-ax.spines[["top", "right"]].set_visible(False)
+ax.spines[["top", "right", "left", "bottom"]].set_visible(False)
+ax.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
 
+# Bar labels beside bars
+ax.text(-0.3, 1, "Without HAMi", ha="right", va="center", fontsize=10, color=fg, fontweight="bold")
+ax.text(-0.3, 0, "With HAMi:\nElastic Scaling", ha="right", va="center", fontsize=10, color=fg, fontweight="bold")
+
+# Bar 1 annotations
 ax.text(4, 1, "Normal base load", ha="center", va="center", fontsize=9, color=fg, fontweight="bold")
 ax.text(9.5, 1, "Traffic spike", ha="center", va="center", fontsize=7.5, color="white", fontweight="bold")
 ax.text(10, 1.42, "10 GB limit", ha="center", va="bottom", fontsize=8, color=danger, fontweight="bold")
 
+# Bar 2 annotations
 ax.text(4, 0, "Normal base load", ha="center", va="center", fontsize=9, color=fg, fontweight="bold")
 ax.text(11.5, 0, "Traffic spike", ha="center", va="center", fontsize=7.5, color="white", fontweight="bold")
 ax.text(10, 0.38, "10 GB\nsoft limit", ha="center", va="bottom", fontsize=7.5, color=dimmed)
 ax.text(15, 0.38, "15 GB\nburst", ha="center", va="bottom", fontsize=7.5, color=dimmed)
 
+# Legend
 legend_patches = [
     mpatches.Patch(color="C4", label="Base load"),
     mpatches.Patch(color=danger, label="Traffic spike (OOM risk)"),
     mpatches.Patch(color="C2", label="Traffic spike (elastic)"),
 ]
-ax.legend(handles=legend_patches, loc="lower right", fontsize=8, ncol=3, framealpha=0.8)
+ax.legend(handles=legend_patches, loc="upper center", bbox_to_anchor=(0.5, 0.07), fontsize=8, ncol=3, framealpha=0.8)
 ```
 
 ---

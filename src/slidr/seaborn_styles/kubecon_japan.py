@@ -20,6 +20,8 @@ PALETTE = [
 
 STYLE = {
     "seaborn_palette": "pastel",
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Roboto", "Arial", "Helvetica Neue", "sans-serif"],
     "axes.prop_cycle": cycler(color=PALETTE),
     "axes.facecolor": "#f5f6fa",
     "axes.edgecolor": "#3939D8",
