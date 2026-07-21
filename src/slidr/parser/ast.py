@@ -84,6 +84,7 @@ class Grid(Node):
 class Card(Node):
     header: str = ""
     body: list[str] = field(default_factory=list)
+    children: list[Node] = field(default_factory=list)
     tag: Optional[str] = None
     class_: str = ""
 

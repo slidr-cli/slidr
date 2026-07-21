@@ -5,7 +5,12 @@ Grid: ``cols=N`` and ``class=name`` used literally.
 """
 
 import re
-from slidr.parser.ast import Arrow, Card, Grid, Node, Notes
+from markdown_it import MarkdownIt
+from slidr.parser.ast import Arrow, Card, CodeBlock, Grid, Node, Notes
+from slidr.plugins.lucide import lucide_plugin
+
+_CARD_MD = MarkdownIt("gfm-like", {"breaks": False, "html": True})
+_CARD_MD.use(lucide_plugin)
 
 _ICON_RE = re.compile(r'\{icon:(\S+)\s*([^}]*)\}')
 
@@ -71,12 +76,29 @@ def extract_fenced(content: str) -> tuple[str, list[Node]]:
 def _parse_card(text: str, rest: str = "") -> Card:
     header = ""
     body = []
-    for line in text.strip().split("\n"):
-        line = line.strip()
-        if line.startswith("### "):
-            header = _expand_icons(line[4:])
+    children = []
+
+    lines = text.strip().split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+
+        if line.startswith("```"):
+            lang = line[3:].strip()
+            inner = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                inner.append(lines[i])
+                i += 1
+            children.append(CodeBlock(content="\n".join(inner), language=lang))
+            i += 1  # skip closing ```
+        elif line.startswith("### "):
+            header = _expand_markdown(line[4:])
         elif line:
-            body.append(_expand_icons(line))
+            rendered = _expand_markdown(line)
+            if rendered.strip():
+                body.append(rendered)
+        i += 1
 
     class_ = ""
     tag = None
@@ -99,7 +121,15 @@ def _parse_card(text: str, rest: str = "") -> Card:
     if "metric" in class_ and not header and body:
         header = body.pop(0)
 
-    return Card(header=header, body=body, tag=tag, class_=class_)
+    return Card(header=header, body=body, children=children, tag=tag, class_=class_)
+
+
+def _expand_markdown(text: str) -> str:
+    """Render inline markdown (bold, italic, code, images, lucide icons, links)."""
+    if not text:
+        return text
+    text = _expand_icons(text)
+    return _CARD_MD.renderInline(text)
 
 
 def _parse_grid(inner_text: str, rest: str) -> Grid:

@@ -139,6 +139,8 @@ def _render_elem(e: Elem) -> str:
             s += f"<h3>{_maybe_escape(e.header)}</h3>\n"
         for line in e.body:
             s += f"<p>{_maybe_escape(line)}</p>\n"
+        for child in e.children:
+            s += _render_elem(child) + "\n"
         s += "</div>"
         return s
     elif e.kind == "arrow":

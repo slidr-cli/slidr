@@ -297,8 +297,10 @@ def _convert_node(node, styles: dict) -> Elem:
         children = [_convert_node(c, styles) for c in node.children]
         return Elem(kind="grid", cols=node.cols, class_=node.class_ or "", children=children)
     elif isinstance(node, Card):
+        children = [_convert_node(c, styles) for c in node.children]
         return Elem(kind="card", header=node.header, body=node.body,
                     tag=node.tag or "", class_=node.class_ or "",
+                    children=children,
                     font_size=base.font_size, color=base.color)
     elif isinstance(node, Arrow):
         content = node.content.strip()
