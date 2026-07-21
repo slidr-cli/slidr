@@ -295,8 +295,10 @@ sns.scatterplot(data=tips, x="total_bill", y="tip", hue="day")
 
 Runs Python in-process, renders inline SVG. Requires `pdm install -G plot`.
 Pre-imported: `sns`, `plt`, `pd`, `np`. Set `seaborn_theme: kcd_vietnam` in
-frontmatter to apply a full slidr brand style. Falls back to seaborn palette
-names (`pastel` is the default, also `deep`, `muted`, `colorblind`, etc.).
+frontmatter to apply brand colors from the matching CSS theme file. Colors
+and fonts are parsed from the `:root` block. Falls
+back to seaborn palette names (`Paired` is the default, also `deep`,
+`muted`, `pastel`, etc.) if no theme CSS matches.
 
 ### Custom charts with matplotlib
 
@@ -306,9 +308,10 @@ Theme colors are available through rcParams -- no hex codes needed:
 | rcParam | Maps to |
 |---------|---------|
 | `plt.rcParams["axes.facecolor"]` | Card background |
+| `plt.rcParams["axes.edgecolor"]` | Primary accent |
 | `plt.rcParams["text.color"]` | Foreground text |
 | `plt.rcParams["xtick.color"]` | Dimmed/muted text |
-| `"C0"` … `"C5"` | Theme palette (pastel brand colors) |
+| `"C0"` … `"C5"` | Theme palette (Paired-derived brand colors) |
 
 For a slide-style figure background with a clear plot area:
 
@@ -318,8 +321,14 @@ ax.set_facecolor("none")
 fig.patch.set_facecolor(plt.rcParams["axes.facecolor"])
 ```
 
-Standard named colors (`firebrick`, `steelblue`, `forestgreen`) are fine for
-semantic meaning -- they're not hex literals and work across themes.
+For semantic colors use `plt.get_cmap("Paired")` and sample by position:
+
+```python
+cmap = plt.get_cmap("Paired")
+danger = cmap(4.5 / 12)  # muted red
+ok = cmap(2.5 / 12)      # green
+neutral = cmap(0.5 / 12) # light blue
+```
 
 See `examples/seaborn_demo.md` for the memory oversubscription chart
 (horizontal stacked bars, limit markers, annotations).

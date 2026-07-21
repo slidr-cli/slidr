@@ -43,9 +43,7 @@ src/slidr/
     ├── default.css       # Built-in light theme (CSS variables, card, quote, table, tag colors)
     ├── kcd_vietnam.css   # KCD Vietnam theme
     └── kubecon_japan.css # KubeCon Japan theme
-├── seaborn_styles/
-│   ├── kcd_vietnam.py    # matplotlib rcParams matching the KCD Vietnam CSS theme
-│   └── kubecon_japan.py  # matplotlib rcParams matching the KubeCon Japan CSS theme
+├── seaborn_styles/      # optional STYLE modules (CSS theme parsing is the default)
 ```
 
 ## Parser pipeline
@@ -147,26 +145,32 @@ All fenced blocks support markdown inside via `_expand_markdown` which uses `mar
 
 ## Seaborn styles
 
-The `seaborn_theme` frontmatter field accepts either a seaborn palette name
-(`pastel` default, `deep`, `muted`, etc.) or a slidr style name matching a
-module in `slidr.seaborn_styles.<name>`. Style modules export a `STYLE` dict
-of matplotlib rcParams. When a slidr style is loaded, `sns.set_theme()` is
-called with `style="darkgrid"` and the pastel palette as baseline, then
-brand-color rcParams are overlaid. The default palette is `pastel`.
+The `seaborn_theme` frontmatter field accepts a seaborn palette name
+(`Paired` default, `deep`, `muted`, `pastel`, etc.) or a slidr theme name
+matching a CSS file in `slidr/themes/<name>.css`. CSS `:root` variables
+are parsed and mapped to matplotlib rcParams (card bg → axes.facecolor,
+foreground → text.color, accent → edgecolor, dimmed → tick colors, font).
+
+Style modules in `slidr.seaborn_styles.<name>` take precedence over CSS
+for themes needing rcParams not derivable from CSS variables (e.g. custom
+palette overrides, special matplotlib settings).
 
 ### Custom chart authoring
 
-For charts beyond seaborn's high-level API, use matplotlib directly. Access
-theme colors through rcParams (no hex codes):
+For charts beyond seaborn's high-level API, use matplotlib directly. Theme
+colors are available through rcParams -- no hex codes needed:
 
 - `plt.rcParams["axes.facecolor"]` — card background
+- `plt.rcParams["axes.edgecolor"]` — primary accent
 - `plt.rcParams["text.color"]` — foreground text
 - `plt.rcParams["xtick.color"]` — dimmed text
-- `"C0"` … `"C5"` — theme palette (pastel brand colors)
 
 For slide-matching figure background: `ax.set_facecolor("none")` +
-`fig.patch.set_facecolor(plt.rcParams["axes.facecolor"])`. Standard named
-colors (`firebrick`, `forestgreen`) are fine for semantic meaning.
+`fig.patch.set_facecolor(plt.rcParams["axes.facecolor"])`.
+
+Semantic colors via `plt.get_cmap("Paired")`: `cmap(4.5/12)` muted red,
+`cmap(2.5/12)` green, `cmap(0.5/12)` light blue neutral. Paired is the
+default palette for all themes unless overridden.
 
 ## Testing
 

@@ -27,7 +27,7 @@ class Meta:
     logo_dark: str = ""
     watermark: str = ""
     pygments_style: str = "default"
-    seaborn_theme: str = "pastel"
+    seaborn_theme: str = ""
     theme_variant: str = "light"
 
     def dimensions(self) -> tuple[int, int]:
