@@ -72,8 +72,12 @@ def build_ir(doc: Document, base_css: str = "", theme_css: str = "") -> list[Sli
         body_nodes = slide.children
 
         heading_elem = None
+        subtitle_elem = None
         if body_nodes and isinstance(body_nodes[0], Heading) and body_nodes[0].level <= 2:
             heading_elem = _convert_node(body_nodes[0], styles)
+            body_nodes = body_nodes[1:]
+        if body_nodes and isinstance(body_nodes[0], AttrNode) and body_nodes[0].type == "subtitle":
+            subtitle_elem = _convert_node(body_nodes[0], styles)
             body_nodes = body_nodes[1:]
 
         if layout in KNOWN_LAYOUTS:
@@ -83,6 +87,8 @@ def build_ir(doc: Document, base_css: str = "", theme_css: str = "") -> list[Sli
 
         if heading_elem:
             elements.insert(0, heading_elem)
+        if subtitle_elem:
+            elements.insert(1 if heading_elem else 0, subtitle_elem)
 
         slides.append(SlideIR(layout=layout, elements=elements, notes=slide.notes or "",
                              variant=slide.variant or ""))

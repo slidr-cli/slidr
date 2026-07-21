@@ -71,6 +71,9 @@ def _render_slide(slide: SlideIR) -> str:
     if elems and elems[0].kind == "heading":
         heading_html = _render_elem(elems[0])
         elems = elems[1:]
+    if elems and elems[0].kind == "subtitle":
+        heading_html += "\n" + _render_elem(elems[0])
+        elems = elems[1:]
 
     body_html = "\n".join(filter(None, (_render_elem(e) for e in elems)))
     if body_html.strip():

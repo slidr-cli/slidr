@@ -88,7 +88,7 @@ section::after {
 .layout-title h5,
 .layout-title h6 { color: #ffffff; }
 .layout-title .kicker { color: rgba(255,255,255,0.8); }
-.layout-title .subtitle { color: rgba(255,255,255,0.7); }
+.layout-title .subtitle { color: #F7DE9C; }
 .layout-title .speaker { color: rgba(255,255,255,0.8); }
 .layout-title .speaker .role { color: rgba(255,255,255,0.5); }
 .layout-title .speaker-links a { color: rgba(255,255,255,0.75); }
@@ -101,7 +101,7 @@ h1, h2, h3, h4, h5, h6 {
   font-family: Roboto, Arial, "Helvetica Neue", sans-serif;
 }
 h1 { font-size: 2.5em; font-weight: 700; }
-h2 { font-size: 1.8em; padding-top: 0; margin-bottom: 0.15em; }
+h2 { font-size: 1.8em; padding-top: 0; }
 h3 { font-size: 1.15em; }
 h3::after {
   display: block;
@@ -143,7 +143,7 @@ footer { color: var(--color-dimmed); }
 .slide-num { color: var(--color-dimmed); }
 
 .subtitle { color: var(--color-dimmed); }
-h2 + .subtitle { font-size: 0.85em; margin-top: -0.5em; margin-bottom: 1.2em; }
+h2 + .subtitle { font-size: 0.85em; margin-bottom: 1.2em; }
 .tiny { font-size: 0.7em; color: var(--color-dimmed); }
 .muted { color: var(--color-dimmed); }
 
