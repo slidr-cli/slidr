@@ -76,11 +76,21 @@ section {
 h1, h2, h3, h4, h5, h6 { margin: 0; }
 h2 { padding-top: 1%; margin-bottom: 0.6em; }
 h4 { margin: 0.4em 0 0.15em; }
-.grid > h4 {
+.card.grid-heading {
   grid-column: 1 / -1;
-  font-size: 0.8em;
-  margin: 0.3em 0 0.1em;
+  padding: 0.15em 0.5em;
+  background: none;
+  border: none;
 }
+.card.grid-heading h3 { font-size: 0.8em; margin: 0; }
+.card.side-image {
+  align-self: center;
+  justify-self: center;
+  padding: 0.3em;
+  background: none;
+  border: none;
+}
+.card.side-image img { max-width: 8em; }
 .subtitle { margin-bottom: 0.6em; }
 h2 + .subtitle { margin-top: -0.5em; }
 p { margin-bottom: 0.5em; }

@@ -157,31 +157,7 @@ def _expand_markdown(text: str) -> str:
 
 
 def _parse_grid(inner_text: str, rest: str) -> Grid:
-    from slidr.parser.ast import Heading, Image, Paragraph, Text
-    import re
-    cleaned, children = extract_fenced(inner_text)
-    heading_re = re.compile(r'^#### (.+)$', re.MULTILINE)
-    image_re = re.compile(r'^!\[([^\]]*)\]\(([^)]+)\)$', re.MULTILINE)
-    interleaved = []
-    ci = 0
-    for line in cleaned.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-        m = heading_re.match(line)
-        if m:
-            interleaved.append(Heading(level=4, content=[Text(content=m.group(1))]))
-        elif image_re.match(line):
-            m2 = image_re.match(line)
-            interleaved.append(Paragraph(content=[Image(src=m2.group(2), alt=m2.group(1))]))
-        elif line.startswith("◊FENCE_"):
-            if ci < len(children):
-                interleaved.append(children[ci])
-                ci += 1
-    if ci < len(children):
-        interleaved.extend(children[ci:])
-    if interleaved:
-        children = interleaved
+    _, children = extract_fenced(inner_text)
     raw = " ".join(rest.split()[1:]).strip("{}")
     cols = 0
     class_ = ""
