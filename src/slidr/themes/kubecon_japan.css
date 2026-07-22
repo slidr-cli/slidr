@@ -140,7 +140,7 @@ footer { color: var(--color-dimmed); }
 .slide-num { color: var(--color-dimmed); }
 
 .subtitle { color: var(--color-dimmed); }
-h2 + .subtitle { font-size: 0.85em; margin-top: -0.5em; margin-bottom: 1.2em; }
+h2 + .subtitle { font-size: 0.85em; }
 .tiny { font-size: 0.7em; color: var(--color-dimmed); }
 .muted { color: var(--color-dimmed); }
 

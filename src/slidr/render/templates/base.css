@@ -74,8 +74,9 @@ section {
 }
 
 h1, h2, h3, h4, h5, h6 { margin: 0; }
-h2 { padding-top: 1%; margin-bottom: 0.15em; }
-h2 + .subtitle { margin-top: 0; }
+h2 { padding-top: 1%; margin-bottom: 0.6em; }
+.subtitle { margin-bottom: 0.6em; }
+h2 + .subtitle { margin-top: -0.5em; }
 p { margin-bottom: 0.5em; }
 ul { margin: 0 14pt; }
 li { margin: 0.4em 0; line-height: 1.5; overflow-wrap: break-word; }
