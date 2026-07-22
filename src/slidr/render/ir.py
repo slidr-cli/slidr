@@ -248,7 +248,7 @@ def _convert_node(node, styles: dict) -> Elem:
                 muted=styles.get("muted_rgb_hex", ""))
 
     if isinstance(node, Heading):
-        fs = {1: styles.get("font_h1", 63), 2: styles.get("font_h2", 32), 3: styles.get("font_h3", 22)}.get(node.level, 18)
+        fs = styles[f"font_h{node.level}"]
         return Elem(kind="heading", content=_render_inline_html(node.content),
                     text=_render_inline_text(node.content),
                     inlines=node.content,

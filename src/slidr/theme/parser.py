@@ -128,33 +128,27 @@ def _parse_sheet(css: str, styles: dict) -> None:
                 styles[tag_key] = val
 
 
+_PROPS = {
+    "section": {"padding": "section_padding", "font-family": "font_body_family", "text-align": "section_text_align", "font-size": "font_body_size"},
+    ".layout-title": {"text-align": "title_text_align"},
+    "code": {"font-family": "font_code_family", "font-size": "font_code_size"},
+    ".quote": {"font-size": "font_quote_size"},
+    ".kicker": {"font-size": "font_kicker_size"},
+    ".subtitle": {"font-size": "font_subtitle_size"},
+    ".speaker": {"font-size": "font_speaker_size"},
+    ".tiny": {"font-size": "font_tiny_size"},
+}
+
+_FONT_SIZES = {
+    "h1": "font_h1_size", "h2": "font_h2_size", "h3": "font_h3_size",
+    "h4": "font_h4_size", "h5": "font_h5_size", "h6": "font_h6_size",
+    "p": "font_body_size", "li": "font_li_size",
+}
+
 def _prop_for(name: str, selector: str) -> str | None:
-    """Map CSS properties needed by the ODP renderer to style keys."""
-    if selector == "section":
-        return {"padding": "section_padding", "font-family": "font_body_family", "text-align": "section_text_align", "font-size": "font_body_size"}.get(name)
-    if selector == ".layout-title":
-        return {"text-align": "title_text_align"}.get(name)
-    if selector == "h1":
-        return {"font-size": "font_h1_size"}.get(name)
-    if selector == "h2":
-        return {"font-size": "font_h2_size"}.get(name)
-    if selector == "h3":
-        return {"font-size": "font_h3_size"}.get(name)
-    if selector == "code":
-        return {"font-family": "font_code_family", "font-size": "font_code_size"}.get(name)
-    if selector == ".quote":
-        return {"font-size": "font_quote_size"}.get(name)
-    if selector in ("p", "li"):
-        return {"font-size": "font_li_size" if selector == "li" else "font_body_size"}.get(name)
-    if selector == ".kicker":
-        return {"font-size": "font_kicker_size"}.get(name)
-    if selector == ".subtitle":
-        return {"font-size": "font_subtitle_size"}.get(name)
-    if selector == ".speaker":
-        return {"font-size": "font_speaker_size"}.get(name)
-    if selector == ".tiny":
-        return {"font-size": "font_tiny_size"}.get(name)
-    return None
+    if name == "font-size" and selector in _FONT_SIZES:
+        return _FONT_SIZES[selector]
+    return _PROPS.get(selector, {}).get(name)
 
 
 def _to_rgb(value: str) -> tuple[int, int, int]:
@@ -240,9 +234,12 @@ def _build_theme_dict(styles: dict) -> dict:
         "font_body_family": styles.get("font_body_family", "Segoe UI"),
         "font_code_family": styles.get("font_code_family",
                                         styles.get("--font-mono", "SFMono-Regular")),
-        "font_h1": _parse_size(styles.get("font_h1_size", ""), 63),
-        "font_h2": _parse_size(styles.get("font_h2_size", ""), 36),
-        "font_h3": _parse_size(styles.get("font_h3_size", ""), 18),
+        "font_h1": _parse_size(styles.get("font_h1_size", ""), 32),
+        "font_h2": _parse_size(styles.get("font_h2_size", ""), 32),
+        "font_h3": _parse_size(styles.get("font_h3_size", ""), 23),
+        "font_h4": _parse_size(styles.get("font_h4_size", ""), 15),
+        "font_h5": _parse_size(styles.get("font_h5_size", ""), 13),
+        "font_h6": _parse_size(styles.get("font_h6_size", ""), 11),
         "font_body": _parse_size(styles.get("font_body_size", ""), 18),
         "font_code": _parse_size(styles.get("font_code_size", ""), 14),
         "font_quote": _parse_size(styles.get("font_quote_size", ""), 24),

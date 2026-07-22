@@ -75,6 +75,12 @@ section {
 
 h1, h2, h3, h4, h5, h6 { margin: 0; }
 h2 { padding-top: 1%; margin-bottom: 0.6em; }
+h4 { margin: 0.4em 0 0.15em; }
+.grid > h4 {
+  grid-column: 1 / -1;
+  font-size: 0.8em;
+  margin: 0.3em 0 0.1em;
+}
 .subtitle { margin-bottom: 0.6em; }
 h2 + .subtitle { margin-top: -0.5em; }
 p { margin-bottom: 0.5em; }
@@ -306,13 +312,19 @@ LOGO_CSS
 .layout-ecosystem .card.metric { padding: 0.2em 0.15em; }
 .layout-ecosystem .card.metric h3 { font-size: 1.3em; margin-bottom: 0.05em; }
 .layout-ecosystem .card.metric p { font-size: 0.6em; }
-.layout-ecosystem .card img {
+.layout-ecosystem .card p img {
   height: 1em;
   width: 3em;
   object-fit: contain;
   display: inline-block;
   margin: 0.05em 0.12em;
   vertical-align: middle;
+}
+.layout-ecosystem .card .slide-body img,
+.layout-ecosystem .card p:only-child img:only-child {
+  height: auto;
+  width: auto;
+  max-width: 8em;
 }
 .layout-ecosystem .grid { margin: 0; gap: 0.4em; }
 .layout-ecosystem .card.metric h3 {
