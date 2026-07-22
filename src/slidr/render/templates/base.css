@@ -302,6 +302,9 @@ LOGO_CSS
 .layout-ecosystem .card p:has(img) {
   display: contents;
 }
+.layout-ecosystem .card.metric { padding: 0.2em 0.15em; }
+.layout-ecosystem .card.metric h3 { font-size: 1.3em; margin-bottom: 0.05em; }
+.layout-ecosystem .card.metric p { font-size: 0.6em; }
 .layout-ecosystem .card img {
   height: 1em;
   width: 3em;
