@@ -72,11 +72,22 @@ if (isPresenter) {
   setScale();
   window.addEventListener('resize', setScale);
 
+  var _outTimer = 0;
   function show(n) {
     if (n < 0 || n >= total) return;
-    slides[current].classList.remove('active');
+    var prev = slides[current];
+    // Clean up any stale outgoing class
+    for (var i = 0; i < slides.length; i++) slides[i].classList.remove('outgoing');
+    clearTimeout(_outTimer);
+    if (prev && prev !== slides[n] && prev.hasAttribute('data-transition') && prev.getAttribute('data-transition') !== 'none') {
+      prev.classList.add('outgoing');
+    }
+    prev && prev.classList.remove('active');
     current = n;
     slides[current].classList.add('active');
+    if (prev && prev.classList.contains('outgoing')) {
+      _outTimer = setTimeout(function() { prev.classList.remove('outgoing'); }, 400);
+    }
     if (counter) counter.textContent = (current + 1) + ' / ' + total;
     if (prevBtn) prevBtn.disabled = current === 0;
     if (nextBtn) nextBtn.disabled = current === total - 1;

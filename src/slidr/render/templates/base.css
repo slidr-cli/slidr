@@ -342,7 +342,7 @@ LOGO_CSS
 }
 
 /* ---- slide transitions ---- */
-section[data-transition].active > .slide-body {
+section[data-transition]:not([data-transition="none"]).active > .slide-body {
   animation-duration: .4s;
   animation-fill-mode: both;
 }
@@ -363,6 +363,12 @@ section[data-transition="wipe"].active > .slide-body   { animation-name: sldr-wi
 }
 @keyframes sldr-wipe {
   from { clip-path: inset(0 100% 0 0); }
+}
+
+/* ---- outgoing slide crossfade ---- */
+section[data-transition]:not([data-transition="none"]).outgoing {
+  display: flex !important;
+  z-index: -1;
 }
 
 /* ---- screen mode ---- */
