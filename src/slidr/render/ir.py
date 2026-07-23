@@ -375,7 +375,7 @@ def _render_inline_html(nodes: list) -> str:
             s += f"<code>{_escape(n.content)}</code>"
         elif isinstance(n, Image):
             title = f' title="{_escape(n.title)}"' if n.title else ""
-            s += f'<img src="{_escape(n.src)}" alt="{_escape(n.alt)}"{title}>'
+            s += f'<img src="{_escape(n.src)}" alt="{_escape(n.alt)}" decoding="async"{title}>'
         elif isinstance(n, SoftBreak):
             s += " "
         elif isinstance(n, LucideIcon):

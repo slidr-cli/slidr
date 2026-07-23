@@ -84,7 +84,18 @@ if (isPresenter) {
     }
     prev && prev.classList.remove('active');
     current = n;
+    // Clear pre-render overrides from this slide
+    if (slides[current].classList.contains('pre-render')) {
+      slides[current].style.cssText = '';
+    }
     slides[current].classList.add('active');
+    slides[current].offsetHeight; // force layout before paint
+    // Pre-render next slide so images are already painted when activated
+    var next = slides[current + 1];
+    if (next && !next.classList.contains('pre-render')) {
+      next.classList.add('pre-render');
+      next.style.cssText = 'display:flex!important;opacity:0!important;pointer-events:none!important;z-index:-2!important';
+    }
     if (prev && prev.classList.contains('outgoing')) {
       _outTimer = setTimeout(function() { prev.classList.remove('outgoing'); }, 400);
     }
@@ -92,6 +103,14 @@ if (isPresenter) {
     if (prevBtn) prevBtn.disabled = current === 0;
     if (nextBtn) nextBtn.disabled = current === total - 1;
     try { localStorage.setItem('slidr-slide-' + document.title, current); } catch(e) {}
+  }
+  // Prime image cache so hidden slides render without flicker
+  for (var i = 0; i < slides.length; i++) {
+    var imgs = slides[i].querySelectorAll('img');
+    for (var j = 0; j < imgs.length; j++) {
+      var src = imgs[j].getAttribute('src');
+      if (src) (new Image()).src = src;
+    }
   }
 
   var bc = new BroadcastChannel('slidr-' + document.title);
