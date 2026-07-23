@@ -341,6 +341,30 @@ LOGO_CSS
   font-size: 1.5em;
 }
 
+/* ---- slide transitions ---- */
+section[data-transition].active > .slide-body {
+  animation-duration: .4s;
+  animation-fill-mode: both;
+}
+
+section[data-transition="fade"].active > .slide-body   { animation-name: sldr-fade; }
+section[data-transition="slide"].active > .slide-body  { animation-name: sldr-slide; }
+section[data-transition="zoom"].active > .slide-body   { animation-name: sldr-zoom; }
+section[data-transition="wipe"].active > .slide-body   { animation-name: sldr-wipe; }
+
+@keyframes sldr-fade {
+  from { opacity: 0; }
+}
+@keyframes sldr-slide {
+  from { opacity: 0; translate: 3em 0; }
+}
+@keyframes sldr-zoom {
+  from { opacity: 0; scale: .85; }
+}
+@keyframes sldr-wipe {
+  from { clip-path: inset(0 100% 0 0); }
+}
+
 /* ---- screen mode ---- */
 @media screen {
   html, body {

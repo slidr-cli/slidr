@@ -336,6 +336,29 @@ Styling applied automatically:
 - Logo images: uniform `0.8em × 0.8em`, `object-fit: contain`
 - Natural content stacking -- no IR row splitting needed
 
+## Slide transitions
+
+Set per-slide with `@transition` or as a default in frontmatter:
+
+```yaml
+---
+transition: fade
+---
+```
+
+```markdown
+@transition slide
+```
+
+| Name | Effect |
+|------|--------|
+| `fade` | Opacity 0 → 1 |
+| `slide` | TranslateX + fade |
+| `zoom` | Scale .85 + fade |
+| `wipe` | Clip-path inset reveal |
+
+All 0.4s, incoming-only. The `--sldr-dir` variable controls direction for slide/flip. Implemented via CSS `@keyframes` targeting `section[data-transition].active`.
+
 ## What the ODP renderer reads from CSS
 
 The ODP renderer extracts these via tinycss2:

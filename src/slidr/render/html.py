@@ -55,6 +55,7 @@ def render(doc: Document, theme_css: str, assembled_css: str, dims: tuple[int, i
             "num": i + 1, "layout": slide.layout, "children": children,
             "notes": slide.notes, "footer": doc.meta.footer or "", "paginate": doc.meta.paginate or False,
             "variant": slide.variant or doc.meta.theme_variant,
+            "transition": slide.transition or doc.meta.transition or "",
         })
 
     return _env.get_template("shell.html").render(

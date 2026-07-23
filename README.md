@@ -135,6 +135,7 @@ avoids the positioning complexity of the native ODP renderer.
 | `@layout image-left` | Heading full-width, image left, text right |
 | `@layout compare` | Two cards side-by-side with an arrow connector, conclusion notes below |
 | `@layout metrics-N` | 2-4 metric cards, auto-detected from `::: card {metric}` blocks |
+| `@layout ecosystem` | Compact stacked layout for partner/device logos. Small labels, uniform image sizing |
 | Custom | `@layout <name>` adds CSS class `layout-<name>`, style via frontmatter `style:` block |
 
 ### Compare layout
@@ -191,6 +192,26 @@ Density improvement
 Each `::: card {metric}` block: first line is the big number, following lines are the label.
 Styled with accent-colored large text (`2.8em`, bold) and dimmed label text.
 Grid auto-centers vertically in the slide body.
+
+### Grid section labels and side images
+
+Inside any `::: grid`, use `::: card {grid-heading}` for full-width row labels
+and `::: card {side-image}` for images that sit beside content without
+affecting row sizing:
+
+```markdown
+::: grid {cols=2}
+::: card {grid-heading}
+### Ecosystem & Device Support
+:::
+::: card
+![NVIDIA](devices/nvidia.png) ...
+:::
+::: card {side-image}
+![GitHub QR](ecosystem/github-qr.png)
+:::
+:::
+```
 
 ### Compare layout
 
@@ -337,6 +358,29 @@ See `examples/seaborn_demo.md` for the memory oversubscription chart
 
 `@col` overrides auto-detection in all layouts. Use it when auto-split
 puts content in the wrong column.
+
+## Slide transitions
+
+Set a default in frontmatter or override per-slide:
+
+```yaml
+---
+transition: fade
+---
+```
+
+```markdown
+@transition slide
+```
+
+| Transition | Effect |
+|------------|--------|
+| `fade` | Opacity 0 → 1 |
+| `slide` | TranslateX + fade |
+| `zoom` | Scale .85 + fade |
+| `wipe` | Clip-path reveal |
+
+All transitions run 0.4s, forwards-only (incoming slide animates).
 
 ## Dark mode
 

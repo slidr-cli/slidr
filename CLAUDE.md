@@ -96,6 +96,8 @@ slides.md
 - **Subtitle extraction.** `build_ir` extracts `@subtitle` AttrNode immediately after the h2 heading and places it outside layout columns. `_render_slide` in html.py does the same for HTML-only path. This keeps subtitles tight to the heading via `h2 + .subtitle { margin-top: 0 }`.
 - **Title font size configurable.** `--title-h1-size` (default `3.5em`) and `--title-subtitle-size` (default `1.8em`) are CSS variables in base.css. Themes override them in `:root`.
 - **Plot deps as optional-dependencies.** `seaborn` and `pillow` are in `[project.optional-dependencies] plot` for workspace inheritance. The `plot` dependency-group exists for CI. Both declared so `slidr[plot]` resolves via PEP 621 and `pdm install -G plot` works in CI.
+- **Slide transitions.** `@transition <name>` directive per slide, `transition: <name>` in frontmatter for default. Supported: `fade`, `slide`, `zoom`, `flip`, `wipe`. Implemented via CSS `@keyframes` triggered by `.active` class. 0.4s duration, incoming-only.
+- **Grid card variants.** `::: card {grid-heading}` spans full grid width as a section label. `::: card {side-image}` sits beside content without affecting row sizing -- centered, no background/border.
 
 ## Template cascade
 

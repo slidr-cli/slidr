@@ -37,6 +37,7 @@ def parse(input_text: str) -> Document:
         pygments_style=raw_meta.pop("pygments_style", "default"),
         seaborn_theme=raw_meta.pop("seaborn_theme", None) or Meta.seaborn_theme,
         theme_variant=raw_meta.pop("variant", Meta.theme_variant),
+        transition=raw_meta.pop("transition", Meta.transition),
     )
 
     body = post.content
@@ -76,6 +77,7 @@ def _parse_slide(content: str) -> Slide:
 
     layout = _detect_layout(nodes)
     variant = ""
+    transition = ""
     hidden = False
     for n in list(nodes):
         if isinstance(n, AttrNode) and n.type == "layout":
@@ -84,6 +86,9 @@ def _parse_slide(content: str) -> Slide:
         elif isinstance(n, AttrNode) and n.type == "variant":
             variant = n.value.strip()
             nodes.remove(n)
+        elif isinstance(n, AttrNode) and n.type == "transition":
+            transition = n.value.strip()
+            nodes.remove(n)
         elif isinstance(n, AttrNode) and n.type in ("hidden", "hide"):
             hidden = True
             nodes.remove(n)
@@ -91,7 +96,7 @@ def _parse_slide(content: str) -> Slide:
     if hidden:
         return None
 
-    return Slide(layout=layout, children=nodes, notes=notes, variant=variant)
+    return Slide(layout=layout, children=nodes, notes=notes, variant=variant, transition=transition)
 
 
 def _tokens_to_nodes(tokens: list[Token]) -> list:

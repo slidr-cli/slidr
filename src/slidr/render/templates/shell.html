@@ -65,7 +65,7 @@ html.presenter #presenter-panel {
 </head>
 <body>
 {% for slide in slides %}
-<section class="slide layout-{{ slide.layout }}"{% if slide.notes %} data-notes="{{ slide.notes }}"{% endif %}{% if slide.variant %} data-theme="{{ slide.variant }}"{% endif %}>
+<section class="slide layout-{{ slide.layout }}"{% if slide.notes %} data-notes="{{ slide.notes }}"{% endif %}{% if slide.variant %} data-theme="{{ slide.variant }}"{% endif %}{% if slide.transition %} data-transition="{{ slide.transition }}"{% endif %}>
 {{ slide.children }}
 {% if slide.footer %}<footer>{{ slide.footer }}</footer>{% endif %}
 {% if slide.paginate %}<span class="slide-num">{{ slide.num }}</span>{% endif %}

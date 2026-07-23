@@ -47,158 +47,104 @@ Explicit via `@layout`:
 | `@layout two-col` | Heading full-width, body split 50/50. Use `@col` to control split point. |
 | `@layout image-right` | Heading full-width, text left, image right |
 | `@layout image-left` | Heading full-width, image left, text right |
+| `@layout compare` | Card → arrow → card, optional `::: notes` footer |
+| `@layout ecosystem` | Compact stacked logos/metrics, small labels, uniform images |
 
 Custom layouts: `@layout <name>` adds CSS class `layout-<name>`, style via `style:` frontmatter.
+
+## Slide transitions
+
+Set per-slide or as frontmatter default:
+
+```yaml
+---
+transition: fade
+---
+```
+
+```markdown
+@transition slide
+```
+
+Available: `fade`, `slide`, `zoom`, `flip`, `wipe`. All 0.4s, incoming-only.
 
 ## Block syntax
 
 ```
-::: grid {cols=2}           # auto-detected as grid-2 layout
-::: card                     # basic card with border-radius
-::: card{ tag="green" }      # colored left border: green, cyan, yellow, red
-> quote text                 # blockquote, renders as .quote div
-| col1 | col2 | col3 |       # pipe table with header row
-`inline code`                # inline code span
-```language                  # fenced code block, syntax highlighted
-```d2                        # D2 diagram, rendered at build time as SVG
+::: grid {cols=2}             # auto-detected as grid-2 layout
+::: card                       # basic card with border-radius
+::: card {tag=green}           # colored card: green, cyan, yellow, red
+::: card {metric}              # big number + label, auto-grids
+::: card {grid-heading}        # spans full grid width as section label
+::: card {side-image}          # centered, no chrome, doesn't affect row sizing
+> quote text                   # blockquote, renders as .quote div
+| col1 | col2 | col3 |         # pipe table with header row
+```seaborn                     # matplotlib/seaborn chart rendered at build time
+```dot                         # Graphviz diagram, injected with theme colors
+```mermaid                     # Mermaid CLI diagram, SVG output
+```language                    # generic code block, syntax highlighted
+{icon:star cls=accent-primary} # lucide icon, inline SVG
 ```
 
-## D2 diagrams
+Cards support nested content: fenced code blocks (` ```seaborn`), nested grids
+(`::: grid`), lists (`- item`), and images. Markdown inline formatting works
+inside cards via `_expand_markdown`.
 
-Use ````d2` fenced blocks for architecture diagrams, flowcharts, and sequence
-diagrams. Rendered at build time to inline SVG -- works in PDF and PPTX with
-no JS dependency. Requires `d2` installed on the build machine.
+## Fenced diagrams
 
-```d2
-direction: right
+### Seaborn / matplotlib
 
-User -> API: Request
-API -> Database: Query
-Database -> API: Result
-API -> User: Response
+Code block executes in-process, returns SVG:
+
+````markdown
+```seaborn
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots()
+ax.barh(0, 70, color="#22c55e")
 ```
+````
 
-D2 blocks are `CodeBlock` nodes, not images. When using `@layout image-right`
-or `@layout image-left` with a D2 diagram, the auto-detection won't find it.
-Use `@col` to manually place the split:
+Theme colors available via rcParams: `plt.rcParams["axes.facecolor"]`,
+`"text.color"`, `"axes.edgecolor"`, `"xtick.color"`. Requires `seaborn` +
+`matplotlib` (install via `pdm install -G plot` or `slidr[plot]`).
+
+### Graphviz
+
+````markdown
+```dot
+digraph G { a -> b; }
+```
+````
+
+Theme CSS variables available: `--color-card-bg` → bgcolor, `--color-foreground`
+→ fontcolor, `--color-accent` → edgecolor.
+
+### Mermaid
+
+````markdown
+```mermaid
+flowchart LR; A --> B;
+```
+````
+
+Requires `mermaidx` / Mermaid CLI installed.
+
+## Lucide icons
 
 ```markdown
-@layout two-col
-
-## Title
-
-- Left content
-
-@col
-
-```d2
-...
+{icon:check cls=accent-primary}
+{icon:x cls=accent-secondary}
+{icon:star stroke=#f0f}
 ```
-```
+
+Works in body text, card headers, list items, tables. Uses inline SVG.
 
 ## Layout caveats
 
-`@col` works in all three layouts (`two-col`, `image-right`, `image-left`).
-When present, it overrides auto-detection -- everything before `@col` goes
-left, everything after goes right.
-
-When to use `@col`:
-- Splitting a single long list into two columns (blank lines don't split lists
-  in CommonMark)
-- Placing a D2 diagram on one side without an actual image in the content
-- Any time auto-detection puts content in the wrong column
+`@col` works in all column layouts (`two-col`, `image-right`, `image-left`).
+When present, overrides auto-detection.
 
 ## Speaker notes
-
-HTML comments at the top of a slide are notes visible in the presenter view:
-
-```markdown
----
-
-<!--
-Points to cover:
-- Architecture overview
-- Performance numbers
--->
-```
-
-## Title slide pattern
-
-```markdown
-@kicker v1.0 · Date
-
-# Talk Title
-
-@subtitle Optional subtitle
-
-@speaker name="Author" role="Affiliation"
-```
-
-## Card grid pattern
-
-```markdown
-## Section Title
-
-::: grid {cols=3}
-::: card{ tag="green" }
-### Card Title
-Body text for this card.
-:::
-
-::: card{ tag="cyan" }
-### Another Card
-More content here.
-:::
-
-::: card{ tag="yellow" }
-### Third Card
-Additional information.
-:::
-:::
-```
-
-## Two-column with explicit split
-
-```markdown
-@layout two-col
-
-## Title
-
-- Item group one
-- More items here
-
-@col
-
-- Item group two
-- Additional items
-```
-
-## Image layout pattern
-
-```markdown
-@layout image-right
-
-## Title
-
-Descriptive text about the topic goes here. Can include multiple paragraphs.
-
-- Bullet points
-- Supporting details
-
-![](path/to/image.png)
-```
-
-## Table with quote
-
-```markdown
-## Table Title
-
-| Header A | Header B | Header C |
-|----------|----------|----------|
-| data     | data     | data     |
-
-> Key insight or callout about this data
-```
 
 ## Theme creation
 
@@ -231,6 +177,10 @@ h1, h2, h3, h4, h5, h6 { color: var(--color-foreground); }
 h1 { font-size: 2.5em; }
 h2 { font-size: 1.8em; }
 h3 { font-size: 1.3em; }
+h4 { font-size: 0.85em; }
+
+--title-h1-size: 3.5em;        /* title slide h1, theme-configurable */
+--title-subtitle-size: 1.8em;  /* title slide subtitle */
 
 code { background: rgba(0,0,0,0.05); font-family: monospace; }
 pre { background: rgba(0,0,0,0.05); }
