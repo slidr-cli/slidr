@@ -18,6 +18,18 @@ _pygments_style = "default"
 
 from slidr.render.ir import build_ir, SlideIR, Elem
 
+_BRAND_ICON_SVGS = {
+    "linkedin": (
+        '<svg class="speaker-icon" xmlns="http://www.w3.org/2000/svg" '
+        'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '
+        'stroke-linecap="round" stroke-linejoin="round" '
+        'style="height:1em;width:auto;vertical-align:middle">'
+        '<path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>'
+        '<rect width="4" height="12" x="2" y="9"/>'
+        '<circle cx="4" cy="4" r="2"/></svg>'
+    ),
+}
+
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 THEME_DIR = Path(__file__).parent.parent / "themes"
 _env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)), autoescape=False)
@@ -167,14 +179,14 @@ def _render_elem(e: Elem) -> str:
         role = e.attrs.get("role", "")
         text = f"{_escape(name)}<br><span class=\"role\">{_escape(role)}</span>" if role else _escape(name)
         links = []
-        contact_icons = {"github": "git-fork", "twitter": "bird", "email": "mail", "linkedin": "linkedin", "website": "globe"}
+        contact_icons = {"github": "git-fork", "twitter": "bird", "email": "mail", "website": "globe"}
         for key in ("github", "twitter", "email", "linkedin", "website"):
             val = e.attrs.get(key, "")
             if val:
                 icon = contact_icons.get(key, "link")
                 href = val if "://" in val else f"https://{val}" if key != "email" else f"mailto:{val}"
                 label = val.replace("https://", "").replace("mailto:", "")
-                svg = render_icon(icon, {"cls": "speaker-icon"})
+                svg = _BRAND_ICON_SVGS.get(key) or render_icon(icon, {"cls": "speaker-icon"})
                 links.append(f'<a href="{_escape(href)}" target="_blank">{svg} {_escape(label)}</a>')
         if links:
             text += '<br><span class="speaker-links">' + "".join(links) + "</span>"
