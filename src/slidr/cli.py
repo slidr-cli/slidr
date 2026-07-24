@@ -22,6 +22,7 @@ def main(
     pdf: bool = typer.Option(False, "--pdf", help="Generate PDF"),
     odp: bool = typer.Option(False, "--odp", help="Generate ODP (programmatic)"),
     image_odp: bool = typer.Option(False, "--image-odp", help="Generate ODP (PDF screenshots)"),
+    dist: bool = typer.Option(False, "--dist", help="Package HTML + referenced assets into a zip"),
     watch: bool = typer.Option(False, "-w", "--watch", help="Watch file and rebuild on changes"),
     debug: bool = typer.Option(False, "--debug", help="Dump AST + write debug CSS"),
     css: Optional[Path] = typer.Option(None, "--css", help="Custom CSS theme file (overrides default)"),
@@ -32,11 +33,11 @@ def main(
     if watch:
         _watch(file, output_dir, pdf, odp, image_odp, debug, css)
     else:
-        _build(file, output_dir, pdf, odp, image_odp, debug, css)
+        _build(file, output_dir, pdf, odp, image_odp, dist, debug, css)
 
 
 def _build(file: Path, output_dir: Optional[Path], pdf: bool,
-           odp: bool, image_odp: bool, debug: bool, css_path: Optional[Path]) -> None:
+           odp: bool, image_odp: bool, dist: bool, debug: bool, css_path: Optional[Path]) -> None:
     content = file.read_text()
     doc = parse(content)
     dims = doc.meta.dimensions()
@@ -63,6 +64,9 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
     html_path = out_dir / f"{stem}.html"
     html_path.write_text(html)
     typer.echo(f"Wrote {html_path} ({len(html)} bytes)")
+
+    if dist:
+        _make_dist(file.parent, out_dir, html_path, html, theme_css, stem)
 
     if debug:
         css = base_css().replace("SLIDE_W", str(dims[0])).replace("SLIDE_H", str(dims[1]))
@@ -104,7 +108,7 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
 def _watch(file: Path, output_dir: Optional[Path], pdf: bool,
            odp: bool, image_odp: bool, debug: bool, css_path: Optional[Path]) -> None:
     last_mtime = 0
-    _build(file, output_dir, pdf, odp, image_odp, debug, css_path)
+    _build(file, output_dir, pdf, odp, image_odp, False, debug, css_path)
     typer.echo(f"Watching {file} for changes (Ctrl+C to stop)")
 
     while True:
@@ -114,7 +118,7 @@ def _watch(file: Path, output_dir: Optional[Path], pdf: bool,
             if mtime != last_mtime:
                 last_mtime = mtime
                 typer.echo("---")
-                _build(file, output_dir, pdf, odp, image_odp, debug, css_path)
+                _build(file, output_dir, pdf, odp, image_odp, False, debug, css_path)
         except KeyboardInterrupt:
             typer.echo("\nStopped watching.")
             break
@@ -175,3 +179,37 @@ def _symlink_assets(source_dir: Path, dist_dir: Path) -> None:
         dest = dist_dir / item.name
         if not dest.exists():
             dest.symlink_to(item.resolve())
+
+
+def _make_dist(source_dir: Path, out_dir: Path, html_path: Path,
+               html: str, theme_css: str, stem: str) -> None:
+    import re, zipfile
+
+    zip_path = out_dir / f"{stem}.zip"
+    seen = set()
+
+    with zipfile.ZipFile(str(zip_path), "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.write(str(html_path), html_path.name)
+
+        urls = set()
+        for pattern in [r'src="([^"]+)"', r'href="([^"]+)"', r'url\(["\']?([^)"\']+)["\']?\)']:
+            for m in re.finditer(pattern, html + theme_css):
+                urls.add(m.group(1))
+
+        for url in sorted(urls):
+            if url.startswith(("http:", "https:", "data:", "#")):
+                continue
+            if url.startswith("/"):
+                continue
+            asset = source_dir / url
+            if not asset.is_file():
+                continue
+            # Use real path for dedup, resolved symlink for actual file access
+            real = asset.resolve()
+            if str(real) in seen:
+                continue
+            seen.add(str(real))
+            # Preserve original relative path structure in zip
+            zf.write(str(real), url)
+
+    typer.echo(f"Wrote {zip_path} ({zip_path.stat().st_size} bytes, {len(seen)} assets)")
