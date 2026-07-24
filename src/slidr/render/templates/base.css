@@ -406,7 +406,7 @@ section[data-transition]:not([data-transition="none"]).outgoing {
   .slide-body {
     flex: 1;
     min-height: auto;
-    padding-bottom: 0;
+    padding-bottom: 1.8em;
     overflow: hidden;
   }
   pre {
