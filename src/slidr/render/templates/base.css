@@ -305,7 +305,12 @@ LOGO_CSS
 .layout-ecosystem .card { padding: 0.3em 0.5em; margin-bottom: 0.4em; }
 .layout-ecosystem .card p { margin: 0; line-height: 1.2; display: inline; }
 .layout-ecosystem .card.metric p { display: block; }
-.layout-ecosystem .card.metric { padding: 0.2em 0.15em; }
+.layout-ecosystem .card.metric {
+  padding: 0.2em 0.15em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
 .layout-ecosystem .card.metric h3 { font-size: 1.3em; margin-bottom: 0.05em; }
 .layout-ecosystem .card.metric p { font-size: 0.6em; }
 .layout-ecosystem .card img {
