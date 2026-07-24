@@ -150,7 +150,6 @@ activemq-data/
 *.sage.py
 
 # Environments
-.env
 .envrc
 .venv
 env/
@@ -222,3 +221,5 @@ odfdo
 nohup.out
 shell.html
 .claude/
+config.bat
+node_modules

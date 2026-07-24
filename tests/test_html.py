@@ -4,6 +4,33 @@ from slidr.render.html import _render_elem
 from slidr.render.ir import Elem
 
 
+def test_slide_notes_are_js_and_attribute_safe():
+    """Multi-line speaker notes must not break the JS array or the data-notes attr.
+
+    Notes flow into two contexts: a JavaScript string array in slidr.js and an
+    HTML attribute in shell.html. A raw newline breaks the JS string literal
+    (which blanks the whole deck), and an unescaped quote truncates the
+    attribute. The JS context must be JSON-encoded; the attribute HTML-escaped.
+    """
+    from slidr.parser.markdown import parse
+    from slidr.render.html import render
+
+    md = '# Title\n\n<!--\nline one\nsay "hi" now\n-->\n'
+    doc = parse(md)
+    html = render(doc, "", "", (1280, 720))
+
+    # JS array: the note is JSON-encoded, so its newline is escaped, not raw.
+    start = html.index("var slideNotes = [")
+    array = html[start:html.index("];", start)]
+    assert "\\n" in array            # newline escaped for the JS string
+    assert "line one" in array
+    assert "line one\nsay" not in array   # no raw newline inside the literal
+
+    # HTML attribute: the embedded double-quote is escaped.
+    assert 'data-notes="' in html
+    assert "&#34;hi&#34;" in html or "&quot;hi&quot;" in html
+
+
 def test_speaker_linkedin_uses_brand_svg_not_placeholder():
     """linkedin= renders the inlined brand mark, never a Lucide placeholder.
 
