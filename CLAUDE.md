@@ -9,6 +9,7 @@ pdm install                # install deps
 pdm run slidr slides.md    # build HTML
 pdm run slidr slides.md --odp     # + ODP
 pdm run slidr slides.md --pdf     # + PDF
+pdm run slidr --dist slides.md    # HTML + assets as zip
 pdm run pytest             # run tests
 ```
 

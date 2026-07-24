@@ -49,6 +49,7 @@ pdm run slidr slides.md --image-odp  # + ODP (screenshots from PDF)
 pdm run slidr slides.md --pdf        # + PDF
 pdm run slidr -w slides.md           # watch and rebuild on changes
 pdm run slidr --odp -w slides.md     # watch + ODP
+pdm run slidr --dist slides.md       # HTML + all referenced assets as zip
 ```
 
 ## Assets
