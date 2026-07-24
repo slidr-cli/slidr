@@ -323,11 +323,11 @@ LOGO_CSS
 .layout-ecosystem .card.metric h3 { font-size: 1.3em; margin-bottom: 0.05em; }
 .layout-ecosystem .card.metric p { font-size: 0.6em; }
 .layout-ecosystem .card p img {
-  height: 1em;
-  width: 3em;
+  height: 0.9em;
+  width: 2.5em;
   object-fit: contain;
   display: inline-block;
-  margin: 0.05em 0.12em;
+  margin: 0.08em 0.2em;
   vertical-align: middle;
 }
 .layout-ecosystem .card .slide-body img,
