@@ -1,7 +1,7 @@
 var isPresenter = window.name === 'slidr-presenter';
 if (isPresenter) document.documentElement.classList.add('presenter');
 
-var slideNotes = [{% for slide in slides %}"{{ slide.notes|e }}"{% if not loop.last %},{% endif %}{% endfor %}];
+var slideNotes = [{% for slide in slides %}{{ slide.notes|tojson }}{% if not loop.last %},{% endif %}{% endfor %}];
 
 var KEYS_FWD = ['ArrowRight', 'ArrowDown', 'PageDown', ' '];
 var KEYS_BACK = ['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'];
