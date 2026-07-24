@@ -407,6 +407,20 @@ section[data-transition]:not([data-transition="none"]).outgoing {
     max-height: none;
     overflow: visible;
   }
+
+  /* WeasyPrint mis-sizes 1fr grid tracks when a full-width spanning
+     grid-heading (grid-column: 1 / -1) is present, collapsing the
+     sibling cards to near-zero width. Fall back to flexbox for these
+     grids in print only; grids without a grid-heading are untouched. */
+  .grid:has(> .grid-heading) {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--gap);
+  }
+  .grid:has(> .grid-heading) > .grid-heading { flex: 0 0 100%; }
+  .grid:has(> .grid-heading) > .card:not(.grid-heading) { flex: 1 1 0; min-width: 0; }
+  .grid:has(> .grid-heading) > .card.side-image { flex: 0 0 auto; }
 }
 
 @page {
