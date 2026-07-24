@@ -76,13 +76,6 @@ section {
 h1, h2, h3, h4, h5, h6 { margin: 0; }
 h2 { padding-top: 1%; margin-bottom: 0.6em; }
 h4 { margin: 0.4em 0 0.15em; }
-.card.grid-heading {
-  grid-column: 1 / -1;
-  padding: 0.15em 0.5em;
-  background: none;
-  border: none;
-}
-.card.grid-heading h3 { font-size: 0.8em; margin: 0; }
 .card.side-image {
   align-self: center;
   justify-self: center;
@@ -410,19 +403,6 @@ section[data-transition]:not([data-transition="none"]).outgoing {
     padding-bottom: 0;
     overflow: hidden;
   }
-  .layout-ecosystem .slide-body {
-    overflow: hidden;
-    page-break-inside: avoid;
-  }
-  .layout-ecosystem.slide { page-break-inside: avoid; }
-  .layout-ecosystem .grid { page-break-inside: avoid; display: flex !important; flex-wrap: wrap; gap: 0.15em; }
-  .layout-ecosystem .card { padding: 0.1em 0.2em; margin-bottom: 0.1em; flex: 0 0 auto; }
-  .layout-ecosystem .card img { height: 0.55em; width: 1.5em; }
-  .layout-ecosystem h3 { font-size: 0.5em; }
-  .layout-ecosystem .card.metric { min-width: 0; }
-  .layout-ecosystem .card.metric h3 { font-size: 0.85em; }
-  .layout-ecosystem .card.metric p { font-size: 0.4em; }
-  .layout-ecosystem .card.grid-heading { width: 100%; flex-basis: 100%; }
   pre {
     max-height: none;
     overflow: visible;
