@@ -117,6 +117,7 @@ user style: block (frontmatter overrides)
 - `presenter.html` has its own inline JS (different from main -- grid layout, sync polling, notes).
 - ALL font sizes use `em` (relative to 18pt base on section). No `px` for text.
 - Spacing uses `em` for consistency. Percentages converted: `10%` of 720px slide height = 72px / 18 = 4em.
+- No double dashes (`--`) in prose. Use colons (`:`) or single dashes. Dashes in code (CSS, Python, CLI flags) are fine.
 
 ## Fenced blocks
 
