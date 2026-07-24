@@ -75,7 +75,6 @@ Available: `fade`, `slide`, `zoom`, `flip`, `wipe`. All 0.4s, incoming-only.
 ::: card                       # basic card with border-radius
 ::: card {tag=green}           # colored card: green, cyan, yellow, red
 ::: card {metric}              # big number + label, auto-grids
-::: card {grid-heading}        # spans full grid width as section label
 ::: card {side-image}          # centered, no chrome, doesn't affect row sizing
 > quote text                   # blockquote, renders as .quote div
 | col1 | col2 | col3 |         # pipe table with header row

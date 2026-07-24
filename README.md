@@ -194,17 +194,15 @@ Each `::: card {metric}` block: first line is the big number, following lines ar
 Styled with accent-colored large text (`2.8em`, bold) and dimmed label text.
 Grid auto-centers vertically in the slide body.
 
-### Grid section labels and side images
+### Section labels and side images
 
-Inside any `::: grid`, use `::: card {grid-heading}` for full-width row labels
-and `::: card {side-image}` for images that sit beside content without
-affecting row sizing:
+Ecosystem slides use `####` (h4) for section labels above grids, and
+`::: card {side-image}` for images beside content without affecting row sizing:
 
 ```markdown
+#### Ecosystem & Device Support
+
 ::: grid {cols=2}
-::: card {grid-heading}
-### Ecosystem & Device Support
-:::
 ::: card
 ![NVIDIA](devices/nvidia.png) ...
 :::
