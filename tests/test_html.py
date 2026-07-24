@@ -1,7 +1,22 @@
 """Tests for the HTML renderer's element rendering."""
 
-from slidr.render.html import _render_elem
+from slidr.render.html import _render_elem, base_css
 from slidr.render.ir import Elem
+
+
+def test_print_css_flexes_grids_with_a_grid_heading():
+    """Print stylesheet falls back to flexbox for grids with a grid-heading.
+
+    WeasyPrint mis-sizes `1fr` grid tracks when a full-width spanning
+    grid-heading (`grid-column: 1 / -1`) is present, collapsing the sibling
+    cards to near-zero width. The print CSS must convert those grids to
+    flexbox; grids without a grid-heading must stay on the grid path.
+    """
+    css = base_css()
+    assert ".grid:has(> .grid-heading)" in css
+    assert ".grid:has(> .grid-heading) > .grid-heading" in css
+    # The grid-heading spans a full row in the flex fallback.
+    assert "flex: 0 0 100%" in css
 
 
 def test_speaker_linkedin_uses_brand_svg_not_placeholder():
