@@ -307,34 +307,20 @@ LOGO_CSS
 }
 
 /* ---- ecosystem layout ---- */
-.layout-ecosystem .slide-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4em;
-}
 .layout-ecosystem h3 { font-size: 0.7em; margin-bottom: 0.1em; }
 .layout-ecosystem h3::after { display: none; }
-.layout-ecosystem .card { padding: 0.3em 0.5em; }
-.layout-ecosystem .card p { margin: 0; }
-.layout-ecosystem .card p:has(img) {
-  display: contents;
-}
+.layout-ecosystem .card { padding: 0.3em 0.5em; margin-bottom: 0.4em; }
+.layout-ecosystem .card p { margin: 0; line-height: 1.2; }
 .layout-ecosystem .card.metric { padding: 0.2em 0.15em; }
 .layout-ecosystem .card.metric h3 { font-size: 1.3em; margin-bottom: 0.05em; }
 .layout-ecosystem .card.metric p { font-size: 0.6em; }
-.layout-ecosystem .card p img {
+.layout-ecosystem .card img {
   height: 0.9em;
   width: 2.5em;
   object-fit: contain;
   display: inline-block;
   margin: 0.08em 0.2em;
   vertical-align: middle;
-}
-.layout-ecosystem .card .slide-body img,
-.layout-ecosystem .card p:only-child img:only-child {
-  height: auto;
-  width: auto;
-  max-width: 8em;
 }
 .layout-ecosystem .grid { margin: 0; gap: 0.4em; }
 .layout-ecosystem .card.metric h3 {
@@ -415,16 +401,28 @@ section[data-transition]:not([data-transition="none"]).outgoing {
     page-break-before: always;
     break-before: page;
   }
-  body > section:first-child {
-    page-break-before: avoid;
-    break-before: avoid;
-  }
-  #slidr-nav { display: none !important; }
+  body > section:first-child { page-break-before: avoid; }
+  body > section:last-child { page-break-after: avoid; }
+  #slidr-nav, #presenter-panel { display: none !important; }
   .slide-body {
     flex: 1;
     min-height: auto;
     padding-bottom: 0;
+    overflow: hidden;
   }
+  .layout-ecosystem .slide-body {
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+  .layout-ecosystem.slide { page-break-inside: avoid; }
+  .layout-ecosystem .grid { page-break-inside: avoid; display: flex !important; flex-wrap: wrap; gap: 0.15em; }
+  .layout-ecosystem .card { padding: 0.1em 0.2em; margin-bottom: 0.1em; flex: 0 0 auto; }
+  .layout-ecosystem .card img { height: 0.55em; width: 1.5em; }
+  .layout-ecosystem h3 { font-size: 0.5em; }
+  .layout-ecosystem .card.metric { min-width: 0; }
+  .layout-ecosystem .card.metric h3 { font-size: 0.85em; }
+  .layout-ecosystem .card.metric p { font-size: 0.4em; }
+  .layout-ecosystem .card.grid-heading { width: 100%; flex-basis: 100%; }
   pre {
     max-height: none;
     overflow: visible;
