@@ -161,7 +161,6 @@ th { font-weight: 700; }
 }
 .card.metric h3::after { display: none; }
 .card.metric p {
-  font-size: 0.82em;
   color: var(--color-dimmed);
   line-height: 1.3;
   margin: 0;
@@ -383,7 +382,7 @@ section[data-transition]:not([data-transition="none"]).outgoing {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-top: 10%;
+  padding-top: 6%;
 }
 .layout-title h1 { font-size: var(--title-h1-size, 3.5em); }
 .layout-title .subtitle { margin-bottom: 0.3em; font-size: var(--title-subtitle-size, 1.8em); }
