@@ -26,7 +26,7 @@ def extract_attrs(nodes: list[Node]) -> list[Node]:
     for node in nodes:
         if isinstance(node, Paragraph) and len(node.content) == 1:
             text = node.content[0].content if isinstance(node.content[0], Text) else ""
-            m = re.match(r"<!--attr:(\w+):(.*)-->", text)
+            m = re.match(r"<!--attr:([\w-]+):(.*)-->", text)
             if m:
                 typ, value = m.group(1), m.group(2)
                 attrs = _parse_attrs(value)
@@ -38,7 +38,7 @@ def extract_attrs(nodes: list[Node]) -> list[Node]:
 
 def parse_attr_token(html: str) -> AttrNode | None:
     """Parse a single <!--attr:...--> comment into an AttrNode."""
-    m = re.match(r"<!--attr:(\w+):(.*)-->", html)
+    m = re.match(r"<!--attr:([\w-]+):(.*)-->", html)
     if m:
         typ, value = m.group(1), m.group(2)
         return AttrNode(type=typ, value=value, attrs=_parse_attrs(value))

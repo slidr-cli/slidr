@@ -192,7 +192,7 @@ def _parse_notes(text: str, rest: str) -> Notes:
             k, v = attr.split("=", 1)
             if k.strip() == "tag":
                 tag = v.strip().strip('"')
-    return Notes(content=_expand_icons(text.strip()), tag=tag or None)
+    return Notes(content=_expand_markdown(text.strip()), tag=tag or None)
 
 
 def interleave_fences(nodes: list[Node], fence_nodes: list[Node]) -> list[Node]:

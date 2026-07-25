@@ -86,6 +86,8 @@ def build_ir(doc: Document, base_css: str = "", theme_css: str = "") -> list[Sli
         else:
             elements = [_convert_node(n, styles) for n in body_nodes]
 
+        elements = _apply_rows(elements)
+
         if heading_elem:
             elements.insert(0, heading_elem)
         if subtitle_elem:
@@ -196,6 +198,25 @@ def _split_two_col_ir(nodes: list) -> tuple[list, list]:
     left = _group_rows_ir(left)
     right = _group_rows_ir(right)
     return left, right
+
+
+def _apply_rows(elements: list[Elem]) -> list[Elem]:
+    """Wrap elements between @row markers into Row containers. Works on every slide."""
+    has_markers = any(e.kind == "row-marker" for e in elements)
+    if not has_markers:
+        return elements
+    result = []
+    buf = []
+    for e in elements:
+        if e.kind == "row-marker":
+            if buf:
+                result.append(Elem(kind="row", children=buf))
+                buf = []
+            continue
+        buf.append(e)
+    if buf:
+        result.append(Elem(kind="row", children=buf))
+    return result
 
 
 def _group_rows_ir(nodes: list) -> list:
@@ -351,6 +372,10 @@ def _convert_node(node, styles: dict) -> Elem:
             fs = styles.get("font_small", 13)
             return Elem(kind="tiny", content=_escape(node.value), text=node.value,
                         font_size=fs, color=base.muted)
+        elif node.type == "side-image":
+            return Elem(kind="side-image", src=node.value, content="")
+        elif node.type == "row":
+            return Elem(kind="row-marker")
         return Elem(kind="text", content=_escape(node.value), text=node.value)
     return Elem(kind="text", content="", text="")
 

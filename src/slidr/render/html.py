@@ -88,9 +88,17 @@ def _render_slide(slide: SlideIR) -> str:
         heading_html += "\n" + _render_elem(elems[0])
         elems = elems[1:]
 
+    side_html = ""
+    for e in list(elems):
+        if e.kind == "side-image":
+            side_html = f'<div class="side-image"><img src="{_escape(e.src)}" alt=""></div>'
+            elems.remove(e)
+
     body_html = "\n".join(filter(None, (_render_elem(e) for e in elems)))
     if body_html.strip():
         heading_html += '\n<div class="slide-body">\n' + body_html + '\n</div>'
+    if side_html:
+        heading_html += side_html
     return heading_html or body_html
 
 
@@ -166,9 +174,8 @@ def _render_elem(e: Elem) -> str:
     elif e.kind == "arrow":
         return f'<div class="card-arrow">{e.content}</div>'
     elif e.kind == "row":
-        cols = len(e.children)
         children = "\n".join(filter(None, (_render_elem(c) for c in e.children)))
-        return f'<div class="row" style="display:grid;grid-template-columns:repeat({cols},1fr);gap:1em">\n{children}\n</div>'
+        return f'<div class="row">\n{children}\n</div>'
     elif e.kind == "notes":
         cls = "notes"
         if e.tag:
@@ -194,6 +201,8 @@ def _render_elem(e: Elem) -> str:
         return f'<div class="speaker">{text}</div>'
     elif e.kind in ("kicker", "subtitle", "tiny"):
         return f'<p class="{e.kind}">{e.content}</p>'
+    elif e.kind == "row-marker":
+        return ""
     return ""
 
 
