@@ -23,6 +23,7 @@ def main(
     odp: bool = typer.Option(False, "--odp", help="Generate ODP (programmatic)"),
     image_odp: bool = typer.Option(False, "--image-odp", help="Generate ODP (PDF screenshots)"),
     dist: bool = typer.Option(False, "--dist", help="Package HTML + referenced assets into a zip"),
+    optimize_images: bool = typer.Option(False, "--optimize-images/--no-optimize-images", help="Optimize images in PDF output (jpeg_quality=85, dpi=150)"),
     watch: bool = typer.Option(False, "-w", "--watch", help="Watch file and rebuild on changes"),
     debug: bool = typer.Option(False, "--debug", help="Dump AST + write debug CSS"),
     css: Optional[Path] = typer.Option(None, "--css", help="Custom CSS theme file (overrides default)"),
@@ -33,11 +34,12 @@ def main(
     if watch:
         _watch(file, output_dir, pdf, odp, image_odp, debug, css)
     else:
-        _build(file, output_dir, pdf, odp, image_odp, dist, debug, css)
+        _build(file, output_dir, pdf, odp, image_odp, dist, optimize_images, debug, css)
 
 
 def _build(file: Path, output_dir: Optional[Path], pdf: bool,
-           odp: bool, image_odp: bool, dist: bool, debug: bool, css_path: Optional[Path]) -> None:
+           odp: bool, image_odp: bool, dist: bool, optimize_images: bool,
+           debug: bool, css_path: Optional[Path]) -> None:
     content = file.read_text()
     doc = parse(content)
     dims = doc.meta.dimensions()
@@ -93,7 +95,7 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
 
     if pdf:
         pdf_path = out_dir / f"{stem}.pdf"
-        render_pdf(html_path, pdf_path)
+        render_pdf(html_path, pdf_path, optimize_images=optimize_images)
         typer.echo(f"Wrote {pdf_path} ({pdf_path.stat().st_size} bytes)")
         return
 
@@ -108,7 +110,7 @@ def _build(file: Path, output_dir: Optional[Path], pdf: bool,
 def _watch(file: Path, output_dir: Optional[Path], pdf: bool,
            odp: bool, image_odp: bool, debug: bool, css_path: Optional[Path]) -> None:
     last_mtime = 0
-    _build(file, output_dir, pdf, odp, image_odp, False, debug, css_path)
+    _build(file, output_dir, pdf, odp, image_odp, False, False, debug, css_path)
     typer.echo(f"Watching {file} for changes (Ctrl+C to stop)")
 
     while True:
@@ -118,7 +120,7 @@ def _watch(file: Path, output_dir: Optional[Path], pdf: bool,
             if mtime != last_mtime:
                 last_mtime = mtime
                 typer.echo("---")
-                _build(file, output_dir, pdf, odp, image_odp, False, debug, css_path)
+                _build(file, output_dir, pdf, odp, image_odp, False, False, debug, css_path)
         except KeyboardInterrupt:
             typer.echo("\nStopped watching.")
             break
