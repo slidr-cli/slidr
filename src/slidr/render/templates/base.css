@@ -6,6 +6,7 @@
 /* ---- variables ---- */
 :root {
   --radius: 0.18em;
+  --img-radius: 0.45em;
   --gap: 1em;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   --section-padding-v: 2.8em;
@@ -92,7 +93,7 @@ li { margin: 0.4em 0; line-height: 1.5; overflow-wrap: break-word; }
 ul { list-style: var(--list-style); }
 ul li::marker { color: var(--color-accent); font-weight: bold; }
 
-img { max-width: 100%; height: auto; }
+img { max-width: 100%; height: auto; border-radius: var(--img-radius); }
 section img { max-height: IMG_MAX_Hpx; object-fit: contain; display: block; margin-left: auto; margin-right: auto; }
 [data-theme="dark"] section img,
 section[data-theme="dark"] img { max-height: 16em; }
@@ -392,17 +393,12 @@ section[data-transition]:not([data-transition="none"]).outgoing {
   bottom: 22%;
   max-width: 26%;
   z-index: 1;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 0.3em;
-  background: rgba(255, 255, 255, 0.85);
 }
 .layout-title .side-image img {
   max-width: 100%;
   max-height: 14em;
   object-fit: contain;
   display: block;
-  border-radius: var(--radius);
 }
 
 /* ---- print mode ---- */

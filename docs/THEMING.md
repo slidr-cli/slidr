@@ -280,8 +280,9 @@ These are in `base.css` and control spacing:
 
 ```css
 :root {
-  --radius: 0.4em;            /* border radius for cards, code, notes */
-  --gap: 1em;                 /* grid gap, layout column gap */
+  --radius: 0.18em;           /* border radius for cards, code, notes */
+  --img-radius: 0.45em;        /* image corner radius (independent of --radius) */
+  --gap: 1em;                  /* grid gap, layout column gap */
   --font-mono: "SFMono-Regular", Consolas, monospace;
   --section-padding-v: 2.8em; /* vertical slide padding */
   --section-padding-h: 3.6em; /* horizontal slide padding */
