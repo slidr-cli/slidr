@@ -30,6 +30,7 @@ class Meta:
     seaborn_theme: str = ""
     theme_variant: str = "light"
     transition: str = ""
+    autoplay: int = 7
 
     def dimensions(self) -> tuple[int, int]:
         raw = str(self.size)

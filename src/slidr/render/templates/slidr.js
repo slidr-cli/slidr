@@ -5,15 +5,20 @@ var slideNotes = [{% for slide in slides %}{{ slide.notes|tojson }}{% if not loo
 
 var KEYS_FWD = ['ArrowRight', 'ArrowDown', 'PageDown', ' '];
 var KEYS_BACK = ['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'];
+var AUTOPLAY_INTERVAL = {{ autoplay }};
+var _autoAdvancing = false;
 
 if (isPresenter) {
   // ===== PRESENTER MODE =====
   var ms = document.querySelectorAll("#pres-main section");
   var ns = document.querySelectorAll("#pres-next section");
-  var nd = document.getElementById("pres-notes");
+  var nd = document.getElementById("pres-notes-text");
   var current = 0;
+  var autoplayRunning = false;
+  var autoplayTimer = null;
+  var autoplayBtn = document.getElementById('pres-autoplay');
 
-  function show(n) {
+  function _rawShow(n) {
     if (n < 0 || n >= ms.length) return;
     for (var i = 0; i < ms.length; i++) ms[i].classList.toggle("active", i === n);
     for (var i = 0; i < ns.length; i++) ns[i].classList.toggle("active", i === n + 1);
@@ -21,18 +26,64 @@ if (isPresenter) {
     current = n;
   }
 
-  var bc = new BroadcastChannel('slidr-' + document.title);
-  bc.onmessage = function(e) {
-    if (e.data.slide !== undefined && e.data.slide !== current) show(e.data.slide);
-  };
-  show(0);
+  function show(n) {
+    if (!_autoAdvancing) stopAutoplay();
+    _rawShow(n);
+    bc.postMessage({ slide: n });
+  }
 
   function advance(delta) {
     var n = current + delta;
     if (n < 0 || n >= ms.length) return;
     show(n);
-    bc.postMessage({ slide: n });
   }
+
+  function startAutoplay() {
+    if (AUTOPLAY_INTERVAL <= 0) return;
+    autoplayRunning = true;
+    if (autoplayBtn) autoplayBtn.textContent = '⏸';
+    clearInterval(autoplayTimer);
+    autoplayTimer = setInterval(function() { _autoAdvance(); }, AUTOPLAY_INTERVAL * 1000);
+  }
+
+  function stopAutoplay() {
+    autoplayRunning = false;
+    if (autoplayBtn) autoplayBtn.textContent = '⏯';
+    clearInterval(autoplayTimer);
+  }
+
+  function toggleAutoplay() {
+    if (autoplayRunning) { stopAutoplay(); bc.postMessage({ command: 'autoplay-stop' }); }
+    else { startAutoplay(); bc.postMessage({ command: 'autoplay-start' }); }
+  }
+
+  function _autoAdvance() {
+    if (current === ms.length - 1) {
+      stopAutoplay();
+      document.body.classList.add('autoplay-looping');
+      setTimeout(function() {
+        _autoAdvancing = true;
+        show(0);
+        _autoAdvancing = false;
+        document.body.classList.remove('autoplay-looping');
+        startAutoplay();
+      }, 400);
+      return;
+    }
+    _autoAdvancing = true;
+    advance(1);
+    _autoAdvancing = false;
+  }
+
+  if (autoplayBtn) autoplayBtn.addEventListener('click', toggleAutoplay);
+
+  var bc = new BroadcastChannel('slidr-' + document.title);
+  bc.onmessage = function(e) {
+    if (e.data.slide !== undefined && e.data.slide !== current) { _rawShow(e.data.slide); }
+    if (e.data.command === 'autoplay-start') { startAutoplay(); }
+    if (e.data.command === 'autoplay-stop') { stopAutoplay(); }
+  };
+  show(0);
 
   document.getElementById('pres-main').addEventListener('click', function() { advance(1); });
   document.getElementById('pres-main').addEventListener('contextmenu', function(e) {
@@ -45,9 +96,9 @@ if (isPresenter) {
     } else if (KEYS_BACK.includes(e.key)) {
       e.preventDefault(); advance(-1);
     } else if (e.key === 'Home') {
-      e.preventDefault(); show(0); bc.postMessage({ slide: 0 });
+      e.preventDefault(); show(0);
     } else if (e.key === 'End') {
-      e.preventDefault(); show(ms.length - 1); bc.postMessage({ slide: ms.length - 1 });
+      e.preventDefault(); show(ms.length - 1);
     } else if (e.key === 'q') {
       window.close();
     }
@@ -63,6 +114,9 @@ if (isPresenter) {
   var prevBtn = document.getElementById('slidr-prev');
   var nextBtn = document.getElementById('slidr-next');
   var presenterWindow = null;
+  var autoplayRunning = false;
+  var autoplayTimer = null;
+  var autoplayBtn = document.getElementById('slidr-autoplay');
 
   function setScale() {
     var sw = {{ slide_w }}, sh = {{ slide_h }};
@@ -73,10 +127,9 @@ if (isPresenter) {
   window.addEventListener('resize', setScale);
 
   var _outTimer = 0;
-  function show(n) {
+  function _rawShow(n) {
     if (n < 0 || n >= total) return;
     var prev = slides[current];
-    // Clean up any stale outgoing class
     for (var i = 0; i < slides.length; i++) slides[i].classList.remove('outgoing');
     clearTimeout(_outTimer);
     if (prev && prev !== slides[n] && prev.hasAttribute('data-transition') && prev.getAttribute('data-transition') !== 'none') {
@@ -84,13 +137,11 @@ if (isPresenter) {
     }
     prev && prev.classList.remove('active');
     current = n;
-    // Clear pre-render overrides from this slide
     if (slides[current].classList.contains('pre-render')) {
       slides[current].style.cssText = '';
     }
     slides[current].classList.add('active');
-    slides[current].offsetHeight; // force layout before paint
-    // Pre-render next slide so images are already painted when activated
+    slides[current].offsetHeight;
     var next = slides[current + 1];
     if (next && !next.classList.contains('pre-render')) {
       next.classList.add('pre-render');
@@ -104,7 +155,13 @@ if (isPresenter) {
     if (nextBtn) nextBtn.disabled = current === total - 1;
     try { localStorage.setItem('slidr-slide-' + document.title, current); } catch(e) {}
   }
-  // Prime image cache so hidden slides render without flicker
+
+  var show = function(n) {
+    if (!_autoAdvancing) stopAutoplay();
+    _rawShow(n);
+    bc.postMessage({ slide: n });
+  };
+
   for (var i = 0; i < slides.length; i++) {
     var imgs = slides[i].querySelectorAll('img');
     for (var j = 0; j < imgs.length; j++) {
@@ -114,14 +171,50 @@ if (isPresenter) {
   }
 
   var bc = new BroadcastChannel('slidr-' + document.title);
-  var _origShow = show;
-  show = function(n) {
-    _origShow(n);
-    bc.postMessage({ slide: n });
-  };
   bc.onmessage = function(e) {
-    if (e.data.slide !== undefined && e.data.slide !== current) _origShow(e.data.slide);
+    if (e.data.slide !== undefined && e.data.slide !== current) { stopAutoplay(); _rawShow(e.data.slide); }
+    if (e.data.command === 'autoplay-start') { startAutoplay(); }
+    if (e.data.command === 'autoplay-stop') { stopAutoplay(); }
   };
+
+  function startAutoplay() {
+    if (AUTOPLAY_INTERVAL <= 0) return;
+    autoplayRunning = true;
+    if (autoplayBtn) autoplayBtn.textContent = '⏸';
+    clearInterval(autoplayTimer);
+    autoplayTimer = setInterval(function() { _autoAdvance(); }, AUTOPLAY_INTERVAL * 1000);
+  }
+
+  function stopAutoplay() {
+    autoplayRunning = false;
+    if (autoplayBtn) autoplayBtn.textContent = '⏯';
+    clearInterval(autoplayTimer);
+  }
+
+  function toggleAutoplay() {
+    if (autoplayRunning) { stopAutoplay(); bc.postMessage({ command: 'autoplay-stop' }); }
+    else { startAutoplay(); bc.postMessage({ command: 'autoplay-start' }); }
+  }
+
+  function _autoAdvance() {
+    if (current === total - 1) {
+      stopAutoplay();
+      document.body.classList.add('autoplay-looping');
+      setTimeout(function() {
+        _autoAdvancing = true;
+        show(0);
+        _autoAdvancing = false;
+        document.body.classList.remove('autoplay-looping');
+        startAutoplay();
+      }, 400);
+      return;
+    }
+    _autoAdvancing = true;
+    show(current + 1);
+    _autoAdvancing = false;
+  }
+
+  if (autoplayBtn) autoplayBtn.addEventListener('click', toggleAutoplay);
 
   var stored = null;
   try { stored = parseInt(localStorage.getItem('slidr-slide-' + document.title), 10); } catch(e) {}

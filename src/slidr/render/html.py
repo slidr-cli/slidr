@@ -75,6 +75,7 @@ def render(doc: Document, theme_css: str, assembled_css: str, dims: tuple[int, i
         slide_w=dims[0], slide_h=dims[1],
         css=assembled_css, slides=slides,
         variant=doc.meta.theme_variant or "light",
+        autoplay=doc.meta.autoplay,
     )
 
 

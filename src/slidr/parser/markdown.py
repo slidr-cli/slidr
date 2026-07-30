@@ -38,6 +38,7 @@ def parse(input_text: str) -> Document:
         seaborn_theme=raw_meta.pop("seaborn_theme", None) or Meta.seaborn_theme,
         theme_variant=raw_meta.pop("variant", Meta.theme_variant),
         transition=raw_meta.pop("transition", Meta.transition),
+        autoplay=raw_meta.pop("autoplay", Meta.autoplay),
     )
 
     body = post.content

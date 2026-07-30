@@ -133,3 +133,13 @@ def test_metric_single_line():
     card = [n for n in slide.children if isinstance(n, Card)][0]
     assert card.header == "99%"
     assert card.body == []
+
+
+def test_autoplay_parsed():
+    doc = parse("---\nautoplay: 7\n---\n\n# Title\n\ntext")
+    assert doc.meta.autoplay == 7
+
+
+def test_autoplay_default_seven():
+    doc = parse("---\ntheme: t\n---\n\n# Title\n\ntext")
+    assert doc.meta.autoplay == 7

@@ -61,6 +61,10 @@ html.presenter #presenter-panel {
 /* Hide logo overlay in presenter panel */
 #presenter-panel section::before { display: none !important; }
 #presenter-panel section::after { display: none !important; }
+
+/* ---- autoplay loop transition ---- */
+body { transition: opacity 0.3s ease; }
+body.autoplay-looping { opacity: 0; }
 </style>
 </head>
 <body>
@@ -76,6 +80,7 @@ html.presenter #presenter-panel {
   <button id="slidr-prev" title="Previous (Left arrow)">&larr;</button>
   <span id="slidr-counter">1 / {{ slides|length }}</span>
   <button id="slidr-next" title="Next (Right arrow)">&rarr;</button>
+  <button id="slidr-autoplay" title="Toggle autoplay">⏯</button>
   <button id="slidr-fullscreen" title="Toggle fullscreen (f)">&#9974;</button>
   <button id="slidr-presenter" title="Open presenter view (p)">&#9654;</button>
 </div>
@@ -91,7 +96,7 @@ html.presenter #presenter-panel {
     <section class="slide layout-{{ slide.layout }}"{% if slide.variant %} data-theme="{{ slide.variant }}"{% endif %}>{{ slide.children }}</section>
 {% endfor %}
   </div>
-  <div id="pres-notes"></div>
+  <div id="pres-notes"><button id="pres-autoplay" title="Toggle autoplay" style="font-size:18px;background:#333;border:1px solid #555;color:#eee;padding:4px 12px;cursor:pointer;margin-bottom:8px;border-radius:4px">⏯</button><br><span id="pres-notes-text"></span></div>
 </div>
 
 <script>
