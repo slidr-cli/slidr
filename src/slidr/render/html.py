@@ -202,6 +202,13 @@ def _render_elem(e: Elem) -> str:
         return f'<div class="speaker">{text}</div>'
     elif e.kind in ("kicker", "subtitle", "tiny"):
         return f'<p class="{e.kind}">{e.content}</p>'
+    elif e.kind == "video":
+        poster = _video_poster(e.src)
+        return (f'<figure class="video">'
+                f'<video controls preload="metadata" src="{_escape(e.src)}" '
+                f'poster="{_escape(poster)}"></video>'
+                f'<img class="video-print" src="{_escape(poster)}" alt="">'
+                f'</figure>')
     elif e.kind == "row-marker":
         return ""
     return ""
@@ -256,6 +263,11 @@ def _normalize_viewbox(svg: str) -> str:
 
 def _escape(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def _video_poster(src: str) -> str:
+    """Poster/frame image for a video: same basename, .png extension."""
+    return src.rsplit(".", 1)[0] + ".png"
 
 
 def _maybe_escape(s: str) -> str:

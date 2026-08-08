@@ -95,6 +95,9 @@ ul li::marker { color: var(--color-accent); font-weight: bold; }
 
 img { max-width: 100%; height: auto; border-radius: var(--img-radius); }
 section img { max-height: IMG_MAX_Hpx; object-fit: contain; display: block; margin-left: auto; margin-right: auto; }
+figure.video { margin: 0; display: flex; align-items: center; justify-content: center; height: 100%; min-height: 0; }
+figure.video video { width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--img-radius); }
+img.video-print { display: none; }
 [data-theme="dark"] section img,
 section[data-theme="dark"] img { max-height: 16em; }
 a { text-decoration: none; }
@@ -386,8 +389,15 @@ section[data-transition]:not([data-transition="none"]).outgoing {
   justify-content: center;
   padding-top: 3.2em;
 }
-.layout-title h1 { font-size: var(--title-h1-size, 3.5em); }
-.layout-title .subtitle { margin-bottom: 0.3em; font-size: var(--title-subtitle-size, 1.8em); }
+.layout-title h1 {
+  font-size: var(--title-h1-size, 3.5em);
+  max-width: 62%;
+}
+.layout-title .subtitle {
+  margin-bottom: 0.3em;
+  font-size: var(--title-subtitle-size, 1.8em);
+  max-width: 62%;
+}
 .layout-title .side-image {
   position: absolute;
   right: 8%;
@@ -425,6 +435,27 @@ section[data-transition]:not([data-transition="none"]).outgoing {
   pre {
     max-height: none;
     overflow: visible;
+  }
+  /* video slides: single big screenshot centered. The figure is
+     absolutely positioned: weasyprint collapses height:100% through the
+     .slide-body flex layout, and a flowed figure would spill to a second
+     page. Absolute pinning makes the img size resolvable and keeps it
+     off the page flow. */
+  figure.video {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  figure.video video { display: none; }
+  figure.video img.video-print {
+    display: block;
+    max-height: none;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
   }
 }
 

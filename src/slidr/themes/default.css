@@ -20,6 +20,9 @@
   --tag-red-border: #ff7a7a;
   --tag-default-border: #ccc;
   --list-style: "\25B8  ";
+  /* keep titles clear of the side-image QR: match kubecon sizing */
+  --title-h1-size: 2.5em;
+  --title-subtitle-size: 1.2em;
 }
 
 /* per-slide variant override */

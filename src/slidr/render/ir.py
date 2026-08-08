@@ -374,6 +374,8 @@ def _convert_node(node, styles: dict) -> Elem:
                         font_size=fs, color=base.muted)
         elif node.type == "side-image":
             return Elem(kind="side-image", src=node.value, content="")
+        elif node.type == "video":
+            return Elem(kind="video", src=node.value, content="")
         elif node.type == "row":
             return Elem(kind="row-marker")
         return Elem(kind="text", content=_escape(node.value), text=node.value)

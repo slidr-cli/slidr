@@ -1014,6 +1014,7 @@ _RENDERERS: dict[str, Any] = {
     "table": _render_table,
     "grid": _render_grid,
     "card": _render_card,
+    "video": lambda *_: [],
 }
 
 
