@@ -1,67 +1,67 @@
-/* slidr KCD Vietnam 2026 theme */
+/* slidr Open Source Summit Korea 2026 theme */
 
 :root {
   --color-background: #ffffff;
-  --color-background-stripe: #f0ede6;
-  --color-foreground: #3a2020;
-  --color-dimmed: #7a6a5a;
-  --color-accent: #7A0504;
-  --color-accent-bg: rgba(122, 5, 4, 0.12);
-  --color-border: #d6c8b8;
-  --color-card-bg: #F6ECD9;
+  --color-background-stripe: #EAF3F1;
+  --color-foreground: #003A43;
+  --color-dimmed: #5F7D79;
+  --color-accent: #F4A197;
+  --color-accent-bg: rgba(244, 161, 151, 0.14);
+  --color-border: #BFD4D0;
+  --color-card-bg: #ffffff;
   --bg-image: url("assets/brand/ossummit_korea/title_background.png");
   --bg-overlay: rgba(255,255,255,0.96);
   --watermark: url("assets/brand/ossummit_korea/watermark.png");
   --logo-dark: url("assets/brand/dynamia-logo-white.png");
-  --tag-green-bg: #e8f5e9;
-  --tag-cyan-bg: #fce8e8;
-  --tag-yellow-bg: #fef8e6;
-  --tag-red-bg: #fff3e0;
-  --tag-default-bg: #f5f5f5;
-  --tag-green-border: #2e7d32;
-  --tag-cyan-border: #7A0504;
-  --tag-yellow-border: #F1C560;
-  --tag-red-border: #F1C560;
-  --tag-default-border: #ccc;
+  --tag-green-bg: #E9F2F0;
+  --tag-cyan-bg: #E2F1EF;
+  --tag-yellow-bg: #F6EFDE;
+  --tag-red-bg: #FBE9E7;
+  --tag-default-bg: #F4F7F6;
+  --tag-green-border: #003A43;
+  --tag-cyan-border: #75BDB3;
+  --tag-yellow-border: #C9A86A;
+  --tag-red-border: #F4A197;
+  --tag-default-border: #C4D4D0;
 
-  --color-accent-primary: #7A0504;
-  --color-accent-secondary: #F1C560;
-  --color-accent-contrast: #1a0000;
+  --color-accent-primary: #F4A197;
+  --color-accent-secondary: #75BDB3;
+  --color-accent-contrast: #003A43;
   --list-style: "\25B8  ";
-  --card-border: 2px solid #F1C560;
+  --card-border: 1px solid #A9CBC6;
   --title-h1-size: 2.5em;
   --title-subtitle-size: 1.2em;
 }
 
 body {
-  background: #1a0000;
+  background: #003A43;
 }
 
 [data-theme="dark"] {
-  --color-background: #1a0000;
-  --color-background-stripe: #2d0808;
-  --color-foreground: #f0e8d0;
-  --color-dimmed: #a09080;
-  --color-accent: #c04040;
-  --color-accent-bg: rgba(192, 64, 64, 0.15);
-  --color-border: #3a1818;
-  --color-card-bg: #2d0808;
-  --bg-overlay: rgba(26, 0, 0, 0.90);
-  --tag-green-bg: #1a2e1a;
-  --tag-cyan-bg: #2e1a1a;
-  --tag-yellow-bg: #2e2a1a;
-  --tag-red-bg: #2e1a1a;
-  --tag-default-bg: #1a1a2e;
-  --tag-green-border: #2d8a3e;
-  --tag-cyan-border: #c04040;
-  --tag-yellow-border: #F1C560;
-  --tag-red-border: #F1C560;
-  --tag-default-border: #2a2a4a;
+  --color-background: #003A43;
+  --color-background-stripe: #0A4B55;
+  --color-foreground: #EAF4F2;
+  --color-dimmed: #9FBCB7;
+  --color-accent: #F4A197;
+  --color-accent-bg: rgba(244, 161, 151, 0.16);
+  --color-border: #1D5B65;
+  --color-card-bg: #0E4A54;
+  --bg-overlay: rgba(0, 58, 67, 0.92);
+  --tag-green-bg: #123130;
+  --tag-cyan-bg: #10343A;
+  --tag-yellow-bg: #332C16;
+  --tag-red-bg: #3A211E;
+  --tag-default-bg: #0E4A54;
+  --tag-green-border: #5BA894;
+  --tag-cyan-border: #75BDB3;
+  --tag-yellow-border: #D9C36A;
+  --tag-red-border: #F4A197;
+  --tag-default-border: #1D5B65;
 
-  --color-accent-primary: #c04040;
-  --color-accent-secondary: #f5d68a;
-  --color-accent-contrast: #c0a080;
-  --card-border: 2px solid #F1C560;
+  --color-accent-primary: #F4A197;
+  --color-accent-secondary: #75BDB3;
+  --color-accent-contrast: #EAF4F2;
+  --card-border: 1px solid #2A6A74;
 }
 
 section {
@@ -70,15 +70,21 @@ section {
   font-family: Roboto, Arial, "Helvetica Neue", sans-serif;
 }
 
-/* Title slide hides watermark */
-.layout-title section::after {
-  background-image: none;
-}
+/* Watermark inside the footer bar, beside the page number (light slides only) */
 section::after {
   opacity: 0.9;
+  left: auto;
+  right: 3.25em;
+  bottom: 0.48em;
+  width: 4.16em;
+  height: 0.9em;
+  background-position: center;
+}
+.layout-title::after {
+  background-image: none;
 }
 .layout-title {
-  background: linear-gradient(135deg, rgba(26,0,0,0.85) 0%, rgba(122,5,4,0.85) 60%, rgba(40,2,2,0.85) 100%), var(--bg-image) left top / cover no-repeat;
+  background: linear-gradient(90deg, rgba(0,58,67,0.82) 0%, rgba(0,58,67,0.82) 58%, rgba(0,58,67,0.25) 78%, rgba(0,58,67,0) 95%), var(--bg-image) left top / cover no-repeat;
   color: #ffffff;
 }
 .layout-title h1,
@@ -87,12 +93,12 @@ section::after {
 .layout-title h4,
 .layout-title h5,
 .layout-title h6 { color: #ffffff; }
-.layout-title .kicker { color: rgba(255,255,255,0.8); }
-.layout-title .subtitle { color: #F7DE9C; }
-.layout-title .speaker { color: rgba(255,255,255,0.8); }
-.layout-title .speaker .role { color: rgba(255,255,255,0.5); }
-.layout-title .speaker-links a { color: rgba(255,255,255,0.75); }
-.layout-title .speaker-links svg { stroke: rgba(255,255,255,0.75); }
+.layout-title .kicker { color: #F4A197; }
+.layout-title .subtitle { color: #75BDB3; }
+.layout-title .speaker { color: rgba(255,255,255,0.85); }
+.layout-title .speaker .role { color: rgba(255,255,255,0.6); }
+.layout-title .speaker-links a { color: rgba(255,255,255,0.8); }
+.layout-title .speaker-links svg { stroke: rgba(255,255,255,0.8); }
 
 .layout-title { --logo: var(--logo-dark); }
 
@@ -140,8 +146,36 @@ a { color: var(--color-accent-primary); }
 .speaker { color: var(--color-foreground); }
 .speaker .role { color: var(--color-dimmed); }
 
-footer { color: var(--color-dimmed); }
-.slide-num { color: var(--color-dimmed); }
+/* Footer bar on light slides only (--footer-bg optional, off by default) */
+footer {
+  --footer-bg: #003A43;
+  --footer-color: #EAF4F2;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0.8em var(--section-padding-h);
+}
+.layout-title footer,
+section[data-theme="dark"] footer {
+  --footer-bg: transparent;
+  --footer-color: #EAF4F2;
+  left: var(--section-padding-h);
+  right: auto;
+  bottom: 1em;
+  padding: 0;
+}
+.slide-num {
+  bottom: 0;
+  right: var(--section-padding-h);
+  padding: 0.8em 0;
+  color: #EAF4F2;
+}
+.layout-title .slide-num,
+section[data-theme="dark"] .slide-num {
+  bottom: 1em;
+  padding: 0;
+  color: #EAF4F2;
+}
 
 .subtitle { color: var(--color-dimmed); }
 h2 + .subtitle { font-size: 0.85em; }

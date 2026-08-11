@@ -197,6 +197,8 @@ footer {
   left: var(--section-padding-h);
   font-size: 0.6em;
   text-align: left;
+  background: var(--footer-bg);
+  color: var(--footer-color);
 }
 .slide-num {
   position: absolute;
