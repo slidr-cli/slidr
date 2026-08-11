@@ -143,6 +143,9 @@ a { color: var(--color-accent-primary); }
 .quote { border-left-color: var(--color-accent-primary); color: var(--color-accent-primary); }
 
 .kicker { color: var(--color-accent-primary); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; font-size: 0.75em; }
+
+/* 5-col comparison table (Jetson vs NPUs slide, only wide table in the deck) */
+section:has(table thead th:nth-child(5)) table { font-size: 0.7em; }
 .speaker { color: var(--color-foreground); }
 .speaker .role { color: var(--color-dimmed); }
 
@@ -153,7 +156,7 @@ footer {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 0.8em var(--section-padding-h);
+  padding: 1em var(--section-padding-h);
 }
 .layout-title footer,
 section[data-theme="dark"] footer {
@@ -167,7 +170,7 @@ section[data-theme="dark"] footer {
 .slide-num {
   bottom: 0;
   right: var(--section-padding-h);
-  padding: 0.8em 0;
+  padding: 1em 0;
   color: #EAF4F2;
 }
 .layout-title .slide-num,
