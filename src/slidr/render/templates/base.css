@@ -75,7 +75,7 @@ section {
 }
 
 h1, h2, h3, h4, h5, h6 { margin: 0; }
-h2 { padding-top: 1%; margin-bottom: 0.6em; }
+h2 { padding-top: 0; margin-bottom: 0.15em; }
 h4 { margin: 0.4em 0 0.15em; }
 .card.side-image {
   align-self: center;
@@ -86,7 +86,7 @@ h4 { margin: 0.4em 0 0.15em; }
 }
 .card.side-image img { max-width: 8em; }
 .subtitle { margin-bottom: 0.6em; }
-h2 + .subtitle { margin-top: -0.5em; }
+h2 + .subtitle { font-size: 0.85em; }
 p { margin-bottom: 0.5em; }
 ul { margin: 0 14pt; }
 li { margin: 0.4em 0; line-height: 1.5; overflow-wrap: break-word; }
@@ -157,7 +157,7 @@ th { font-weight: 700; }
   padding: 0.5em 0.2em;
 }
 .card.metric h3 {
-  font-size: 2.8em;
+  font-size: 2.4em;
   font-weight: 800;
   line-height: 1.15;
   margin: 0 0 0.15em;
