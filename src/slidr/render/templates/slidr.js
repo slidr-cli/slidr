@@ -90,6 +90,15 @@ if (isPresenter) {
     e.preventDefault(); advance(-1);
   });
 
+  var wheelCooldown = 0;
+  document.getElementById('pres-main').addEventListener('wheel', function(e) {
+    if (Math.abs(e.deltaY) < 10) return;
+    var now = Date.now();
+    if (now - wheelCooldown < 500) return;
+    wheelCooldown = now;
+    advance(e.deltaY > 0 ? 1 : -1);
+  }, { passive: true });
+
   document.addEventListener('keydown', function(e) {
     if (KEYS_FWD.includes(e.key)) {
       e.preventDefault(); advance(1);
@@ -261,6 +270,15 @@ if (isPresenter) {
     e.preventDefault();
     show(current - 1);
   });
+
+  var wheelCooldown = 0;
+  document.addEventListener('wheel', function(e) {
+    if (Math.abs(e.deltaY) < 10) return;
+    var now = Date.now();
+    if (now - wheelCooldown < 500) return;
+    wheelCooldown = now;
+    show(e.deltaY > 0 ? current + 1 : current - 1);
+  }, { passive: true });
 
   var navBar = document.getElementById('slidr-nav');
   var hideTimer = null;
